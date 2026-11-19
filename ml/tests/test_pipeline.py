@@ -19,6 +19,7 @@ from weatherai_ml.config import (
 from weatherai_ml.dataset import Dataset, residual_targets, window_ends
 from weatherai_ml.features import build_frames
 from weatherai_ml.metrics import conformal_halfwidth, r2, summary
+from weatherai_ml.models import MODEL_NAMES
 from weatherai_ml.predict import EnsemblePredictor, InsufficientHistoryError, Predictor, nearest_city
 from weatherai_ml.preprocess import FeatureOrderError, Preprocessor
 from weatherai_ml.synthetic import synthetic_long_frame
@@ -189,7 +190,39 @@ def test_nearest_city_only_within_range():
     assert nearest_city(51.5, -0.12) is None  # London is not covered
 
 
-TRAINED = [p for p in ("lstm", "gru", "cnn_lstm") if (ARTIFACTS_DIR / p / "model.keras").exists()]
+TRAINED = [p for p in MODEL_NAMES if (ARTIFACTS_DIR / p / "model.keras").exists()]
+
+
+def test_transformer_tokens_follow_points_and_patches():
+    """Token (point 2, patch 3) holds point 2's features for hours 18-23, then the shared features."""
+    import keras
+
+    from weatherai_ml.config import FEATURE_ORDER, POINT_FEATURES, POINTS
+    from weatherai_ml.models import SpatialPatchTokens
+
+    P, Fp, patch = len(POINTS), len(POINT_FEATURES), 6
+    x = np.random.default_rng(0).normal(size=(2, 48, len(FEATURE_ORDER))).astype("float32")
+    tokens = keras.ops.convert_to_numpy(SpatialPatchTokens(P, Fp, patch)(x))
+    assert tokens.shape == (2, P * 8, patch * (Fp + len(FEATURE_ORDER) - P * Fp))
+    t = tokens[1, 2 * 8 + 3]
+    assert np.allclose(t[: patch * Fp].reshape(patch, Fp), x[1, 18:24, 2 * Fp : 3 * Fp])
+    assert np.allclose(t[patch * Fp :].reshape(patch, -1), x[1, 18:24, P * Fp :])
+    assert np.allclose(tokens[0, 0, : patch * Fp].reshape(patch, Fp), x[0, :6, :Fp])  # first token: the city
+
+
+def test_transformer_saves_and_reloads(tmp_path):
+    import keras
+
+    from weatherai_ml.config import FEATURE_ORDER
+    from weatherai_ml.models import build_model
+
+    model = build_model("transformer", 48, len(FEATURE_ORDER), 24, 3, loss="huber")
+    x = np.random.default_rng(1).normal(size=(3, 48, len(FEATURE_ORDER))).astype("float32")
+    model.save(tmp_path / "m.keras")
+    again = keras.saving.load_model(tmp_path / "m.keras", compile=False)
+    assert np.allclose(model.predict(x, verbose=0), again.predict(x, verbose=0), atol=1e-6)
+    with pytest.raises(ValueError, match="multiple of patch"):
+        build_model("transformer", 50, len(FEATURE_ORDER), 24, 3)
 
 
 @pytest.mark.skipif(not TRAINED, reason="no trained models yet")

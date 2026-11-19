@@ -7,7 +7,8 @@ Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop i
   (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
 - **Map**: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
   points, with the cities WeatherAI's own models cover marked.
-- **Forecast**: 7-day strip and per-day detail, plus WeatherAI's own LSTM, GRU and CNN-LSTM predictions
+- **Forecast**: 7-day strip and per-day detail, plus WeatherAI's own predictions (LSTM, GRU, CNN-LSTM,
+  ST-Transformer, LightGBM and their ensemble)
   for the next 24 hours with error ranges, side by side with Open-Meteo's forecast.
 - **Analytics**: actual vs predicted on the held-out test period, error by city, and historical trends for any place.
 - **Models**: test-set MAE, RMSE and R², a persistence baseline, error-range coverage, a check against real
@@ -143,17 +144,33 @@ so they are offline and deterministic. Synthetic data is never used for training
 | Spatial context | Each city plus four points about 55 km north, south, east and west |
 | Input | Last 48 hours × 42 features (7 weather variables × 5 points, time of day, season, latitude, longitude, elevation) |
 | Output | Next 24 hours of temperature, humidity and rain at the city |
-| Architectures | Two-layer LSTM, two-layer GRU, causal CNN + LSTM (`ml/weatherai_ml/models.py`), LightGBM gradient-boosted trees (`ml/weatherai_ml/gbm.py`), and an equal-weight ensemble (`ml/weatherai_ml/ensemble.py`) |
+| Architectures | Two-layer LSTM, two-layer GRU, causal CNN + LSTM, a spatio-temporal Transformer (`ml/weatherai_ml/models.py`), LightGBM gradient-boosted trees (`ml/weatherai_ml/gbm.py`), and an equal-weight ensemble (`ml/weatherai_ml/ensemble.py`) |
 
 **LightGBM** turns each forecast into 24 table rows (one per hour ahead) built from the current features, the
 city's last 24 hours (lags 1, 3, 6, 12, 24) and the value 24 hours before each predicted hour, predicting the
 day-on-day change like the version 2 networks. One booster per target, early-stopped on the validation year.
-It is the strongest single model here (test temperature MAE 1.15 °C, humidity 5.95 %), runs a forecast in about
-2 ms, and its feature importance is shown on the Models page; its rain MAE is weaker than the networks'.
+It has the best single-model humidity (test MAE 5.95 %), runs a forecast in about 2 ms, and its feature
+importance is shown on the Models page; its rain MAE is weaker than the networks'.
 
-**The ensemble** averages member predictions with equal weights. Whether LightGBM joins it was decided on the
-validation year between two candidate sets fixed in advance (networks only, or networks plus LightGBM); the
-four-model set won and gives the best test temperature MAE, 1.13 °C.
+**The ST-Transformer** (spatio-temporal Transformer, 150k parameters) cuts each of the five points' 48 hours
+into 6-hour patches, giving 40 tokens (5 points × 8 patches). Each token carries that point's weather for those
+hours plus the time and location features; learned position embeddings say which point and which patch it is.
+Two pre-norm Transformer blocks (4-head self-attention, width 64) attend across all tokens at once, so the
+model relates any point at any time to any other: with five points this is attention over a fully connected
+spatial graph, learned jointly with time. The head reads the city's own 8 tokens. Targets, loss and training
+are the same as the recurrent networks.
+
+Four variants were compared on the validation year only (`ml/experiments/e6`–`e9`): the base settings won
+(validation temperature MAE 0.983 °C, against 0.998–1.018 for 4-hour patches, 3 blocks or width 96, and 1.001
+for LightGBM). Scored once on the 2026 test period it is the best single model for temperature (1.141 °C, just
+ahead of LightGBM's 1.153) and rain (0.114 mm), and second for humidity (6.18 %); its validation lead over
+LightGBM mostly shrank on the test period, so treat the two as close. It forecasts in about 45 ms.
+
+**The ensemble** averages member predictions with equal weights. Its members are chosen on the validation year
+between candidate sets fixed in advance: the three recurrent networks, plus each combination of the later
+additions (LightGBM; the ST-Transformer, added before its test results were seen). All five won on validation
+and give the best test temperature MAE, 1.118 °C (it was 1.132 °C without the Transformer), with humidity
+5.97 % and rain 0.118 mm. It takes about 640 ms per forecast on the CPU.
 
 Rebuild both after training the networks:
 
@@ -167,7 +184,7 @@ Retrain with:
 ```bash
 cd ml
 ~/.venvs/weatherai/Scripts/python -m weatherai_ml.fetch     # ~20 min: waits between cities for the free rate limit
-~/.venvs/weatherai/Scripts/python -m weatherai_ml.train --target-mode residual24 --lookback 48 --train-stride 4 --loss huber
+~/.venvs/weatherai/Scripts/python -m weatherai_ml.train --models lstm gru cnn_lstm transformer --target-mode residual24 --lookback 48 --train-stride 4 --loss huber
 ```
 
 ### Model selection (version 2)
@@ -339,7 +356,7 @@ How it works (`backend/app/alerts.py`):
 | --- | --- | --- |
 | Current conditions, past hours | Open-Meteo forecast models | "Open-Meteo model estimate" / solid line |
 | Forecast | Open-Meteo forecast | "Open-Meteo forecast" / dashed line |
-| WeatherAI predictions | Our LSTM, GRU, CNN-LSTM | Model colour, dithered error range |
+| WeatherAI predictions | Our LSTM, GRU, CNN-LSTM, ST-Transformer, LightGBM, ensemble | Model colour, dithered error range |
 | Historical trends | Open-Meteo archive (ERA5) | Named under the chart |
 | Station check | Meteostat | Models page |
 | Official warnings | NDMA Sachet (India), US National Weather Service | Source named under the warnings |

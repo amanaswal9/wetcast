@@ -1,5 +1,5 @@
 /** Line patterns per model, so lines differ by more than colour. */
-export const DASHES = ['', '6 3', '2 3', '10 3 2 3', '1 2']
+export const DASHES = ['', '6 3', '2 3', '10 3 2 3', '1 2', '8 2 2 2 2 2']
 
 export function fmt(value: number, digits = 2): string {
   return Number.isFinite(value) ? value.toFixed(digits) : 'n/a'

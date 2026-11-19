@@ -152,6 +152,17 @@ function HorizonChart({ evaluations, models, target, theme }: { evaluations: Eva
   )
 }
 
+/** One line per architecture, in plain words. */
+const ARCHITECTURES: Record<string, string> = {
+  lstm: 'two layers of long short-term memory cells reading the 48 hours in order.',
+  gru: 'like the LSTM, with simpler gated recurrent units.',
+  cnn_lstm: 'convolutions pick out short patterns across the five points, then an LSTM follows how they change.',
+  transformer:
+    'a spatio-temporal Transformer. Each point’s hours are cut into 6-hour patches, and attention compares every patch of every point with every other, so it can link, for example, the west point’s pressure 18 hours ago to the city’s next day.',
+  lightgbm: 'gradient-boosted decision trees, one row per hour ahead, built from the current readings and recent lags.',
+  ensemble: 'the plain average of the members listed above in “Test-set results”, chosen on the validation year.',
+}
+
 function minutes(seconds: number): string {
   return seconds < 90 ? `${Math.round(seconds)} s` : `${(seconds / 60).toFixed(1)} min`
 }
@@ -355,6 +366,16 @@ export function ModelsPage({ theme }: { theme: Theme }) {
           </dd>
           <dt>Outputs</dt>
           <dd className="m-0">Next {first.data.horizon_hours} hours of temperature, humidity and rain at the city.</dd>
+          <dt>Models</dt>
+          <dd className="m-0">
+            <ul className="m-0 flex flex-col gap-0.5 pl-5">
+              {list.map((m) => (
+                <li key={m.model}>
+                  <b>{m.display_name}:</b> {ARCHITECTURES[m.model] ?? 'a trained forecasting model.'}
+                </li>
+              ))}
+            </ul>
+          </dd>
           {first.config && (
             <>
               <dt>Method</dt>

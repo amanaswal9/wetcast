@@ -62,6 +62,7 @@ class Predictor:
         if self._model is None:
             import keras  # deferred: TensorFlow import is slow
 
+            from . import models  # noqa: F401 - registers the Transformer's custom layers for loading
             self._model = keras.saving.load_model(self.model_dir / "model.keras", compile=False)
         return self._model
 

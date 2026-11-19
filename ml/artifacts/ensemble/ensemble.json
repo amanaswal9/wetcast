@@ -3,7 +3,8 @@
     "lstm",
     "gru",
     "cnn_lstm",
-    "lightgbm"
+    "lightgbm",
+    "transformer"
   ],
   "method": "mean"
 }

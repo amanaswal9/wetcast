@@ -46,7 +46,7 @@ from .config import (
 REGION_LABELS = {"north_india": "North India", "india": "India"}
 from .dataset import Dataset, load_dataset, residual_targets, split_rows, window_ends
 from .metrics import conformal_halfwidth, mae, summary
-from .models import DISPLAY_NAMES, MODEL_NAMES, build_model
+from .models import DISPLAY_NAMES, MODEL_NAMES, TRANSFORMER_DEFAULTS, TRANSFORMER_NAME, build_model
 from .preprocess import RESIDUAL_INDICES, Preprocessor
 from .stations import station_check
 
@@ -239,6 +239,11 @@ def main() -> None:
     parser.add_argument("--lookback", type=int, default=LOOKBACK_HOURS)
     parser.add_argument("--target-mode", choices=["direct", "residual24"], default="direct")
     parser.add_argument("--loss", choices=["mse", "huber"], default="mse")
+    parser.add_argument("--tf-patch", type=int, default=TRANSFORMER_DEFAULTS["patch"], help="transformer: hours per patch")
+    parser.add_argument("--tf-dim", type=int, default=TRANSFORMER_DEFAULTS["dim"], help="transformer: token width")
+    parser.add_argument("--tf-layers", type=int, default=TRANSFORMER_DEFAULTS["layers"], help="transformer: encoder blocks")
+    parser.add_argument("--tf-heads", type=int, default=TRANSFORMER_DEFAULTS["heads"], help="transformer: attention heads")
+    parser.add_argument("--tf-dropout", type=float, default=TRANSFORMER_DEFAULTS["dropout"], help="transformer: dropout")
     parser.add_argument("--experiment", help="validation-only run; results go to ml/experiments/NAME.json")
     parser.add_argument("--region", choices=REGION_NAMES, default="north_india")
     parser.add_argument("--artifacts-dir", help="override the output folder (smoke tests)")
@@ -265,9 +270,11 @@ def main() -> None:
     print(f"rows={len(ds.times):,} features={X.shape[1]} train windows={len(train_ends):,} val windows={len(val_ends):,}")
 
     manifest = json.loads((raw_dir(args.region) / "manifest.json").read_text())
+    tf_options = {"patch": args.tf_patch, "dim": args.tf_dim, "layers": args.tf_layers, "heads": args.tf_heads, "dropout": args.tf_dropout}
     for name in args.models:
         keras.utils.set_random_seed(SEED)
-        model = build_model(name, L, X.shape[1], H, len(TARGETS), loss=args.loss)
+        options = tf_options if name == TRANSFORMER_NAME else None
+        model = build_model(name, L, X.shape[1], H, len(TARGETS), loss=args.loss, options=options)
         print(f"\n=== {DISPLAY_NAMES[name]}: {model.count_params():,} parameters ===")
         started = time.perf_counter()
         history = model.fit(
@@ -288,6 +295,8 @@ def main() -> None:
             "loss": args.loss,
             "train_stride_hours": args.train_stride,
         }
+        if options:
+            config["architecture"] = options
 
         if args.experiment:
             # Model selection uses the full validation year only. The test set is not touched.
