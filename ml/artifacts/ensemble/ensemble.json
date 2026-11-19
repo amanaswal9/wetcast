@@ -1,0 +1,8 @@
+{
+  "members": [
+    "lstm",
+    "gru",
+    "cnn_lstm"
+  ],
+  "method": "mean"
+}

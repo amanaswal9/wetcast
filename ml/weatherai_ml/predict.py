@@ -111,3 +111,34 @@ class Predictor:
         issued = self.usable(features).index[-1]
         times = [issued + pd.Timedelta(hours=i) for i in range(1, self.preprocessor.horizon + 1)]
         return Prediction(issued_at=issued, times=times, values=values, lower=lower, upper=upper)
+
+
+def apply_ranges(values: np.ndarray, halfwidth: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    lower = values - halfwidth
+    upper = values + halfwidth
+    p, h = TARGETS.index("precipitation"), TARGETS.index("humidity")
+    lower[:, p] = np.clip(lower[:, p], 0, None)
+    lower[:, h], upper[:, h] = np.clip(lower[:, h], 0, 100), np.clip(upper[:, h], 0, 100)
+    return lower, upper
+
+
+class EnsemblePredictor:
+    """Average of member predictors, with its own validation-calibrated error ranges."""
+
+    def __init__(self, model_dir: Path, members: list[Predictor]):
+        self.model_dir = model_dir
+        self.name = model_dir.name
+        self.members = members
+        self.metrics = json.loads((model_dir / "metrics.json").read_text())
+        self.halfwidth = np.array([self.metrics["interval"]["halfwidth_by_horizon"][t] for t in TARGETS], dtype=float).T
+        # The longest member lookback decides how much history the API must fetch.
+        self.preprocessor = max((m.preprocessor for m in members), key=lambda p: p.lookback)
+
+    def predict(self, features: pd.DataFrame) -> Prediction:
+        preds = [m.predict(features) for m in self.members]
+        issued = {p.issued_at for p in preds}
+        if len(issued) != 1:
+            raise InsufficientHistoryError("Ensemble members disagree on the last complete hour.")
+        values = np.mean([p.values for p in preds], axis=0)
+        lower, upper = apply_ranges(values, self.halfwidth)
+        return Prediction(issued_at=preds[0].issued_at, times=preds[0].times, values=values, lower=lower, upper=upper)

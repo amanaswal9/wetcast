@@ -10,6 +10,8 @@ import { CHART_COLORS, CHART_FONT, MODEL_COLORS } from '../../lib/chartTheme'
 import { BackendNotice } from './BackendNotice'
 
 const TARGETS: Target[] = ['temperature', 'humidity', 'precipitation']
+/** Line patterns per model, so lines differ by more than colour. */
+const DASHES = ['', '6 3', '2 3', '10 3 2 3']
 
 function fmt(value: number, digits = 2): string {
   return Number.isFinite(value) ? value.toFixed(digits) : 'n/a'
@@ -140,7 +142,7 @@ function HorizonChart({ evaluations, models, target, theme }: { evaluations: Eva
               }
             />
             {evaluations.map((e, i) => (
-              <Line key={e.model} dataKey={e.model} stroke={MODEL_COLORS[theme][e.model]} strokeWidth={2} strokeDasharray={['', '6 3', '2 3'][i]} dot={false} isAnimationActive={false} />
+              <Line key={e.model} dataKey={e.model} stroke={MODEL_COLORS[theme][e.model]} strokeWidth={2} strokeDasharray={DASHES[i % DASHES.length]} dot={false} isAnimationActive={false} />
             ))}
           </LineChart>
         </ResponsiveContainer>
@@ -149,7 +151,7 @@ function HorizonChart({ evaluations, models, target, theme }: { evaluations: Eva
         {evaluations.map((e, i) => (
           <li key={e.model} className="flex items-center gap-1.5">
             <svg width="26" height="10" aria-hidden="true">
-              <line x1="0" y1="5" x2="26" y2="5" stroke={MODEL_COLORS[theme][e.model]} strokeWidth="2" strokeDasharray={['', '6 3', '2 3'][i]} />
+              <line x1="0" y1="5" x2="26" y2="5" stroke={MODEL_COLORS[theme][e.model]} strokeWidth="2" strokeDasharray={DASHES[i % DASHES.length]} />
             </svg>
             {names[e.model]}
           </li>
@@ -204,6 +206,8 @@ export function ModelsPage({ theme }: { theme: Theme }) {
           Every number below comes from the {first.data.splits.test[0].slice(0, 10)} to {first.data.splits.test[1].slice(0, 10)} test
           period, which the models never saw while training. Persistence is a naive baseline that predicts the same hour on the
           previous day; a useful model should beat it.
+          {list.some((m) => m.kind === 'ensemble') &&
+            ' The Ensemble is the plain average of the other models, with equal weights, so nothing in it was tuned on the test period.'}
         </p>
         <TargetPicker value={target} onChange={setTarget} />
         <Table
@@ -294,8 +298,8 @@ export function ModelsPage({ theme }: { theme: Theme }) {
           rows={list.map((m) => [
             m.display_name,
             m.parameters.toLocaleString(),
-            `${m.training.epochs_run} (${m.training.best_epoch})`,
-            minutes(m.training.seconds),
+            m.kind === 'ensemble' ? 'Averages the others' : `${m.training.epochs_run} (${m.training.best_epoch})`,
+            m.kind === 'ensemble' ? 'None of its own' : minutes(m.training.seconds),
             `${fmt(m.inference.single_ms_median, 1)} ms`,
             `${fmt(m.inference.batch256_ms_per_forecast, 3)} ms`,
           ])}
