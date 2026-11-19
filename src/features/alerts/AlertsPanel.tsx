@@ -20,7 +20,7 @@ function clock(iso: string | null | undefined): string {
 /** A one-line status in the same sunken style as the status bar. */
 function StatusLine({ children }: { children: ReactNode }) {
   return (
-    <p className="r-status-field m-0 text-[0.92em]" role="status">
+    <p className="r-status-field m-0 text-[0.92em]" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }} role="status">
       {children}
     </p>
   )
