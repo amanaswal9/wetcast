@@ -1,14 +1,8 @@
 import { Contrast, LocateFixed, RefreshCw, Star } from 'lucide-react'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Button, TitleButton, Window } from '../components/retro'
-import { Dashboard } from '../features/dashboard/Dashboard'
 import { buildSummary } from '../features/dashboard/buildSummary'
-import { AboutPage } from '../features/about/AboutPage'
-import { AnalyticsPage } from '../features/analytics/AnalyticsPage'
-import { ForecastPage } from '../features/forecast/ForecastPage'
-import { ModelsPage } from '../features/models/ModelsPage'
-import { LocationsPage } from '../features/locations/LocationsPage'
 import { CitySearch } from '../features/search/CitySearch'
 import { usePlace } from '../hooks/usePlace'
 import { useResource } from '../hooks/useResource'
@@ -20,6 +14,8 @@ import { getHealth } from '../lib/api/weatherai'
 import { localClock, placeShortLabel } from '../lib/format'
 import type { Place } from '../types/weather'
 import { ErrorBoundary } from './ErrorBoundary'
+import { AboutPage, AnalyticsPage, Dashboard, ForecastPage, LocationsPage, ModelsPage, PageLoading } from './lazyPages'
+import { preloadPages } from './pageLoaders'
 import { PAGES, usePage } from './pages'
 import { PlannedPage } from './PlannedPage'
 import { Taskbar } from './Taskbar'
@@ -57,6 +53,10 @@ export default function App() {
   useEffect(() => {
     document.title = page === 'dashboard' ? title : `${pageInfo.label} – WeatherAI`
   }, [page, pageInfo.label, title])
+
+  useEffect(() => {
+    preloadPages()
+  }, [])
 
   const { stop: stopSpeech } = speech
   const selectPlace = useCallback(
@@ -208,6 +208,7 @@ export default function App() {
                 <div className="r-divider" />
                 <main id="content" tabIndex={-1} className="min-w-0 p-2 outline-none sm:p-3">
                   <ErrorBoundary resetKey={`${page}:${place.id}`}>
+                  <Suspense fallback={<PageLoading />}>
                   {page === 'dashboard' && (
                     <Dashboard forecast={forecast} air={air} summary={summary} theme={theme} speech={speech} />
                   )}
@@ -221,6 +222,7 @@ export default function App() {
                     <LocationsPage place={place} saved={saved} theme={theme} refreshToken={refreshToken} onOpen={openPlace} />
                   )}
                   {!pageInfo.ready && <PlannedPage page={pageInfo} />}
+                  </Suspense>
                   </ErrorBoundary>
                 </main>
                 <div className="flex gap-0.5 pt-0.5 text-[0.92em]">

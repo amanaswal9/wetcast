@@ -13,11 +13,7 @@ export default defineConfig({
     // Minimum browsers, matching Tailwind CSS v4's requirements. index.html shows a
     // plain "please update" message on anything older instead of a blank page.
     target: ['chrome111', 'edge111', 'firefox128', 'safari16.4', 'ios16.4'],
-    rollupOptions: {
-      output: {
-        // Recharts is the heaviest dependency; keep it in its own cacheable chunk.
-        manualChunks: (id) => (id.includes('node_modules/recharts') || id.includes('node_modules/d3-') ? 'charts' : undefined),
-      },
-    },
+    // Pages are lazy-loaded (src/app/lazyPages.tsx), so the chart library ends up in a
+    // shared chunk that only loads with the first page that draws a chart.
   },
 })
