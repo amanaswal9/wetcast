@@ -169,7 +169,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
                 <th scope="row">
                   <Link href="https://open-meteo.com/">Open-Meteo</Link> forecast and geocoding
                 </th>
-                <td>Current conditions, forecasts, city search, live model inputs</td>
+                <td>Current conditions, forecasts, the weather map, city search, live model inputs</td>
                 <td>CC BY 4.0</td>
               </tr>
               <tr>
@@ -194,11 +194,19 @@ export function AboutPage({ theme }: { theme: Theme }) {
                 <td>Weather-station readings used to check the models</td>
                 <td>CC BY-NC 4.0</td>
               </tr>
+              <tr>
+                <th scope="row">
+                  <Link href="https://www.openstreetmap.org/copyright">OpenStreetMap</Link> tiles, drawn with{' '}
+                  <Link href="https://leafletjs.com/">Leaflet</Link>
+                </th>
+                <td>The base map under the weather map</td>
+                <td>ODbL (map data); Leaflet is BSD-2</td>
+              </tr>
             </tbody>
           </table>
         </div>
         <p className="m-0 mt-2 text-[0.92em] text-[var(--text-muted)]">
-          Weather data by Open-Meteo.com. Station data by Meteostat. None of these services needs an API key, and none of them
+          Weather data by Open-Meteo.com. Station data by Meteostat. Map data © OpenStreetMap contributors. None of these services needs an API key, and none of them
           endorses this project.
         </p>
       </GroupBox>

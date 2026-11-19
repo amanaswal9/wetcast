@@ -19,6 +19,13 @@ export function round(value: number): number {
 
 const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
 
+/** "28.50° N, 77.25° E" */
+export function latLonLabel(latitude: number, longitude: number): string {
+  const ns = latitude >= 0 ? 'N' : 'S'
+  const ew = longitude >= 0 ? 'E' : 'W'
+  return `${Math.abs(latitude).toFixed(2)}° ${ns}, ${Math.abs(longitude).toFixed(2)}° ${ew}`
+}
+
 export function compass(degrees: number): string {
   const normalised = ((degrees % 360) + 360) % 360
   return COMPASS[Math.round(normalised / 22.5) % 16]

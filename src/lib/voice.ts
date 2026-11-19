@@ -11,6 +11,7 @@ export interface VoiceCommand {
 }
 
 const PAGE_RULES: [RegExp, PageId][] = [
+  [/\b(maps?|radar)\b/, 'map'],
   [/\b(forecast|tomorrow|this week|next week|next few days|7 day|seven day|week)\b/, 'forecast'],
   [/\b(compare|comparison|saved|locations?|places)\b/, 'locations'],
   [/\b(analytics|history|historical|trends?|past)\b/, 'analytics'],
@@ -26,7 +27,7 @@ const FILLER = new Set(
     'temperature temp hot cold humid humidity wind windy going to open page go please today tomorrow now right this ' +
     'next week few days day current currently there here check find search for in at of get give compare saved locations ' +
     'location places analytics history historical trends trend past models model accuracy about dashboard seven 7 sunny ' +
-    'cloudy snow outside my your our and with than to do does can you i want see look up hey ok okay'
+    'map maps radar cloudy snow outside my your our and with than to do does can you i want see look up hey ok okay'
   ).split(/\s+/),
 )
 

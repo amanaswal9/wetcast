@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-export type PageId = 'dashboard' | 'forecast' | 'analytics' | 'models' | 'locations' | 'about'
+export type PageId = 'dashboard' | 'forecast' | 'map' | 'analytics' | 'models' | 'locations' | 'about'
 
 export interface PageInfo {
   id: PageId
@@ -13,6 +13,7 @@ export interface PageInfo {
 export const PAGES: PageInfo[] = [
   { id: 'dashboard', label: 'Dashboard', plan: '', ready: true },
   { id: 'forecast', label: 'Forecast', plan: '', ready: true },
+  { id: 'map', label: 'Map', plan: '', ready: true },
   { id: 'analytics', label: 'Analytics', plan: '', ready: true },
   { id: 'models', label: 'Models', plan: '', ready: true },
   { id: 'locations', label: 'Locations', plan: '', ready: true },

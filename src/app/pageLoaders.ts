@@ -6,6 +6,7 @@
 export const loaders = {
   dashboard: () => import('../features/dashboard/Dashboard'),
   forecast: () => import('../features/forecast/ForecastPage'),
+  map: () => import('../features/map/MapPage'),
   analytics: () => import('../features/analytics/AnalyticsPage'),
   models: () => import('../features/models/ModelsPage'),
   locations: () => import('../features/locations/LocationsPage'),

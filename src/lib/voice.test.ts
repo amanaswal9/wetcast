@@ -12,6 +12,8 @@ describe('parseVoiceCommand', () => {
     ['temperature in San Francisco right now', 'San Francisco', 'dashboard'],
     ['Is it raining in Thiruvananthapuram', 'Thiruvananthapuram', null],
     ['Open the models page', null, 'models'],
+    ['Show the weather map', null, 'map'],
+    ['Rain radar for Jaipur', 'Jaipur', 'map'],
     ['show me analytics', null, 'analytics'],
     ['compare my saved places', null, 'locations'],
   ])('%s', (spoken, place, page) => {

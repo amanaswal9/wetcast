@@ -3,6 +3,8 @@
 Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop interface.
 
 - **Dashboard**: current conditions, readings, air quality, sun, hourly chart and table, read-aloud summary.
+- **Map**: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
+  points, with the cities WeatherAI's own models cover marked.
 - **Forecast**: 7-day strip and per-day detail, plus WeatherAI's own LSTM, GRU and CNN-LSTM predictions
   for the next 24 hours with error ranges, side by side with Open-Meteo's forecast.
 - **Analytics**: actual vs predicted on the held-out test period, error by city, and historical trends for any place.
@@ -288,6 +290,22 @@ Secrets live only in `backend/.env`, which is git-ignored. Open-Meteo and Meteos
 Set `POSTGRES_PASSWORD` in a `.env` next to `docker-compose.yml`. The Docker files were written but not run on the
 development machine (Docker isn't installed there), so test them before relying on them.
 
+## Weather map
+
+The Map page (`src/features/map/MapPage.tsx`, grid logic in `src/lib/api/mapGrid.ts`) shows Open-Meteo's forecast
+for the next 48 hours at evenly spaced points over the visible area, as coloured squares (temperature, rain) or
+arrows pointing where the wind blows. Values between points are not interpolated, and the page says so.
+
+- **Grid:** spacing is chosen per axis from 0.1° to 20° so squares stay at least 40 px on screen, with at most
+  160 points. Points sit on multiples of the spacing, so panning reuses points already fetched (cached 30 minutes).
+- **Free-tier limits:** Open-Meteo counts each point as one call (600 a minute per visitor). The map keeps itself
+  to 400 points in any rolling minute and shows a short wait instead of going over; a limit hit anyway is
+  explained in plain words.
+- **Base map:** OpenStreetMap's standard tiles through Leaflet, shown in greyscale (inverted for high contrast).
+  They need no key; OpenStreetMap's tile policy allows light use with attribution. A busy public deployment should
+  switch to a tile provider sized for it. (CARTO's basemaps were tried first, but they now require an API key.)
+- The scroll wheel zooms only after the map is clicked or focused, so the page scrolls past it normally.
+
 ## Data sources and labelling
 
 | What you see | Source | Label in the UI |
@@ -297,6 +315,7 @@ development machine (Docker isn't installed there), so test them before relying 
 | WeatherAI predictions | Our LSTM, GRU, CNN-LSTM | Model colour, dithered error range |
 | Historical trends | Open-Meteo archive (ERA5) | Named under the chart |
 | Station check | Meteostat | Models page |
+| Weather map | Open-Meteo forecast at grid points, on OpenStreetMap tiles | "About this map" box under the map |
 
 ## Design system
 
