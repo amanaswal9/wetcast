@@ -1,0 +1,561 @@
+@import 'tailwindcss';
+@import '@fontsource/pixelify-sans/400.css';
+@import '@fontsource/vt323/400.css';
+
+/*
+  WeatherAI design tokens: "Classic" (1990s Windows NT) theme.
+  Every colour in the app comes from these variables, so the light and
+  high-contrast dark themes stay in one place.
+*/
+@theme {
+  /* Tahoma ships with Windows; Verdana is the closest free fallback elsewhere. */
+  --font-ui: Tahoma, 'MS Sans Serif', Verdana, 'Segoe UI', sans-serif;
+  --font-pixel: 'Pixelify Sans', ui-monospace, monospace;
+  --font-term: 'VT323', ui-monospace, monospace;
+}
+
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+  --desk: #008080;
+  --face: #c0c0c0;
+  --hilite: #ffffff;
+  --light: #dfdfdf;
+  --shadow: #808080;
+  --dark: #000000;
+  --field: #ffffff;
+  --field-text: #000000;
+  --text: #000000;
+  --text-muted: #3b3b3b;
+  --title: #000080;
+  --title-text: #ffffff;
+  --title-inactive: #808080;
+  --title-inactive-text: #ffffff;
+  --select: #000080;
+  --select-text: #ffffff;
+  --danger: #800000;
+  --tip-bg: #ffffe1;
+  --tip-text: #000000;
+  --tip-border: #000000;
+  --term-bg: #000000;
+  --term-text: #c0c0c0;
+}
+
+/* High-contrast black, modelled on the classic accessibility scheme. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --desk: #002b2b;
+  --face: #000000;
+  --hilite: #ffffff;
+  --light: #808080;
+  --shadow: #808080;
+  --dark: #ffffff;
+  --field: #000000;
+  --field-text: #ffffff;
+  --text: #ffffff;
+  --text-muted: #d0d0d0;
+  --title: #800080;
+  --title-text: #ffffff;
+  --title-inactive: #404040;
+  --title-inactive-text: #ffffff;
+  --select: #00ffff;
+  --select-text: #000000;
+  --danger: #ff8080;
+  --tip-bg: #000000;
+  --tip-text: #ffffff;
+  --tip-border: #ffffff;
+  --term-bg: #000000;
+  --term-text: #00ff00;
+}
+
+html {
+  background: var(--desk);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--desk);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 0.8125rem; /* 13px: period-accurate density, still readable */
+  line-height: 1.4;
+  overflow-x: hidden;
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 0.9375rem; /* 15px on phones */
+  }
+}
+
+::selection {
+  background: var(--select);
+  color: var(--select-text);
+}
+
+@layer components {
+  /* Bevels: the four-line 3D edge used by every classic control. */
+  .r-raised {
+    background: var(--face);
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--hilite),
+      inset -2px -2px var(--shadow),
+      inset 2px 2px var(--light);
+  }
+
+  .r-sunken {
+    background: var(--field);
+    color: var(--field-text);
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--shadow),
+      inset -2px -2px var(--light),
+      inset 2px 2px var(--dark);
+  }
+
+  .r-shallow {
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--shadow);
+  }
+
+  .r-window {
+    background: var(--face);
+    padding: 3px;
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--light),
+      inset -2px -2px var(--shadow),
+      inset 2px 2px var(--hilite);
+  }
+
+  .r-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 22px;
+    padding: 2px 3px 2px 5px;
+    background: var(--title);
+    color: var(--title-text);
+    font-weight: 700;
+    user-select: none;
+  }
+
+  .r-title[data-inactive='true'] {
+    background: var(--title-inactive);
+    color: var(--title-inactive-text);
+  }
+
+  .r-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 3px 12px;
+    border: 0;
+    border-radius: 0;
+    background: var(--face);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--hilite),
+      inset -2px -2px var(--shadow),
+      inset 2px 2px var(--light);
+  }
+
+  .r-btn:active:not(:disabled),
+  .r-btn[aria-pressed='true'] {
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--dark),
+      inset -2px -2px var(--light),
+      inset 2px 2px var(--shadow);
+  }
+
+  .r-btn:active:not(:disabled) > * {
+    transform: translate(1px, 1px);
+  }
+
+  .r-btn:disabled {
+    color: var(--shadow);
+    cursor: default;
+  }
+
+  .r-title-btn {
+    min-height: 0;
+    width: 20px;
+    height: 18px;
+    padding: 0;
+  }
+
+  /* Classic dotted focus rectangle, drawn inside the control. */
+  .r-focus:focus-visible,
+  .r-btn:focus-visible,
+  .r-tab:focus-visible {
+    outline: 2px dotted var(--text);
+    outline-offset: -6px;
+  }
+
+  .r-title-btn:focus-visible {
+    outline-offset: -4px;
+    outline-width: 1px;
+  }
+
+  .r-input {
+    min-height: 30px;
+    padding: 3px 6px;
+    border: 0;
+    border-radius: 0;
+    font: inherit;
+    background: var(--field);
+    color: var(--field-text);
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--shadow),
+      inset -2px -2px var(--light),
+      inset 2px 2px var(--dark);
+  }
+
+  .r-input:focus-visible {
+    outline: 2px dotted var(--text);
+    outline-offset: 2px;
+  }
+
+  .r-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  /* Etched group box with its caption sitting on the top edge. */
+  .r-group {
+    position: relative;
+    min-width: 0;
+    margin-top: 8px;
+    padding: 14px 10px 10px;
+    border: 1px solid var(--shadow);
+    box-shadow:
+      1px 1px 0 var(--hilite),
+      inset 1px 1px 0 var(--hilite);
+  }
+
+  .r-group-title {
+    position: absolute;
+    top: -0.75em;
+    left: 8px;
+    margin: 0;
+    padding: 0 4px;
+    background: var(--face);
+    font-size: inherit;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  .r-menubar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    padding: 1px 2px;
+  }
+
+  .r-menu-item {
+    padding: 3px 8px;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .r-menu-item:hover,
+  .r-menu-item[aria-current='page'] {
+    background: var(--select);
+    color: var(--select-text);
+  }
+
+  .r-menu-item:focus-visible {
+    outline: 2px dotted var(--text);
+    outline-offset: -2px;
+  }
+
+  .r-divider {
+    height: 2px;
+    border-top: 1px solid var(--shadow);
+    border-bottom: 1px solid var(--hilite);
+  }
+
+  /* Tabs (Radix Tabs underneath for keyboard and screen-reader support). */
+  .r-tablist {
+    display: flex;
+    flex-wrap: wrap;
+    padding-left: 2px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .r-tab {
+    position: relative;
+    top: 2px;
+    margin-right: -1px;
+    padding: 4px 12px;
+    border: 0;
+    background: var(--face);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    box-shadow:
+      inset 1px 1px var(--hilite),
+      inset 2px 2px var(--light),
+      inset -1px 0 var(--dark),
+      inset -2px 0 var(--shadow);
+  }
+
+  .r-tab[data-state='active'] {
+    top: 0;
+    z-index: 2;
+    padding-bottom: 6px;
+  }
+
+  .r-tabpanel {
+    padding: 10px;
+    background: var(--face);
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--hilite),
+      inset -2px -2px var(--shadow),
+      inset 2px 2px var(--light);
+  }
+
+  /* Segmented progress bar. */
+  .r-progress {
+    height: 20px;
+    padding: 3px;
+    background: var(--field);
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--shadow),
+      inset -2px -2px var(--light),
+      inset 2px 2px var(--dark);
+  }
+
+  .r-progress-fill {
+    height: 100%;
+    background: repeating-linear-gradient(90deg, var(--select) 0 8px, transparent 8px 10px);
+  }
+
+  .r-tooltip {
+    padding: 3px 6px;
+    border: 1px solid var(--tip-border);
+    background: var(--tip-bg);
+    color: var(--tip-text);
+    font-family: var(--font-ui);
+    font-size: 12px;
+  }
+
+  .r-status-field {
+    min-width: 0;
+    padding: 2px 6px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--shadow);
+  }
+
+  /* Loading placeholder: a 50% dither, the way 16-colour screens drew grey. */
+  .r-skeleton {
+    background: repeating-conic-gradient(var(--shadow) 0 25%, var(--face) 0 50%) 0 0 / 2px 2px;
+    cursor: progress;
+  }
+
+  .r-listbox {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: var(--field);
+    color: var(--field-text);
+    border: 1px solid var(--dark);
+  }
+
+  .r-option {
+    padding: 4px 6px;
+    cursor: pointer;
+  }
+
+  .r-option[aria-selected='true'] {
+    background: var(--select);
+    color: var(--select-text);
+  }
+
+  .r-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .r-table th {
+    position: sticky;
+    top: 0;
+    padding: 3px 6px;
+    text-align: left;
+    font-weight: 400;
+    background: var(--face);
+    color: var(--text);
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--hilite);
+  }
+
+  .r-table td {
+    padding: 2px 6px;
+    border-bottom: 1px dotted var(--shadow);
+  }
+
+  /* Row headers read as labels, not column buttons. */
+  .r-table tbody th {
+    position: static;
+    padding: 3px 6px;
+    background: transparent;
+    color: inherit;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: none;
+    border-bottom: 1px dotted var(--shadow);
+  }
+}
+
+@layer components {
+  /* Day picker on the Forecast page: raised when idle, sunken when chosen. */
+  .r-day {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    min-width: 0;
+    padding: 6px 6px 8px;
+    border: 0;
+    background: var(--face);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--hilite),
+      inset -2px -2px var(--shadow),
+      inset 2px 2px var(--light);
+  }
+
+  .r-day[data-state='active'] {
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--dark),
+      inset -2px -2px var(--light),
+      inset 2px 2px var(--shadow);
+  }
+
+  .r-day[data-state='active'] .r-day-name {
+    background: var(--select);
+    color: var(--select-text);
+  }
+
+  .r-day:focus-visible {
+    outline: 2px dotted var(--text);
+    outline-offset: -6px;
+  }
+
+  .r-day-name {
+    padding: 0 3px;
+    font-weight: 700;
+  }
+
+  .r-range {
+    position: relative;
+    height: 8px;
+    background: var(--field);
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--shadow);
+  }
+
+  .r-range > span {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    background: var(--select);
+  }
+
+  .r-check {
+    appearance: none;
+    flex: none;
+    display: inline-grid;
+    place-content: center;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    background: var(--field);
+    cursor: pointer;
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--shadow),
+      inset -2px -2px var(--light),
+      inset 2px 2px var(--dark);
+  }
+
+  .r-check:checked::after {
+    content: '';
+    width: 9px;
+    height: 5px;
+    margin-top: -3px;
+    border-left: 2px solid var(--field-text);
+    border-bottom: 2px solid var(--field-text);
+    transform: rotate(-45deg);
+  }
+
+  .r-check:focus-visible {
+    outline: 1px dotted var(--text);
+    outline-offset: 2px;
+  }
+
+  .r-listview {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: var(--field);
+    color: var(--field-text);
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--shadow),
+      inset -2px -2px var(--light),
+      inset 2px 2px var(--dark);
+    padding: 2px;
+  }
+
+  .r-listview > li + li {
+    border-top: 1px dotted var(--shadow);
+  }
+}
+
+@media (pointer: coarse) {
+  .r-btn,
+  .r-input {
+    min-height: 40px;
+  }
+
+  .r-title-btn {
+    width: 32px;
+    height: 26px;
+    min-height: 0;
+  }
+
+  .r-tab {
+    padding: 8px 14px;
+  }
+
+  .r-menu-item {
+    padding: 8px 10px;
+  }
+}

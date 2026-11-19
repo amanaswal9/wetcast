@@ -1,0 +1,8 @@
+# Store text with LF line endings (Dockerfiles, nginx and shell scripts run on Linux).
+* text=auto eol=lf
+
+# Trained models and compressed arrays are binary.
+*.keras binary
+*.npz binary
+*.parquet binary
+*.png binary

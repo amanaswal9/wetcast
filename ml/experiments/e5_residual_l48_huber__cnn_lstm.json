@@ -1,0 +1,59 @@
+{
+  "experiment": "e5_residual_l48_huber",
+  "model": "cnn_lstm",
+  "config": {
+    "lookback_hours": 48,
+    "target_mode": "residual24",
+    "loss": "huber",
+    "train_stride_hours": 4
+  },
+  "validation": {
+    "temperature": {
+      "mae": 1.0509594786280054,
+      "rmse": 1.4662841150563863,
+      "r2": 0.9626280966733225,
+      "n": 2085360,
+      "unit": "\u00b0C"
+    },
+    "humidity": {
+      "mae": 5.81388458015769,
+      "rmse": 8.043694239670026,
+      "r2": 0.8904343748170269,
+      "n": 2085360,
+      "unit": "%"
+    },
+    "precipitation": {
+      "mae": 0.10958442859342825,
+      "rmse": 0.6692337272637309,
+      "r2": 0.013893938080850488,
+      "n": 2085360,
+      "unit": "mm"
+    }
+  },
+  "validation_persistence": {
+    "temperature": {
+      "mae": 1.2032452909809337,
+      "rmse": 1.6889432493418626,
+      "r2": 0.950416284009754,
+      "n": 2085360,
+      "unit": "\u00b0C"
+    },
+    "humidity": {
+      "mae": 6.625368281735527,
+      "rmse": 9.399761770855251,
+      "r2": 0.8503774997576126,
+      "n": 2085360,
+      "unit": "%"
+    },
+    "precipitation": {
+      "mae": 0.17238793301875935,
+      "rmse": 0.8903750115648833,
+      "r2": -0.7454761326765431,
+      "n": 2085360,
+      "unit": "mm"
+    }
+  },
+  "epochs_run": 9,
+  "best_epoch": 5,
+  "seconds": 58.5
+}
