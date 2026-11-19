@@ -128,9 +128,14 @@ export interface Evaluation {
 
 class BackendUnavailable extends ApiError {}
 
-async function getJson(path: string, signal?: AbortSignal, init: RequestInit = {}): Promise<{ status: number; body: unknown }> {
+async function getJson(
+  path: string,
+  signal?: AbortSignal,
+  init: RequestInit = {},
+  timeoutMs = 20_000,
+): Promise<{ status: number; body: unknown }> {
   const controller = new AbortController()
-  const timer = window.setTimeout(() => controller.abort(), 20_000)
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
   const forward = () => controller.abort()
   signal?.addEventListener('abort', forward, { once: true })
   try {
@@ -256,6 +261,57 @@ export async function getAlerts(latitude: number, longitude: number, country: st
   const { status, body } = await getJson(`/api/alerts?${params}`, signal)
   if (status !== 200) throw new ApiError('http', detailOf(body, `The alerts service returned an error (${status}).`), status)
   return body as AlertsResult
+}
+
+export interface AssistantStatus {
+  configured: boolean
+  model: string
+  daily_limit_per_visitor: number
+}
+
+export interface AssistantTurn {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AssistantReply {
+  reply: string
+  sources: string[]
+  model: string
+}
+
+/** Thrown when the assistant can't answer: not set up, over a limit, or the service failed. */
+export class AssistantError extends ApiError {
+  readonly code: string
+
+  constructor(code: string, message: string, status?: number) {
+    super('http', message, status)
+    this.code = code
+  }
+}
+
+export async function getAssistantStatus(signal?: AbortSignal): Promise<AssistantStatus> {
+  const { status, body } = await getJson('/api/assistant/status', signal)
+  if (status !== 200) throw new ApiError('http', detailOf(body, `The assistant service returned an error (${status}).`), status)
+  return body as AssistantStatus
+}
+
+/** Ask the assistant. Answers can take a while (it looks data up first), so the timeout is long. */
+export async function askAssistant(
+  clientId: string,
+  messages: AssistantTurn[],
+  place: { name: string; latitude: number; longitude: number; country_code?: string },
+  signal?: AbortSignal,
+): Promise<AssistantReply> {
+  const { status, body } = await getJson(
+    '/api/assistant',
+    signal,
+    { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Client-Id': clientId }, body: JSON.stringify({ messages, place }) },
+    120_000,
+  )
+  if (status === 200) return body as AssistantReply
+  const code = body && typeof body === 'object' && 'code' in body && typeof body.code === 'string' ? body.code : 'http'
+  throw new AssistantError(code, detailOf(body, `The assistant returned an error (${status}).`), status)
 }
 
 /** Cities WeatherAI's models were trained on (they only predict there). */

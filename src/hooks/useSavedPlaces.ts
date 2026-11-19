@@ -66,7 +66,7 @@ function randomId(): string {
 }
 
 /** Anonymous id for this browser, created once. */
-function getClientId(): string {
+export function getClientId(): string {
   const existing = readString(CLIENT_KEY)
   if (existing && /^[A-Za-z0-9-]{8,64}$/.test(existing)) return existing
   const id = randomId()
