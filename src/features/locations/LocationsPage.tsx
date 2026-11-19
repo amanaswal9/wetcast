@@ -128,7 +128,14 @@ export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: Loc
             {saved.syncStatus === 'saving' && 'Saving…'}
             {saved.syncStatus === 'connecting' && 'Connecting to the server…'}
             {saved.syncStatus === 'offline' && 'Saved in this browser only'}
+            {saved.syncStatus === 'rejected' && 'Not saved on the server'}
           </span>
+          {saved.syncStatus === 'rejected' && (
+            <>
+              <span className="text-[var(--text-muted)]">The server refused this list. It&apos;s still kept in this browser.</span>
+              <Button onClick={saved.retrySync}>Try again</Button>
+            </>
+          )}
           {saved.syncStatus === 'offline' && (
             <>
               <span className="text-[var(--text-muted)]">The server isn&apos;t reachable. Changes will sync when it&apos;s back.</span>

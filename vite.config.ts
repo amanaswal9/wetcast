@@ -10,6 +10,9 @@ export default defineConfig({
     proxy: { '/api': 'http://127.0.0.1:8000' },
   },
   build: {
+    // Minimum browsers, matching Tailwind CSS v4's requirements. index.html shows a
+    // plain "please update" message on anything older instead of a blank page.
+    target: ['chrome111', 'edge111', 'firefox128', 'safari16.4', 'ios16.4'],
     rollupOptions: {
       output: {
         // Recharts is the heaviest dependency; keep it in its own cacheable chunk.

@@ -35,6 +35,7 @@ class UpstreamError(RuntimeError):
 class CacheEntry:
     expires: float
     features: pd.DataFrame
+    hours: int  # how many past hours were requested
 
 
 _cache: dict[str, CacheEntry] = {}
@@ -51,20 +52,23 @@ def city_elevation(registry: ModelRegistry, city: City) -> float:
 
 
 def recent_features(registry: ModelRegistry, city: City, lookback: int) -> pd.DataFrame:
+    """Recent features for a city, long enough for `lookback` (the largest lookback
+    among the requested models). A cached frame is reused only if it is long enough."""
     ttl = get_settings().prediction_cache_seconds
+    hours = lookback + HISTORY_MARGIN_HOURS
     with _lock:
         hit = _cache.get(city.id)
-        if hit and hit.expires > time.monotonic():
+        if hit and hit.expires > time.monotonic() and hit.hours >= hours:
             return hit.features
     try:
         with httpx.Client(timeout=20) as client:
-            long_df, _ = fetch_recent(client, city, past_hours=lookback + HISTORY_MARGIN_HOURS)
+            long_df, _ = fetch_recent(client, city, past_hours=hours)
     except (httpx.HTTPError, ValueError, KeyError, RuntimeError) as exc:
         log.warning("open-meteo fetch failed for %s: %s", city.id, exc)
         raise UpstreamError("Couldn't get recent weather data from Open-Meteo.") from exc
     features, _ = build_frames(long_df, city, city_elevation(registry, city))
     with _lock:
-        _cache[city.id] = CacheEntry(time.monotonic() + ttl, features)
+        _cache[city.id] = CacheEntry(time.monotonic() + ttl, features, hours)
     return features
 
 

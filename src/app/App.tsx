@@ -138,6 +138,11 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <a
         href="#content"
+        onClick={(event) => {
+          // Pages use the URL hash, so move focus without changing it.
+          event.preventDefault()
+          document.getElementById('content')?.focus()
+        }}
         className="r-btn sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50"
       >
         <span>Skip to content</span>

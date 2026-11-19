@@ -38,9 +38,33 @@ ml/artifacts/   Trained models: model.keras, preprocessor.json, metrics.json, ev
 deploy/, docker-compose.yml, backend/Dockerfile, Dockerfile.web   Container deployment
 ```
 
+## Browser and device support
+
+The site is a responsive web app, so it runs in the browser on Windows, macOS, Linux, iPhone, iPad and Android.
+
+| Browser | Minimum |
+| --- | --- |
+| Safari (macOS, iPhone, iPad) | 16.4 (iOS / iPadOS 16.4, March 2023) |
+| Chrome, Edge (Windows, macOS, Android) | 111 |
+| Firefox | 128 |
+
+These are Tailwind CSS v4's requirements and are set as the build target. Older browsers see a plain
+"please update your browser" message instead of a blank page.
+
+Tested layouts: 320 px (small phones), 375 px (phones), 768 px (tablets) and desktop, with no sideways scrolling.
+On touch screens buttons grow to 40 px and text fields use 16 px text so iOS doesn't zoom in when you type.
+The interface font is Tahoma on Windows, falling back to Verdana on Mac and iPhone and the system sans-serif
+on Android; all three were checked for clipped text. Read aloud uses the browser's speech engine, which is
+available in current Chrome, Edge, Safari and Firefox; the button is hidden where it isn't.
+
+To open the development server from a phone on the same Wi-Fi, run `npm run dev -- --host` and visit the
+address Vite prints (Windows may ask to allow Node through the firewall). For real use, deploy it (see Deployment).
+
 ## Run it locally
 
-Requirements: Node.js 20+, Python 3.11+, PostgreSQL 15+.
+Requirements: Node.js 20+, Python 3.11+, PostgreSQL 15+. Works on Windows, macOS and Linux. The commands
+below use the Windows virtual-environment path `Scripts/`; on macOS and Linux use `bin/` instead
+(for example `~/.venvs/weatherai/bin/python`). On Apple-silicon Macs TensorFlow runs on the CPU, as it does here.
 
 ```bash
 # 1. Python environment (keep the path short on Windows: TensorFlow's DLLs fail on long paths)

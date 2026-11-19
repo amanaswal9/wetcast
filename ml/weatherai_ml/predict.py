@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .config import CITIES, TARGETS, City
+from .config import CITIES, POINTS, TARGETS, City
 from .preprocess import Preprocessor
 
 
@@ -65,10 +65,23 @@ class Predictor:
             self._model = keras.saving.load_model(self.model_dir / "model.keras", compile=False)
         return self._model
 
+    @staticmethod
+    def usable(features: pd.DataFrame) -> pd.DataFrame:
+        """Drop trailing hours whose weather values are incomplete (e.g. the newest hour
+        not yet published for one neighbour point). Time and location columns are always
+        filled, so completeness is judged on the weather columns only. The forecast is
+        then issued from the last complete hour."""
+        weather = [c for c in features.columns if c.split("_", 1)[0] in {p for p, _, _ in POINTS}]
+        complete = features[weather].notna().all(axis=1).to_numpy()
+        if not complete.any():
+            raise InsufficientHistoryError("No complete recent hours in the data.")
+        last = int(np.flatnonzero(complete)[-1])
+        return features.iloc[: last + 1]
+
     def input_window(self, features: pd.DataFrame) -> np.ndarray:
         self.preprocessor.check_columns(features)
         lookback = self.preprocessor.lookback
-        window = features.dropna(how="all").iloc[-lookback:]
+        window = self.usable(features).iloc[-lookback:]
         if len(window) < lookback or window.isna().any().any():
             raise InsufficientHistoryError(f"Need {lookback} complete recent hours; the data has gaps.")
         expected = pd.date_range(window.index[0], periods=lookback, freq="h")
@@ -79,7 +92,7 @@ class Predictor:
     def yesterday(self, features: pd.DataFrame) -> np.ndarray:
         """Targets for the 24 hours before each predicted hour: the last 24 input hours.
         Centre temperature and humidity are exactly the target series (see features.build_frames)."""
-        window = features.dropna(how="all").iloc[-self.preprocessor.horizon :]
+        window = self.usable(features).iloc[-self.preprocessor.horizon :]
         out = np.zeros((self.preprocessor.horizon, len(TARGETS)))
         out[:, TARGETS.index("temperature")] = window["c_temp"].to_numpy(dtype=float)
         out[:, TARGETS.index("humidity")] = window["c_rh"].to_numpy(dtype=float)
@@ -95,6 +108,6 @@ class Predictor:
         p, h = TARGETS.index("precipitation"), TARGETS.index("humidity")
         lower[:, p] = np.clip(lower[:, p], 0, None)
         lower[:, h], upper[:, h] = np.clip(lower[:, h], 0, 100), np.clip(upper[:, h], 0, 100)
-        issued = features.dropna(how="all").index[-1]
+        issued = self.usable(features).index[-1]
         times = [issued + pd.Timedelta(hours=i) for i in range(1, self.preprocessor.horizon + 1)]
         return Prediction(issued_at=issued, times=times, values=values, lower=lower, upper=upper)

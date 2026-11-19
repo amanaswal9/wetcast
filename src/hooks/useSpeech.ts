@@ -1,16 +1,21 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
  * Text-to-speech through the browser's Web Speech API. Supported in current
  * Chrome, Edge, Safari and Firefox; `supported` is false elsewhere so the UI
  * can hide the control instead of showing a dead button.
+ *
+ * Text is spoken one sentence at a time: Chrome stops long utterances after
+ * about 15 seconds without firing `onend`, which would leave the button stuck.
  */
 export function useSpeech() {
   const supported = typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
   const [speaking, setSpeaking] = useState(false)
+  const run = useRef(0)
 
   const stop = useCallback(() => {
     if (!supported) return
+    run.current += 1
     window.speechSynthesis.cancel()
     setSpeaking(false)
   }, [supported])
@@ -19,13 +24,21 @@ export function useSpeech() {
     (text: string) => {
       if (!supported) return
       window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'en'
-      utterance.rate = 1
-      utterance.onend = () => setSpeaking(false)
-      utterance.onerror = () => setSpeaking(false)
+      const id = ++run.current
+      const sentences = text.match(/[^.!?]+[.!?]*/g)?.map((s) => s.trim()).filter(Boolean) ?? [text]
       setSpeaking(true)
-      window.speechSynthesis.speak(utterance)
+      sentences.forEach((sentence, i) => {
+        const utterance = new SpeechSynthesisUtterance(sentence)
+        utterance.lang = 'en'
+        const finish = () => {
+          if (run.current === id && i === sentences.length - 1) setSpeaking(false)
+        }
+        utterance.onend = finish
+        utterance.onerror = () => {
+          if (run.current === id) setSpeaking(false)
+        }
+        window.speechSynthesis.speak(utterance)
+      })
     },
     [supported],
   )

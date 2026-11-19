@@ -19,6 +19,25 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="unsupported" hidden style="max-width: 32rem; margin: 3rem auto; padding: 1rem 1.25rem; font: 16px/1.5 Verdana, sans-serif; background: #c0c0c0; color: #000; border: 2px solid #000">
+      <p style="margin: 0 0 0.5rem; font-weight: bold">WeatherAI needs a newer browser</p>
+      <p style="margin: 0">
+        Please update to Safari 16.4 or later (iOS / iPadOS 16.4+), Chrome or Edge 111+, or Firefox 128+, then reload this page.
+      </p>
+    </div>
+    <script>
+      // Show a clear message instead of a blank page on browsers the app can't run in.
+      ;(function () {
+        var ok = true
+        try {
+          new Function('class A { static { } }')
+        } catch (e) {
+          ok = false
+        }
+        if (!(window.CSS && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red, blue)'))) ok = false
+        if (!ok) document.getElementById('unsupported').hidden = false
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

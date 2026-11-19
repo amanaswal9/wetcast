@@ -170,7 +170,7 @@ def predictions(
     if not names:
         raise HTTPException(status_code=503, detail="No trained models are available yet.")
 
-    lookback = registry.get(names[0]).preprocessor.lookback
+    lookback = max(registry.get(n).preprocessor.lookback for n in names)
     try:
         features = recent_features(registry, city, lookback)
     except UpstreamError as exc:
@@ -236,12 +236,12 @@ def list_places(session: SessionDep, client: ClientDep) -> list[PlaceOut]:
 
 @app.post("/api/places", response_model=PlaceOut, status_code=201)
 def add_place(body: PlaceIn, session: SessionDep, client: ClientDep) -> PlaceOut:
-    count = len(session.scalars(select(SavedPlace.id).where(SavedPlace.client_id == client)).all())
-    if count >= 8:
-        raise HTTPException(status_code=409, detail="You can save up to 8 places. Remove one first.")
     existing = session.scalar(select(SavedPlace).where(SavedPlace.client_id == client, SavedPlace.place_id == body.place_id))
     if existing:
         return place_out(existing)
+    count = len(session.scalars(select(SavedPlace.id).where(SavedPlace.client_id == client)).all())
+    if count >= 8:
+        raise HTTPException(status_code=409, detail="You can save up to 8 places. Remove one first.")
     place = SavedPlace(client_id=client, **body.model_dump())
     session.add(place)
     session.commit()

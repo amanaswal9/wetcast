@@ -205,6 +205,17 @@ def test_predictor_outputs_valid_forecast(name):
 
 
 @pytest.mark.skipif(not TRAINED, reason="no trained models yet")
+def test_predictor_uses_last_complete_hour_when_newest_is_incomplete():
+    # Regression: one missing neighbour value in the newest hour used to fail the whole forecast.
+    predictor = Predictor(ARTIFACTS_DIR / TRAINED[0])
+    features, _ = build_frames(synthetic_long_frame(predictor.preprocessor.lookback + 6), DELHI, 216.0)
+    features.iloc[-1, features.columns.get_loc("n_temp")] = np.nan
+    pred = predictor.predict(features)
+    assert pred.issued_at == features.index[-2]
+    assert np.isfinite(pred.values).all()
+
+
+@pytest.mark.skipif(not TRAINED, reason="no trained models yet")
 def test_predictor_refuses_gappy_history():
     predictor = Predictor(ARTIFACTS_DIR / TRAINED[0])
     features, _ = build_frames(synthetic_long_frame(predictor.preprocessor.lookback + 6), DELHI, 216.0)

@@ -52,14 +52,19 @@ def main() -> None:
     reuse_north_india(target_dir, manifest)
     manifest_path.write_text(json.dumps(manifest, indent=2))
 
-    todo = [c for c in cities if not (target_dir / f"{c.id}.parquet").exists()]
+    # A city counts as done only with both its file and its manifest entry.
+    todo = [c for c in cities if not ((target_dir / f"{c.id}.parquet").exists() and c.id in manifest)]
     print(f"[{now()}] region {args.region}: {len(cities) - len(todo)} of {len(cities)} cities ready, {len(todo)} to download", flush=True)
 
     with httpx.Client(timeout=300) as client:
         for i, city in enumerate(todo, start=1):
             print(f"[{now()}] ({i}/{len(todo)}) {city.name}: downloading {DATA_START} to {DATA_END}", flush=True)
             frame, elevation = fetch_history(client, city, DATA_START, DATA_END)
-            frame.to_parquet(target_dir / f"{city.id}.parquet", index=False)
+            # Write to a temporary file, record it in the manifest, then rename. A crash at any
+            # point leaves either no file (re-downloaded next run) or a file with its manifest entry.
+            final = target_dir / f"{city.id}.parquet"
+            partial = target_dir / f"{city.id}.parquet.partial"
+            frame.to_parquet(partial, index=False)
             manifest[city.id] = {
                 "rows": len(frame),
                 "elevation_m": elevation,
@@ -69,6 +74,7 @@ def main() -> None:
                 "downloaded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             }
             manifest_path.write_text(json.dumps(manifest, indent=2))
+            partial.replace(final)
             print(f"[{now()}]   saved {len(frame):,} rows, centre elevation {elevation} m", flush=True)
             if i < len(todo):
                 time.sleep(62)  # one city is close to the free per-minute quota

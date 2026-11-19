@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { isAbort } from '../lib/api/http'
+import { ApiError, isAbort } from '../lib/api/http'
 import { getPlaces, replacePlaces, type ServerPlace } from '../lib/api/weatherai'
 import { log } from '../lib/log'
 import { readJson, readString, writeJson, writeString } from '../lib/storage'
@@ -39,7 +39,7 @@ interface SyncMeta {
   synced: boolean
 }
 
-export type SyncStatus = 'connecting' | 'synced' | 'saving' | 'offline'
+export type SyncStatus = 'connecting' | 'synced' | 'saving' | 'offline' | 'rejected'
 
 function isPlace(value: unknown): value is Place {
   if (!value || typeof value !== 'object') return false
@@ -78,8 +78,8 @@ function toServer(p: Place): Omit<ServerPlace, 'is_home'> {
   return {
     place_id: p.id.slice(0, 64),
     name: p.name.slice(0, 120),
-    admin1: p.admin1 ?? null,
-    country: p.country ?? null,
+    admin1: p.admin1?.slice(0, 120) ?? null,
+    country: p.country?.slice(0, 120) ?? null,
     latitude: p.latitude,
     longitude: p.longitude,
   }
@@ -143,45 +143,79 @@ export function useSavedPlaces() {
         setStatus('synced')
       } catch (error) {
         log.warn('saved places not synced', error)
-        setStatus('offline')
+        // A 4xx means the server refused this list; retrying the same list won't help.
+        const rejected = error instanceof ApiError && error.kind === 'http' && (error.status ?? 0) < 500
+        setStatus(rejected ? 'rejected' : 'offline')
       }
     })
   }, [clientId, saveMeta])
 
-  // Initial sync with the server.
+  /** Load the server's list and reconcile it with this browser's copy. */
+  const syncWithServer = useCallback(
+    (signal?: AbortSignal) => {
+      const editsAtStart = edits.current
+      getPlaces(clientId, signal)
+        .then((server) => {
+          const local = stateRef.current
+          const firstMigration = !meta.current.synced && server.length === 0 && local.places.length > 0
+          // A change made while this request was in flight is newer than its answer.
+          const editedMeanwhile = edits.current !== editsAtStart
+          if (meta.current.dirty || firstMigration || editedMeanwhile) {
+            pushLatest()
+          } else {
+            apply(fromServer(server))
+            saveMeta({ dirty: false, synced: true })
+            setStatus('synced')
+          }
+        })
+        .catch((error: unknown) => {
+          if (signal?.aborted || isAbort(error)) return
+          log.warn('saved places: server unreachable, using this browser’s copy', error)
+          setStatus('offline')
+        })
+    },
+    [clientId, apply, pushLatest, saveMeta],
+  )
+
+  // Initial sync.
   useEffect(() => {
     const controller = new AbortController()
-    const editsAtStart = edits.current
-    getPlaces(clientId, controller.signal)
-      .then((server) => {
-        const local = stateRef.current
-        const firstMigration = !meta.current.synced && server.length === 0 && local.places.length > 0
-        // A change made while this request was in flight is newer than its answer.
-        const editedMeanwhile = edits.current !== editsAtStart
-        if (meta.current.dirty || firstMigration || editedMeanwhile) {
-          pushLatest()
-        } else {
-          apply(fromServer(server))
-          saveMeta({ dirty: false, synced: true })
-          setStatus('synced')
-        }
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted || isAbort(error)) return
-        log.warn('saved places: server unreachable, using this browser’s copy', error)
-        setStatus('offline')
-      })
+    syncWithServer(controller.signal)
     return () => controller.abort()
-  }, [clientId, apply, pushLatest, saveMeta])
+  }, [syncWithServer])
 
-  // Retry pending changes when the browser reconnects.
+  // Sync again when the connection comes back or the tab returns to the foreground.
   useEffect(() => {
-    const onOnline = () => {
-      if (meta.current.dirty) pushLatest()
+    const onOnline = () => syncWithServer()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') syncWithServer()
     }
     window.addEventListener('online', onOnline)
-    return () => window.removeEventListener('online', onOnline)
-  }, [pushLatest])
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [syncWithServer])
+
+  // Another tab changed the saved places: take its version so this tab doesn't
+  // later send an older list and undo that change.
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== KEY || event.newValue === null) return
+      try {
+        const next: unknown = JSON.parse(event.newValue)
+        if (isSavedState(next)) {
+          stateRef.current = next
+          setState(next)
+        }
+      } catch {
+        // Ignore malformed values.
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   const commit = useCallback(
     (next: SavedState) => {
@@ -193,46 +227,56 @@ export function useSavedPlaces() {
     [apply, saveMeta, pushLatest],
   )
 
+  // Changes are built from stateRef (always current), not the last render's state,
+  // so two quick changes in a row can't overwrite each other.
   const isSaved = useCallback((place: Place) => state.places.some((p) => samePlace(p, place)), [state.places])
 
   const add = useCallback(
     (place: Place): AddResult => {
-      if (state.places.some((p) => samePlace(p, place))) return 'exists'
-      if (state.places.length >= MAX_SAVED) return 'full'
-      commit({ ...state, places: [...state.places, place] })
+      const current = stateRef.current
+      if (current.places.some((p) => samePlace(p, place))) return 'exists'
+      if (current.places.length >= MAX_SAVED) return 'full'
+      commit({ ...current, places: [...current.places, place] })
       return 'added'
     },
-    [state, commit],
+    [commit],
   )
 
   const remove = useCallback(
     (place: Place) => {
-      const places = state.places.filter((p) => !samePlace(p, place))
-      const homeStillSaved = places.some((p) => p.id === state.homeId)
-      commit({ places, homeId: homeStillSaved ? state.homeId : null })
+      const current = stateRef.current
+      const places = current.places.filter((p) => !samePlace(p, place))
+      const homeStillSaved = places.some((p) => p.id === current.homeId)
+      commit({ places, homeId: homeStillSaved ? current.homeId : null })
     },
-    [state, commit],
+    [commit],
   )
 
   const setHome = useCallback(
     (place: Place | null) => {
+      const current = stateRef.current
       if (place === null) {
-        commit({ ...state, homeId: null })
+        commit({ ...current, homeId: null })
         return
       }
-      const existing = state.places.find((p) => samePlace(p, place))
+      const existing = current.places.find((p) => samePlace(p, place))
       if (existing) {
-        commit({ ...state, homeId: existing.id })
-      } else if (state.places.length < MAX_SAVED) {
-        commit({ places: [...state.places, place], homeId: place.id })
+        commit({ ...current, homeId: existing.id })
+      } else if (current.places.length < MAX_SAVED) {
+        commit({ places: [...current.places, place], homeId: place.id })
       }
     },
-    [state, commit],
+    [commit],
   )
+
+  const retrySync = useCallback(() => {
+    setStatus('connecting')
+    syncWithServer()
+  }, [syncWithServer])
 
   const home = state.places.find((p) => p.id === state.homeId) ?? null
 
-  return { places: state.places, home, isSaved, add, remove, setHome, syncStatus: status, retrySync: pushLatest }
+  return { places: state.places, home, isSaved, add, remove, setHome, syncStatus: status, retrySync }
 }
 
 export type SavedPlaces = ReturnType<typeof useSavedPlaces>

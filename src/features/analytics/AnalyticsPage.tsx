@@ -58,6 +58,9 @@ function ActualVsPredicted({ theme }: { theme: Theme }) {
   if (!models.data) {
     return models.status === 'error' ? <BackendNotice message={models.error?.message} onRetry={models.reload} /> : <Skeleton height={300} />
   }
+  if (models.data.length === 0) {
+    return <p className="m-0">No trained models are available on the server yet, so there are no predictions to compare.</p>
+  }
   const meta = models.data[0]
   const cities = meta.data.cities
   const cityName = cities.find((c) => c.id === city)?.name ?? city
@@ -163,7 +166,7 @@ function ActualVsPredicted({ theme }: { theme: Theme }) {
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={perCity} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke={colors.grid} vertical={false} />
-                <XAxis dataKey="name" tick={{ ...tick, fontSize: 10 }} interval={0} angle={wide ? 0 : -40} textAnchor={wide ? 'middle' : 'end'} height={wide ? 24 : 50} tickLine={false} axisLine={{ stroke: colors.axis }} />
+                <XAxis dataKey="name" tick={tick} interval={0} angle={wide ? 0 : -40} textAnchor={wide ? 'middle' : 'end'} height={wide ? 24 : 50} tickLine={false} axisLine={{ stroke: colors.axis }} />
                 <YAxis width={44} tick={tick} tickLine={false} axisLine={{ stroke: colors.axis }} tickFormatter={(v: number) => v.toFixed(target === 'precipitation' ? 2 : 1)} />
                 <Tooltip
                   cursor={{ fill: colors.grid }}
@@ -222,7 +225,7 @@ function HistoricalTrends({ place, theme }: { place: Place; theme: Theme }) {
       ) : (
         <>
           <p className="m-0 tabular-nums">
-            {placeShortLabel(place)}, {shortDate(rows[0]?.date ?? '')} to {shortDate(rows.at(-1)?.date ?? '')}: average{' '}
+            {placeShortLabel(place)}, {shortDate(rows[0]?.date ?? '')} to {shortDate(rows[rows.length - 1]?.date ?? '')}: average{' '}
             {means.length ? `${(means.reduce((a, b) => a + b, 0) / means.length).toFixed(1)}°C` : 'n/a'}, total rain {totalRain.toFixed(0)} mm.
           </p>
           <div className="r-sunken p-1">

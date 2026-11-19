@@ -110,6 +110,9 @@ def test_places_limit(client):
         assert client.post("/api/places", json=body, headers=CLIENT).status_code == 201
     extra = {"place_id": "p9", "name": "One too many", "latitude": 1, "longitude": 1}
     assert client.post("/api/places", json=extra, headers=CLIENT).status_code == 409
+    # Regression: re-saving a place that is already saved must still succeed at the limit.
+    again = {"place_id": "p0", "name": "Place 0", "latitude": 10, "longitude": 10}
+    assert client.post("/api/places", json=again, headers=CLIENT).status_code == 201
 
 
 def test_places_replace_and_unset_home(client):
