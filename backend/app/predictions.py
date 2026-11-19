@@ -15,7 +15,8 @@ from sqlalchemy.orm import Session
 from weatherai_ml.config import CITIES, TARGETS, City
 from weatherai_ml.features import build_frames
 from weatherai_ml.openmeteo import fetch_recent
-from weatherai_ml.predict import Prediction
+from weatherai_ml.models import ENSEMBLE_NAME
+from weatherai_ml.predict import Prediction, Predictor
 
 from .config import get_settings
 from .db import PredictionPoint, PredictionRun
@@ -70,6 +71,43 @@ def recent_features(registry: ModelRegistry, city: City, lookback: int) -> pd.Da
     with _lock:
         _cache[city.id] = CacheEntry(time.monotonic() + ttl, features, hours)
     return features
+
+
+_predictions: dict[tuple[str, str], Prediction] = {}
+_predictions_lock = threading.Lock()
+
+
+def predict_models(registry: ModelRegistry, city: City, names: list[str], features: pd.DataFrame) -> dict[str, Prediction]:
+    """Forecasts from the requested models, computing each model at most once.
+
+    Results are kept per city and model until a newer hour of data arrives (they can't
+    change before then), and the ensemble is averaged from its members' results
+    instead of running the members a second time."""
+    issued = Predictor.usable(features).index[-1]
+    wanted = list(dict.fromkeys(names))
+    needed = set(wanted)
+    if ENSEMBLE_NAME in needed:
+        needed |= set(registry.ensemble_members)
+    out: dict[str, Prediction] = {}
+
+    def cached(name: str) -> Prediction | None:
+        with _predictions_lock:
+            hit = _predictions.get((city.id, name))
+        return hit if hit is not None and hit.issued_at == issued else None
+
+    def keep(name: str, prediction: Prediction) -> Prediction:
+        with _predictions_lock:
+            _predictions[(city.id, name)] = prediction
+        return prediction
+
+    for name in registry.names:
+        if name in needed and name != ENSEMBLE_NAME:
+            out[name] = cached(name) or keep(name, registry.get(name).predict(features))
+    if ENSEMBLE_NAME in needed:
+        out[ENSEMBLE_NAME] = cached(ENSEMBLE_NAME) or keep(
+            ENSEMBLE_NAME, registry.get(ENSEMBLE_NAME).combine([out[m] for m in registry.ensemble_members])
+        )
+    return {name: out[name] for name in wanted}
 
 
 def store_run(session: Session, model: str, city: City, prediction: Prediction) -> bool:

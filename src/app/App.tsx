@@ -12,10 +12,11 @@ import { useTheme } from '../hooks/useTheme'
 import { getAirQuality, getForecast } from '../lib/api/openMeteo'
 import { getHealth } from '../lib/api/weatherai'
 import { localClock, placeShortLabel } from '../lib/format'
+import { prefetchPlace } from '../lib/prefetch'
 import type { Place } from '../types/weather'
 import { ErrorBoundary } from './ErrorBoundary'
 import { AboutPage, AnalyticsPage, AssistantPage, Dashboard, ForecastPage, LocationsPage, MapPage, ModelsPage, PageLoading } from './lazyPages'
-import { preloadPages } from './pageLoaders'
+import { loaders, preloadPages } from './pageLoaders'
 import { PAGES, usePage } from './pages'
 import { PlannedPage } from './PlannedPage'
 import { Taskbar } from './Taskbar'
@@ -57,6 +58,13 @@ export default function App() {
   useEffect(() => {
     preloadPages()
   }, [])
+
+  // Once the Dashboard's weather is in, quietly fetch what the Forecast page needs for this place.
+  const dashboardReady = forecast.data !== undefined
+  useEffect(() => {
+    if (!dashboardReady) return
+    return prefetchPlace(place)
+  }, [dashboardReady, place])
 
   const { stop: stopSpeech } = speech
   const selectPlace = useCallback(
@@ -148,7 +156,8 @@ export default function App() {
         <span>Skip to content</span>
       </a>
       <div className={`min-h-dvh ${frame}`}>
-        <AnimatePresence>
+        {/* initial={false}: no fade-in on first load, the page's static frame is already showing. */}
+        <AnimatePresence initial={false}>
           {!minimized && (
             <motion.div
               key="main-window"
@@ -180,6 +189,10 @@ export default function App() {
                     <a
                       key={p.id}
                       href={`#/${p.id}`}
+                      // Start loading the page's code as soon as a pointer or finger reaches it.
+                      onPointerEnter={() => void loaders[p.id]().catch(() => undefined)}
+                      onPointerDown={() => void loaders[p.id]().catch(() => undefined)}
+                      onFocus={() => void loaders[p.id]().catch(() => undefined)}
                       className="r-menu-item"
                       aria-current={page === p.id ? 'page' : undefined}
                     >

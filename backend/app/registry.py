@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from functools import lru_cache
 from pathlib import Path
 
@@ -23,6 +24,7 @@ class ModelRegistry:
     def __init__(self, artifacts_dir: Path):
         self.artifacts_dir = artifacts_dir
         self._predictors: dict[str, Predictor | GBMPredictor | EnsemblePredictor] = {}
+        self.ensemble_members: list[str] = []
         for name in MODEL_NAMES:
             folder = artifacts_dir / name
             missing = [f for f in REQUIRED if not (folder / f).exists()]
@@ -48,7 +50,20 @@ class ModelRegistry:
             log.warning("ensemble not available, member models missing: %s", ", ".join(missing))
             return
         self._predictors[ENSEMBLE_NAME] = EnsemblePredictor(folder, [self._predictors[m] for m in members])
+        self.ensemble_members = list(members)
         log.info("ensemble registered (%s)", ", ".join(members))
+
+    def warm_up(self) -> None:
+        """Load every network and run it once, so the first real forecast doesn't pay
+        TensorFlow's start-up cost (loading weights, building the graph)."""
+        import numpy as np
+
+        started = time.perf_counter()
+        for name, predictor in self._predictors.items():
+            if isinstance(predictor, Predictor):
+                shape = (1, predictor.preprocessor.lookback, len(predictor.preprocessor.feature_order))
+                predictor.model(np.zeros(shape, dtype="float32"), training=False)
+        log.info("models warmed up in %.1f s", time.perf_counter() - started)
 
     @property
     def names(self) -> list[str]:

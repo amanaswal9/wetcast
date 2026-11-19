@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="WeatherAI: spatial-temporal weather forecasting with LSTM, GRU and CNN-LSTM models, built on Open-Meteo data." />
+    <meta name="description" content="WeatherAI: spatial-temporal weather forecasting with its own LSTM, GRU, CNN-LSTM, Transformer and LightGBM models, built on Open-Meteo data." />
+    <!-- The pixel font for temperatures is needed for the first screen: fetch it straight away. -->
+    <link rel="preload" href="/node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
     <title>WeatherAI</title>
     <script>
       // Apply the saved or system theme before first paint to avoid a flash.
@@ -18,7 +20,29 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><!--
+      Static copy of the app's window frame, styled by the app's own CSS (which loads before any
+      JavaScript), so a phone shows the app's shape at once. React replaces it on start-up.
+    --><div class="min-h-dvh pb-[52px] sm:px-4 sm:pt-4 sm:pb-[64px] md:px-6 md:pt-6" aria-hidden="true">
+        <div class="mx-auto w-full max-w-[1200px]">
+          <section class="r-window flex min-w-0 flex-col">
+            <div class="r-title">
+              <span class="flex shrink-0"><img src="/favicon.svg" width="16" height="16" alt="" /></span>
+              <span class="m-0 min-w-0 flex-1 truncate font-bold">WeatherAI</span>
+            </div>
+            <div class="r-menubar">
+              <span class="r-menu-item">Dashboard</span><span class="r-menu-item">Forecast</span><span class="r-menu-item">Map</span><span class="r-menu-item">Ask</span><span class="r-menu-item">Analytics</span><span class="r-menu-item">Models</span><span class="r-menu-item">Locations</span><span class="r-menu-item">About</span>
+            </div>
+            <div class="r-divider"></div>
+            <div class="p-1.5"><div class="r-skeleton" style="height: 28px; max-width: 420px"></div></div>
+            <div class="r-divider"></div>
+            <div class="grid gap-3 p-2 sm:p-3 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+              <div class="r-skeleton" style="height: 220px"></div>
+              <div class="r-skeleton" style="height: 220px"></div>
+            </div>
+          </section>
+        </div>
+      </div></div>
     <div id="unsupported" hidden style="max-width: 32rem; margin: 3rem auto; padding: 1rem 1.25rem; font: 16px/1.5 Verdana, sans-serif; background: #c0c0c0; color: #000; border: 2px solid #000">
       <p style="margin: 0 0 0.5rem; font-weight: bold">WeatherAI needs a newer browser</p>
       <p style="margin: 0">

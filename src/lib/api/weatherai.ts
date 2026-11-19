@@ -168,9 +168,42 @@ function detailOf(body: unknown, fallback: string): string {
   return body && typeof body === 'object' && 'detail' in body && typeof body.detail === 'string' ? body.detail : fallback
 }
 
-export async function getPredictions(latitude: number, longitude: number, signal?: AbortSignal): Promise<PredictionsResult> {
+const PREDICTIONS_TTL_MS = 10 * 60_000
+const predictionsCache = new Map<string, { expires: number; promise: Promise<PredictionsResult> }>()
+
+/** Resolve with `promise`, or reject with an AbortError as soon as `signal` aborts (the request itself carries on). */
+function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise
+  if (signal.aborted) return Promise.reject(new DOMException('Request cancelled', 'AbortError'))
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(new DOMException('Request cancelled', 'AbortError'))
+    signal.addEventListener('abort', abort, { once: true })
+    promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort))
+  })
+}
+
+/**
+ * WeatherAI's predictions for a point. Answers are kept for 10 minutes (the models only
+ * change their forecast once an hour), and simultaneous requests for the same point,
+ * such as a background prefetch and the Forecast page, share one network request.
+ */
+export function getPredictions(latitude: number, longitude: number, signal?: AbortSignal, fresh = false): Promise<PredictionsResult> {
+  const key = `${latitude.toFixed(3)},${longitude.toFixed(3)}`
+  let hit = predictionsCache.get(key)
+  if (fresh || !hit || hit.expires < Date.now()) {
+    const entry = { expires: Date.now() + PREDICTIONS_TTL_MS, promise: fetchPredictions(latitude, longitude) }
+    entry.promise.catch(() => {
+      if (predictionsCache.get(key) === entry) predictionsCache.delete(key) // never keep a failure
+    })
+    predictionsCache.set(key, entry)
+    hit = entry
+  }
+  return untilAborted(hit.promise, signal)
+}
+
+async function fetchPredictions(latitude: number, longitude: number): Promise<PredictionsResult> {
   const params = new URLSearchParams({ latitude: latitude.toFixed(4), longitude: longitude.toFixed(4) })
-  const { status, body } = await getJson(`/api/predictions?${params}`, signal)
+  const { status, body } = await getJson(`/api/predictions?${params}`)
   if (status === 404 && body && typeof body === 'object' && 'code' in body && body.code === 'unsupported_location') {
     const b = body as unknown as { supported: CoveredCity[]; detail: string }
     return { kind: 'unsupported', supported: b.supported, detail: b.detail }

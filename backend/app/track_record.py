@@ -34,7 +34,7 @@ from weatherai_ml.openmeteo import fetch_centre_recent, fetch_recent
 from weatherai_ml.predict import InsufficientHistoryError
 
 from .db import Observation, PredictionPoint, PredictionRun, new_session
-from .predictions import city_elevation, store_run
+from .predictions import city_elevation, predict_models, store_run
 from .registry import ModelRegistry, get_registry
 
 log = logging.getLogger("weatherai.track_record")
@@ -181,15 +181,13 @@ def score_city(session: Session, city: City, now: datetime) -> int:
 
 
 def issue_forecasts(session: Session, registry: ModelRegistry, city: City, features: pd.DataFrame) -> int:
-    stored = 0
-    for name in registry.names:
-        try:
-            prediction = registry.get(name).predict(features)
-        except InsufficientHistoryError as exc:
-            log.warning("%s: %s skipped (%s)", city.id, name, exc)
-            continue
-        stored += int(store_run(session, name, city, prediction))
-    return stored
+    try:
+        # Shared with /api/predictions, so these also answer the next visitor for this city instantly.
+        forecasts = predict_models(registry, city, registry.names, features)
+    except InsufficientHistoryError as exc:
+        log.warning("%s: forecasts skipped (%s)", city.id, exc)
+        return 0
+    return sum(int(store_run(session, name, city, prediction)) for name, prediction in forecasts.items())
 
 
 def run_city(session: Session, registry: ModelRegistry, city: City, now: datetime, summary: CycleSummary) -> None:
