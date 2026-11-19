@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
+import hosted as hosted_errors
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -24,11 +25,15 @@ from .config import get_settings
 from .db import SavedPlace, engine, get_session
 from .migrations import migrate
 from . import alerts as official_alerts
+from . import assistant as weather_assistant
 from .accuracy import track_record_summary
 from .predictions import UpstreamError, recent_features, store_run, supported_cities
 from .registry import ModelRegistry, get_registry
 from .track_record import scheduler
 from .schemas import (
+    AssistantIn,
+    AssistantOut,
+    AssistantStatus,
     CityOut,
     HealthOut,
     ModelPredictionOut,
@@ -296,6 +301,59 @@ def alerts(
     else:
         body.update(source=None, note=NONE_NOTE)
     return body
+
+
+# ---- assistant (Hosted) ----------------------------------------------------------------
+
+
+@app.get("/api/assistant/status", response_model=AssistantStatus)
+def assistant_status() -> AssistantStatus:
+    return AssistantStatus(
+        configured=weather_assistant.is_configured(),
+        model=settings.assistant_model,
+        daily_limit_per_visitor=settings.assistant_daily_limit_per_client,
+    )
+
+
+@app.post("/api/assistant", response_model=AssistantOut, responses={429: {}, 502: {}, 503: {}})
+def ask_assistant(body: AssistantIn, session: SessionDep, registry: RegistryDep, client: ClientDep):
+    """Answer a weather question with Hosted, using only data looked up through read-only tools."""
+    if body.messages[-1].role != "user":
+        raise HTTPException(status_code=422, detail="The last message must be the question.")
+    if not weather_assistant.is_configured():
+        return JSONResponse(
+            status_code=503,
+            content={"code": "assistant_not_configured", "detail": "The assistant isn't set up on this server (no Hosted API key)."},
+        )
+    try:
+        weather_assistant.LIMITS.take(client, settings.assistant_daily_limit_per_client, settings.assistant_daily_limit_total)
+    except weather_assistant.AssistantUnavailable as exc:
+        return JSONResponse(status_code=exc.status, content={"code": exc.code, "detail": str(exc)})
+    try:
+        reply = weather_assistant.answer(
+            [m.model_dump() for m in body.messages], body.place.model_dump(), session, registry
+        )
+    except hosted_errors.RateLimitError as exc:
+        weather_assistant.LIMITS.give_back(client)
+        log.warning("assistant rate limited: %s", exc)
+        return JSONResponse(status_code=429, content={"code": "busy", "detail": "The assistant is busy. Try again in a minute."})
+    except hosted_errors.AuthenticationError as exc:
+        weather_assistant.LIMITS.give_back(client)
+        log.error("assistant API key rejected: %s", exc)
+        return JSONResponse(status_code=503, content={"code": "assistant_not_configured", "detail": "The assistant's API key was rejected."})
+    except hosted_errors.APIStatusError as exc:
+        weather_assistant.LIMITS.give_back(client)
+        log.warning("assistant API error %s: %s", exc.status_code, exc)
+        return JSONResponse(status_code=502, content={"code": "upstream", "detail": "The assistant couldn't answer right now. Try again."})
+    except hosted_errors.APIConnectionError as exc:
+        weather_assistant.LIMITS.give_back(client)
+        log.warning("assistant connection error: %s", exc)
+        return JSONResponse(status_code=502, content={"code": "upstream", "detail": "The assistant couldn't be reached. Try again."})
+    log.info(
+        "assistant answered with %s in %d round(s), tools %s, %d in / %d out tokens",
+        reply.model, reply.rounds, ",".join(reply.tools_used) or "none", reply.input_tokens, reply.output_tokens,
+    )
+    return AssistantOut(reply=reply.text, sources=reply.sources, model=reply.model)
 
 
 # ---- saved places ---------------------------------------------------------------------

@@ -2,7 +2,9 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -20,6 +22,14 @@ class Settings(BaseSettings):
     track_record_interval_hours: int = 3
     # Official alerts: read India's NDMA Sachet CAP feed this often. 0 turns polling off.
     alerts_poll_minutes: int = 10
+    # Assistant (Hosted). Off until a key is set; every answer costs money.
+    hosted_api_key: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("WEATHERAI_HOSTED_API_KEY", "HOSTED_API_KEY")
+    )
+    assistant_model: str = "hosted-opus-5-5"
+    assistant_effort: Literal["low", "medium", "high", "xhigh", "max"] = "low"
+    assistant_daily_limit_per_client: int = 20
+    assistant_daily_limit_total: int = 200
     # Open-Meteo needs no key. Keys for any future paid source go here, never in code.
 
 

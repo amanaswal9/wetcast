@@ -11,6 +11,8 @@ Only the title card, captions and pointer are drawn on top. Re-record it with `d
 - **Dashboard**: current conditions, readings, air quality, sun, hourly chart and table, read-aloud summary.
 - **Official warnings** (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
   (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
+- **Ask** (optional, off until you add an Hosted API key): a weather assistant that answers questions using
+  only data it looks up (Open-Meteo, WeatherAI's models, official warnings), with its sources under each answer.
 - **Map**: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
   points, with the cities WeatherAI's own models cover marked.
 - **Forecast**: 7-day strip and per-day detail, plus WeatherAI's own predictions (LSTM, GRU, CNN-LSTM,
@@ -299,6 +301,7 @@ hour has passed. Forecasts people open on the Forecast page are stored and score
 | `GET /api/models`, `/api/models/{name}` | Metrics from the evaluation run |
 | `GET /api/models/{name}/evaluation?city=&include_samples=` | Per-horizon and per-city errors, actual-vs-predicted samples |
 | `GET /api/predictions?latitude=&longitude=&models=` | Live 24-hour predictions with error ranges; stored in PostgreSQL |
+| `GET /api/assistant/status`, `POST /api/assistant` | Whether the assistant is switched on; ask it a question (needs `X-Client-Id`; daily limits apply) |
 | `GET /api/alerts?latitude=&longitude=&country=` | Official warnings in effect at a point: India from the stored Sachet feed, the US from the National Weather Service, otherwise a note that no feed is connected |
 | `GET /api/track-record?days=&city=` | Live track record: errors of stored forecasts once their hours have passed, per model, day and hours ahead, with persistence on the same hours |
 | `GET/POST/PUT /api/places`, `PUT/DELETE /api/places/{id}/home`, `DELETE /api/places/{id}` | Saved places per `X-Client-Id` (`PUT` replaces the whole list) |
@@ -331,6 +334,48 @@ arrows pointing where the wind blows. Values between points are not interpolated
   They need no key; OpenStreetMap's tile policy allows light use with attribution. A busy public deployment should
   switch to a tile provider sized for it. (CARTO's basemaps were tried first, but they now require an API key.)
 - The scroll wheel zooms only after the map is clicked or focused, so the page scrolls past it normally.
+
+## Weather assistant (optional)
+
+The **Ask** page answers weather questions with Hosted (Hosted). It is **off by default** and costs nothing
+until you switch it on; then every answer is a paid API call.
+
+How it answers (`backend/app/assistant.py`, data tools in `backend/app/assistant_data.py`):
+
+- Hosted gets five read-only tools: `find_place`, `get_weather` (Open-Meteo: now, next 48 hours, 7 days),
+  `get_weatherai_prediction` (WeatherAI's ensemble with 80% ranges, covered cities only), `get_official_alerts`
+  (NDMA Sachet / US NWS) and `get_model_accuracy` (test results and the live track record). Tool schemas are
+  strict, and the tools only read data.
+- The instructions tell it to answer only from what the tools return, to say when data isn't available, to name
+  the source of every number, to give ranges rather than certainties, to repeat official warnings as issued
+  and point people to their weather service for safety questions, and to stay on weather.
+- At most 5 model calls per answer. The fixed instructions and tool definitions are prompt-cached. For models
+  that support it, Hosted's server-side fallback (`fallbacks: "default"`) answers if the main model declines.
+- The page sends the last 10 turns with each question; the server keeps no chat history. Questions go to
+  WeatherAI's server and to Hosted.
+
+Switch it on:
+
+1. Create an Hosted account, add credits, and set a monthly spend limit in the Hosted Console.
+2. Put the key in `backend/.env` (never in the frontend): `WEATHERAI_HOSTED_API_KEY=...`
+   (`HOSTED_API_KEY` also works).
+3. Restart the API. `GET /api/assistant/status` then reports `configured: true`.
+
+Settings (all optional, in `backend/.env`):
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `WEATHERAI_ASSISTANT_MODEL` | `hosted-opus-5-5` | `hosted-haiku-5-5` is about 40× cheaper per answer; `hosted-sonnet-5-5` is in between |
+| `WEATHERAI_ASSISTANT_EFFORT` | `low` | Hosted's effort level (`low` to `max`); higher costs more |
+| `WEATHERAI_ASSISTANT_DAILY_LIMIT_PER_CLIENT` | `20` | Questions per visitor (anonymous browser id) per UTC day |
+| `WEATHERAI_ASSISTANT_DAILY_LIMIT_TOTAL` | `200` | Questions for the whole server per UTC day |
+
+Rough cost per answer (about 6,000 tokens in and 800 out, before caching), at Hosted's published prices on
+2026-11-20: Opus 5.5 about $0.04, Sonnet 5.5 about $0.02, Haiku 5.5 about $0.001. The daily limits cap the
+worst case at 200 answers a day. The counters live in memory and reset when the API restarts, so the Console
+spend limit is the backstop.
+
+Tests (`backend/tests/test_assistant.py`) replace Hosted with a scripted fake client and never call the API.
 
 ## Official warnings
 

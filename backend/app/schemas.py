@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -73,3 +75,34 @@ class HealthOut(BaseModel):
     status: str
     database: str
     models: list[str]
+
+
+class AssistantTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=2000)
+
+
+class AssistantPlace(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    country_code: str | None = Field(default=None, pattern="^[A-Za-z]{2}$")
+
+
+class AssistantIn(BaseModel):
+    """The visible chat (oldest first, ending with the new question) and the place on screen."""
+
+    messages: list[AssistantTurn] = Field(min_length=1, max_length=12)
+    place: AssistantPlace
+
+
+class AssistantOut(BaseModel):
+    reply: str
+    sources: list[str]
+    model: str
+
+
+class AssistantStatus(BaseModel):
+    configured: bool
+    model: str
+    daily_limit_per_visitor: int

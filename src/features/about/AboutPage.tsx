@@ -210,6 +210,13 @@ export function AboutPage({ theme }: { theme: Theme }) {
               </tr>
               <tr>
                 <th scope="row">
+                  <Link href="https://www.hosted.com/">Hosted</Link> (Hosted), optional
+                </th>
+                <td>The Ask page&apos;s assistant, when switched on; it answers only from the data above</td>
+                <td>Paid API, Hosted&apos;s terms</td>
+              </tr>
+              <tr>
+                <th scope="row">
                   <Link href="https://www.openstreetmap.org/copyright">OpenStreetMap</Link> tiles, drawn with{' '}
                   <Link href="https://leafletjs.com/">Leaflet</Link>
                 </th>
