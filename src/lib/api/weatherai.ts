@@ -215,6 +215,13 @@ export async function getTrackRecord(days: number, signal?: AbortSignal): Promis
   return body as TrackRecord
 }
 
+/** Cities WeatherAI's models were trained on (they only predict there). */
+export async function getCoverage(signal?: AbortSignal): Promise<CoveredCity[]> {
+  const { status, body } = await getJson('/api/coverage', signal)
+  if (status !== 200) throw new ApiError('http', detailOf(body, `The prediction service returned an error (${status}).`), status)
+  return body as CoveredCity[]
+}
+
 export interface Health {
   status: string
   database: string

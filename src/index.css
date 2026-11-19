@@ -564,3 +564,141 @@ body {
     padding: 8px 10px;
   }
 }
+
+/* Weather map: a bevelled slider and Leaflet controls in the same NT style. */
+@layer components {
+  .r-slider {
+    appearance: none;
+    height: 22px;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .r-slider::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--field);
+    box-shadow:
+      inset -1px -1px var(--hilite),
+      inset 1px 1px var(--shadow),
+      inset -2px -2px var(--light),
+      inset 2px 2px var(--dark);
+  }
+
+  .r-slider::-moz-range-track {
+    height: 4px;
+    background: var(--field);
+    border: 1px solid var(--shadow);
+  }
+
+  .r-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 11px;
+    height: 21px;
+    margin-top: -9px;
+    background: var(--face);
+    border: 0;
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--hilite),
+      inset -2px -2px var(--shadow),
+      inset 2px 2px var(--light);
+  }
+
+  .r-slider::-moz-range-thumb {
+    width: 11px;
+    height: 21px;
+    border: 0;
+    border-radius: 0;
+    background: var(--face);
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--hilite),
+      inset -2px -2px var(--shadow),
+      inset 2px 2px var(--light);
+  }
+
+  .r-slider:focus-visible {
+    outline: 1px dotted var(--text);
+    outline-offset: 2px;
+  }
+
+  .r-slider:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+
+  .r-map {
+    font-family: var(--font-ui);
+    background: var(--field);
+  }
+
+  /* Greyscale basemap so only the weather is in colour; inverted for high contrast. */
+  .r-map .leaflet-tile-pane {
+    filter: grayscale(1) contrast(0.9) brightness(1.04);
+  }
+
+  .r-map[data-theme='dark'] .leaflet-tile-pane {
+    filter: grayscale(1) invert(1) brightness(0.75) contrast(1.1);
+  }
+
+  .r-map:focus-visible {
+    outline: 1px dotted var(--text);
+    outline-offset: -3px;
+  }
+
+  .r-map .leaflet-bar {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .r-map .leaflet-bar a,
+  .r-map .leaflet-bar a:hover {
+    width: 26px;
+    height: 26px;
+    line-height: 24px;
+    border: 0;
+    border-radius: 0;
+    background: var(--face);
+    color: var(--text);
+    font: 700 16px var(--font-ui);
+    box-shadow:
+      inset -1px -1px var(--dark),
+      inset 1px 1px var(--hilite),
+      inset -2px -2px var(--shadow),
+      inset 2px 2px var(--light);
+  }
+
+  .r-map .leaflet-bar a + a {
+    margin-top: 2px;
+  }
+
+  .r-map .leaflet-bar a:active {
+    box-shadow:
+      inset 1px 1px var(--dark),
+      inset -1px -1px var(--hilite);
+  }
+
+  .r-map .leaflet-bar a.leaflet-disabled {
+    color: var(--shadow);
+  }
+
+  .r-map .leaflet-control-attribution {
+    background: var(--face);
+    color: var(--text);
+    font-size: 11px;
+  }
+
+  .r-map .leaflet-control-attribution a {
+    color: var(--text);
+  }
+
+  .r-map .leaflet-tooltip {
+    border: 1px solid var(--tip-border);
+    border-radius: 0;
+    background: var(--tip-bg);
+    color: var(--tip-text);
+    box-shadow: none;
+    font-family: var(--font-ui);
+  }
+}

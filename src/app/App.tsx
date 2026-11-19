@@ -14,7 +14,7 @@ import { getHealth } from '../lib/api/weatherai'
 import { localClock, placeShortLabel } from '../lib/format'
 import type { Place } from '../types/weather'
 import { ErrorBoundary } from './ErrorBoundary'
-import { AboutPage, AnalyticsPage, Dashboard, ForecastPage, LocationsPage, ModelsPage, PageLoading } from './lazyPages'
+import { AboutPage, AnalyticsPage, Dashboard, ForecastPage, LocationsPage, MapPage, ModelsPage, PageLoading } from './lazyPages'
 import { preloadPages } from './pageLoaders'
 import { PAGES, usePage } from './pages'
 import { PlannedPage } from './PlannedPage'
@@ -221,6 +221,7 @@ export default function App() {
                   {page === 'forecast' && (
                     <ForecastPage place={place} theme={theme} refreshToken={refreshToken} onSelectPlace={selectPlace} />
                   )}
+                  {page === 'map' && <MapPage place={place} theme={theme} refreshToken={refreshToken} onSelectPlace={selectPlace} />}
                   {page === 'models' && <ModelsPage theme={theme} />}
                   {page === 'about' && <AboutPage theme={theme} />}
                   {page === 'analytics' && <AnalyticsPage place={place} theme={theme} />}
