@@ -1,5 +1,6 @@
 """Single source of truth for the forecasting setup."""
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -7,6 +8,7 @@ ML_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ML_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 ARTIFACTS_DIR = ML_ROOT / "artifacts"
+REGIONS_DIR = Path(__file__).resolve().parent / "regions"
 
 
 @dataclass(frozen=True)
@@ -15,6 +17,10 @@ class City:
     name: str
     latitude: float
     longitude: float
+    state: str = ""
+    # "train": used for training/validation/test. "holdout": never trained on;
+    # only used to measure accuracy at unseen locations.
+    role: str = "train"
 
 
 # North India: ten cities spanning the Indo-Gangetic plain, Thar desert edge and Himalayan foothills.
@@ -32,6 +38,35 @@ CITIES: tuple[City, ...] = (
 )
 
 CITY_BY_ID = {c.id: c for c in CITIES}
+
+REGION_NAMES = ("north_india", "india")
+DEFAULT_REGION = "north_india"
+
+
+def region_cities(region: str) -> tuple[City, ...]:
+    """Cities for a region. The all-India list is built by build_india_cities.py.
+    The ten North India cities keep their original coordinates there, because
+    their data was downloaded at exactly those points."""
+    if region == "north_india":
+        return CITIES
+    if region == "india":
+        rows = json.loads((REGIONS_DIR / "india.json").read_text())
+        out = []
+        for r in rows:
+            original = CITY_BY_ID.get(r["id"])
+            lat, lon = (original.latitude, original.longitude) if original else (r["latitude"], r["longitude"])
+            out.append(City(r["id"], r["name"], lat, lon, r["state"], r["role"]))
+        return tuple(out)
+    raise ValueError(f"unknown region {region!r}")
+
+
+def raw_dir(region: str) -> Path:
+    return RAW_DIR if region == "north_india" else DATA_DIR / f"raw_{region}"
+
+
+def artifacts_dir(region: str) -> Path:
+    """North India keeps its original location; other regions get a subfolder."""
+    return ARTIFACTS_DIR if region == "north_india" else ARTIFACTS_DIR / region
 
 # Spatial context: the city plus four neighbours ~55 km away (0.5 degrees).
 NEIGHBOUR_OFFSET_DEG = 0.5

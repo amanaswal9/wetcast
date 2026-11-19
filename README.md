@@ -125,6 +125,28 @@ against weather stations), but humidity got slightly worse on the test year alth
 and rain's typical error fell while its RMSE and R² got worse (Huber loss trades big-storm accuracy for typical
 hours). Tuning further against these test numbers would leak the test set into model selection, so it wasn't done.
 
+### All-India model (in progress)
+
+A second region, `india`, covers every state and union territory: 40 training cities (each capital, or the
+nearest large city to a new capital, plus the original ten) and 8 **held-out** cities that are never trained on
+(Aurangabad, Nagpur, Coimbatore, Visakhapatnam, Jodhpur, Indore, Gorakhpur, Mangaluru), each at least 150 km from
+every training city. The list is built from Open-Meteo geocoding by `weatherai_ml/build_india_cities.py` and stored
+in `weatherai_ml/regions/india.json`.
+
+Held-out cities are excluded from scaler fitting, training and validation; they are scored only on the test period,
+which gives an honest accuracy figure for places the model has never seen. Because each sample carries latitude,
+longitude, elevation and neighbouring points, the model can then be run for any location in India.
+
+```bash
+cd ml
+~/.venvs/weatherai/Scripts/python -m weatherai_ml.fetch --region india     # ~2 days on the free API tier; resumable
+~/.venvs/weatherai/Scripts/python -m weatherai_ml.train --region india --target-mode residual24 --lookback 48 --train-stride 4 --loss huber
+```
+
+The download waits out Open-Meteo's per-minute, hourly and daily limits on its own and skips cities already saved,
+so it can be stopped and restarted at any time. Artifacts go to `ml/artifacts/india/`; the North India models stay
+in service until the all-India ones are evaluated.
+
 ### How leakage is prevented
 
 - **Chronological split**: train 2023–2024, validation 2025, test Jan–Oct 2026. No shuffling across time.

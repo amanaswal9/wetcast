@@ -21,6 +21,7 @@ import json
 import platform
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 import keras
 import numpy as np
@@ -28,19 +29,21 @@ import tensorflow as tf
 
 from . import PIPELINE_VERSION
 from .config import (
-    ARTIFACTS_DIR,
-    CITIES,
     FEATURE_ORDER,
     HORIZON_HOURS,
     INTERVAL_LEVEL,
     LOOKBACK_HOURS,
     ML_ROOT,
-    RAW_DIR,
+    REGION_NAMES,
     SEED,
     SPLITS,
     TARGET_UNITS,
     TARGETS,
+    artifacts_dir,
+    raw_dir,
 )
+
+REGION_LABELS = {"north_india": "North India", "india": "India"}
 from .dataset import Dataset, load_dataset, residual_targets, split_rows, window_ends
 from .metrics import conformal_halfwidth, mae, summary
 from .models import DISPLAY_NAMES, MODEL_NAMES, build_model
@@ -105,9 +108,9 @@ def samples_for_analytics(ds: Dataset, ends: np.ndarray, pred: np.ndarray) -> di
     position = {int(e): i for i, e in enumerate(ends)}
     test_mask = split_rows(ds, "test")
     out = {}
-    for c, city in enumerate(CITIES):
+    for c, city in enumerate(ds.cities):
         rows = np.where((ds.city_of_row == c) & test_mask)[0][-SAMPLE_DAYS * 24 :]
-        series: dict[str, list] = {"time": [ds.times[r].strftime("%Y-%m-%dT%H:%MZ") for r in rows]}
+        series: dict[str, list] = {"time": [ds.times[r].strftime("%Y-%m-%dT%H:%MZ") for r in rows], "role": city.role}
         for k, target in enumerate(TARGETS):
             series[f"{target}_actual"] = [None if np.isnan(ds.targets[r, k]) else round(float(ds.targets[r, k]), 2) for r in rows]
             for lead in (6, 24):
@@ -130,10 +133,24 @@ def split_metrics(ds: Dataset, ends: np.ndarray, pred: np.ndarray) -> tuple[dict
     return model_m, base_m
 
 
-def evaluate(name: str, model: keras.Model, pre: Preprocessor, ds: Dataset, X: np.ndarray, extra_bad: np.ndarray) -> tuple[dict, dict]:
+def coverage_of(true: np.ndarray, pred: np.ndarray, hw: list[float], target: str) -> float:
+    lower = pred - np.asarray(hw)
+    upper = pred + np.asarray(hw)
+    if target == "precipitation":
+        lower = np.clip(lower, 0, None)
+    if target == "humidity":
+        lower, upper = np.clip(lower, 0, 100), np.clip(upper, 0, 100)
+    return round(float(np.mean((true >= lower) & (true <= upper))), 4)
+
+
+def evaluate(
+    name: str, model: keras.Model, pre: Preprocessor, ds: Dataset, X: np.ndarray, extra_bad: np.ndarray, out_dir
+) -> tuple[dict, dict]:
     L = pre.lookback
-    val_ends = window_ends(ds, "val", lookback=L, extra_bad=extra_bad)
-    test_ends = window_ends(ds, "test", lookback=L, extra_bad=extra_bad)
+    train_cities, holdout_cities = ds.city_indices("train"), ds.city_indices("holdout")
+    val_ends = window_ends(ds, "val", lookback=L, extra_bad=extra_bad, cities=train_cities)
+    test_ends = window_ends(ds, "test", lookback=L, extra_bad=extra_bad, cities=train_cities)
+    unseen_ends = window_ends(ds, "test", lookback=L, extra_bad=extra_bad, cities=holdout_cities)
 
     val_pred = predict(model, pre, ds, X, val_ends)
     val_true = ds.targets[future_index(val_ends)]
@@ -142,24 +159,30 @@ def evaluate(name: str, model: keras.Model, pre: Preprocessor, ds: Dataset, X: n
     test_metrics, baseline = split_metrics(ds, test_ends, test_pred)
     val_metrics, _ = split_metrics(ds, val_ends, val_pred)
 
-    per_horizon, halfwidth, coverage, per_city = {}, {}, {}, {}
-    test_city = ds.city_of_row[test_ends]
+    unseen: dict | None = None
+    if len(unseen_ends):
+        unseen_pred = predict(model, pre, ds, X, unseen_ends)
+        unseen_true = ds.targets[future_index(unseen_ends)]
+        u_metrics, u_base = split_metrics(ds, unseen_ends, unseen_pred)
+        unseen = {"test": u_metrics, "persistence_baseline": u_base, "pred": unseen_pred, "true": unseen_true}
+
+    per_horizon, halfwidth, coverage, coverage_unseen, per_city = {}, {}, {}, {}, {}
+    all_ends = np.concatenate([test_ends, unseen_ends]) if unseen else test_ends
+    all_pred = np.concatenate([test_pred, unseen["pred"]]) if unseen else test_pred
+    all_true = ds.targets[future_index(all_ends)]
+    all_city = ds.city_of_row[all_ends]
     for k, target in enumerate(TARGETS):
         per_horizon[target] = [round(mae(test_true[:, h, k], test_pred[:, h, k]), 4) for h in range(H)]
         # Split-conformal error range calibrated on the validation year, checked on the test period.
         hw = [conformal_halfwidth(np.abs(val_true[:, h, k] - val_pred[:, h, k]), INTERVAL_LEVEL) for h in range(H)]
         halfwidth[target] = [round(v, 4) for v in hw]
-        lower = test_pred[..., k] - np.asarray(hw)
-        upper = test_pred[..., k] + np.asarray(hw)
-        if target == "precipitation":
-            lower = np.clip(lower, 0, None)
-        if target == "humidity":
-            lower, upper = np.clip(lower, 0, 100), np.clip(upper, 0, 100)
-        inside = (test_true[..., k] >= lower) & (test_true[..., k] <= upper)
-        coverage[target] = round(float(np.mean(inside)), 4)
+        coverage[target] = coverage_of(test_true[..., k], test_pred[..., k], hw, target)
+        if unseen:
+            coverage_unseen[target] = coverage_of(unseen["true"][..., k], unseen["pred"][..., k], hw, target)
         per_city[target] = {
-            city.id: round(mae(test_true[test_city == c, :, k], test_pred[test_city == c, :, k]), 4)
-            for c, city in enumerate(CITIES)
+            city.id: round(mae(all_true[all_city == c, :, k], all_pred[all_city == c, :, k]), 4)
+            for c, city in enumerate(ds.cities)
+            if np.any(all_city == c)
         }
 
     metrics = {
@@ -177,15 +200,21 @@ def evaluate(name: str, model: keras.Model, pre: Preprocessor, ds: Dataset, X: n
         "inference": inference_timing(model, X, test_ends, L),
         "windows": {"val": int(len(val_ends)), "test": int(len(test_ends))},
     }
+    if unseen:
+        # Held-out cities: never seen in training or validation, scored on the same test period.
+        metrics["test_unseen"] = unseen["test"]
+        metrics["persistence_baseline_unseen"] = unseen["persistence_baseline"]
+        metrics["interval"]["test_coverage_unseen"] = coverage_unseen
+        metrics["windows"]["test_unseen"] = int(len(unseen_ends))
     evaluation = {
         "model": name,
         "per_horizon_mae": per_horizon,
         "per_city_mae": per_city,
-        "samples": samples_for_analytics(ds, test_ends, test_pred),
+        "samples": samples_for_analytics(ds, all_ends, all_pred),
     }
-    np.savez_compressed(ARTIFACTS_DIR / name / "test_predictions.npz", ends=test_ends, lead6=test_pred[:, 5, :], lead24=test_pred[:, 23, :])
+    np.savez_compressed(out_dir / "test_predictions.npz", ends=all_ends, lead6=all_pred[:, 5, :], lead24=all_pred[:, 23, :])
     try:
-        metrics["station_check"] = station_check(ds, test_ends, test_pred[:, 5, :], test_pred[:, 23, :])
+        metrics["station_check"] = station_check(ds, all_ends, all_pred[:, 5, :], all_pred[:, 23, :])
     except Exception as exc:  # noqa: BLE001 - the station check is extra; never lose a trained model over it
         print(f"station check skipped: {exc}")
         metrics["station_check"] = {"available": False, "reason": str(exc)}
@@ -202,24 +231,31 @@ def main() -> None:
     parser.add_argument("--target-mode", choices=["direct", "residual24"], default="direct")
     parser.add_argument("--loss", choices=["mse", "huber"], default="mse")
     parser.add_argument("--experiment", help="validation-only run; results go to ml/experiments/NAME.json")
+    parser.add_argument("--region", choices=REGION_NAMES, default="north_india")
+    parser.add_argument("--artifacts-dir", help="override the output folder (smoke tests)")
+    parser.add_argument("--allow-missing", action="store_true", help="smoke tests: use only cities downloaded so far")
     args = parser.parse_args()
     L = args.lookback
+    region_out = artifacts_dir(args.region) if not args.artifacts_dir else Path(args.artifacts_dir)
 
-    print(f"Loading data… lookback={L} target_mode={args.target_mode} loss={args.loss} stride={args.train_stride}")
-    ds = load_dataset()
+    print(f"Loading {args.region}… lookback={L} target_mode={args.target_mode} loss={args.loss} stride={args.train_stride}")
+    ds = load_dataset(args.region, allow_missing=args.allow_missing)
+    train_cities = ds.city_indices("train")
+    print(f"cities: {len(train_cities)} training, {len(ds.city_indices('holdout'))} held out")
     residual_cols = RESIDUAL_INDICES if args.target_mode == "residual24" else ()
     model_targets = residual_targets(ds, residual_cols) if residual_cols else ds.targets
     extra_bad = np.isnan(model_targets).any(axis=1)
 
-    train_mask = split_rows(ds, "train") & ~ds.nan_rows & ~extra_bad
+    # The scaler sees only training-period rows of training cities: held-out cities never touch fitting.
+    train_mask = split_rows(ds, "train") & ~ds.nan_rows & ~extra_bad & ds.rows_of(train_cities)
     pre = Preprocessor.fit(ds.features[train_mask], model_targets[train_mask], lookback=L, target_mode=args.target_mode)
     X = np.nan_to_num(pre.transform_features(ds.features), nan=0.0)
     Y = np.nan_to_num(pre.transform_targets(model_targets), nan=0.0)
-    train_ends = window_ends(ds, "train", stride=args.train_stride, lookback=L, extra_bad=extra_bad)
-    val_ends = window_ends(ds, "val", stride=6, lookback=L, extra_bad=extra_bad)
+    train_ends = window_ends(ds, "train", stride=args.train_stride, lookback=L, extra_bad=extra_bad, cities=train_cities)
+    val_ends = window_ends(ds, "val", stride=6, lookback=L, extra_bad=extra_bad, cities=train_cities)
     print(f"rows={len(ds.times):,} features={X.shape[1]} train windows={len(train_ends):,} val windows={len(val_ends):,}")
 
-    manifest = json.loads((RAW_DIR / "manifest.json").read_text())
+    manifest = json.loads((raw_dir(args.region) / "manifest.json").read_text())
     for name in args.models:
         keras.utils.set_random_seed(SEED)
         model = build_model(name, L, X.shape[1], H, len(TARGETS), loss=args.loss)
@@ -246,7 +282,7 @@ def main() -> None:
 
         if args.experiment:
             # Model selection uses the full validation year only. The test set is not touched.
-            full_val = window_ends(ds, "val", lookback=L, extra_bad=extra_bad)
+            full_val = window_ends(ds, "val", lookback=L, extra_bad=extra_bad, cities=train_cities)
             val_metrics, val_base = split_metrics(ds, full_val, predict(model, pre, ds, X, full_val))
             EXPERIMENTS_DIR.mkdir(exist_ok=True)
             out = EXPERIMENTS_DIR / f"{args.experiment}__{name}.json"
@@ -274,14 +310,14 @@ def main() -> None:
             )
             continue
 
-        out = ARTIFACTS_DIR / name
+        out = region_out / name
         out.mkdir(parents=True, exist_ok=True)
         model.save(out / "model.keras")
         pre.save(out / "preprocessor.json")
         (out / "history.json").write_text(json.dumps({k: [float(v) for v in vals] for k, vals in history.history.items()}))
 
         print("Evaluating…")
-        metrics, evaluation = evaluate(name, model, pre, ds, X, extra_bad)
+        metrics, evaluation = evaluate(name, model, pre, ds, X, extra_bad, out)
         metrics.update(
             {
                 "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -299,10 +335,19 @@ def main() -> None:
                 },
                 "data": {
                     "source": "Open-Meteo Historical Forecast API (best_match), hourly",
-                    "region": "North India",
+                    "region": REGION_LABELS[args.region],
+                    "region_id": args.region,
                     "cities": [
-                        {"id": c.id, "name": c.name, "latitude": c.latitude, "longitude": c.longitude, "elevation_m": manifest[c.id]["elevation_m"]}
-                        for c in CITIES
+                        {
+                            "id": c.id,
+                            "name": c.name,
+                            "state": c.state,
+                            "role": c.role,
+                            "latitude": c.latitude,
+                            "longitude": c.longitude,
+                            "elevation_m": manifest[c.id]["elevation_m"],
+                        }
+                        for c in ds.cities
                     ],
                     "splits": SPLITS,
                     "lookback_hours": L,
@@ -316,10 +361,16 @@ def main() -> None:
         (out / "evaluation.json").write_text(json.dumps(evaluation))
         t = metrics["test"]
         print(
-            f"{DISPLAY_NAMES[name]} test: temp MAE {t['temperature']['mae']:.3f} °C, "
+            f"{DISPLAY_NAMES[name]} test (training cities): temp MAE {t['temperature']['mae']:.3f} °C, "
             f"RH MAE {t['humidity']['mae']:.3f} %, rain MAE {t['precipitation']['mae']:.4f} mm "
             f"(train {train_seconds/60:.1f} min)"
         )
+        if "test_unseen" in metrics:
+            u = metrics["test_unseen"]
+            print(
+                f"{DISPLAY_NAMES[name]} test (held-out cities): temp MAE {u['temperature']['mae']:.3f} °C, "
+                f"RH MAE {u['humidity']['mae']:.3f} %, rain MAE {u['precipitation']['mae']:.4f} mm"
+            )
 
 
 if __name__ == "__main__":

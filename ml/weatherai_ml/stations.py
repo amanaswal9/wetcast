@@ -50,10 +50,18 @@ def station_observations(city) -> tuple[pd.DataFrame | None, dict | None]:
 
 
 def station_check(ds, ends: np.ndarray, lead6: np.ndarray, lead24: np.ndarray) -> dict:
-    """Metrics vs stations for temperature and humidity, at 6 h and 24 h lead."""
-    per_city, pooled = {}, {t: {"lead6": ([], []), "lead24": ([], []), "open_meteo": ([], [])} for t in COLUMNS}
+    """Metrics vs stations for temperature and humidity, at 6 h and 24 h lead.
+    Training cities and held-out cities are pooled separately."""
+    def empty():
+        return {t: {"lead6": ([], []), "lead24": ([], []), "open_meteo": ([], [])} for t in COLUMNS}
+
+    per_city, groups = {}, {"train": empty(), "holdout": empty()}
     end_city = ds.city_of_row[ends]
-    for c, city in enumerate(CITIES):
+    for c, city in enumerate(ds.cities or CITIES):
+        mask = end_city == c
+        if not mask.any():
+            continue
+        pooled = groups.get(city.role, groups["train"])
         try:
             obs, meta = station_observations(city)
         except Exception as exc:  # noqa: BLE001 - network or provider issue: record and continue
@@ -62,8 +70,7 @@ def station_check(ds, ends: np.ndarray, lead6: np.ndarray, lead24: np.ndarray) -
         if obs is None:
             per_city[city.id] = {"available": False, "reason": f"no station with hourly data within {MAX_STATION_KM} km"}
             continue
-        mask = end_city == c
-        entry = {"available": True, "station": meta}
+        entry = {"available": True, "station": meta, "role": city.role}
         for target, col in COLUMNS.items():
             k = TARGETS.index(target)
             for lead, pred in (("lead6", lead6), ("lead24", lead24)):
@@ -80,15 +87,19 @@ def station_check(ds, ends: np.ndarray, lead6: np.ndarray, lead24: np.ndarray) -
             entry[f"{target}_open_meteo"] = summary(observed, ds.targets[rows, k])
         per_city[city.id] = entry
 
-    overall = {}
-    for target, parts in pooled.items():
-        overall[target] = {}
-        for key, (ys, ps) in parts.items():
-            if ys:
-                overall[target][key] = summary(np.concatenate(ys), np.concatenate(ps))
-    return {
+    def pool(group: dict) -> dict:
+        out = {}
+        for target, parts in group.items():
+            out[target] = {key: summary(np.concatenate(ys), np.concatenate(ps)) for key, (ys, ps) in parts.items() if ys}
+        return out
+
+    result = {
         "source": "Meteostat hourly station observations (nearest station within 30 km)",
         "note": "open_meteo = Open-Meteo's own data vs the station: the error floor of the training data.",
-        "overall": overall,
+        "overall": pool(groups["train"]),
         "per_city": per_city,
     }
+    unseen = pool(groups["holdout"])
+    if any(unseen.values()):
+        result["overall_unseen"] = unseen
+    return result

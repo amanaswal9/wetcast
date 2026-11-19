@@ -1,0 +1,434 @@
+[
+  {
+    "id": "delhi",
+    "name": "Delhi",
+    "state": "Delhi",
+    "role": "train",
+    "latitude": 28.6214,
+    "longitude": 77.2148,
+    "geocoded_admin1": "National Capital Territory of Delhi"
+  },
+  {
+    "id": "jaipur",
+    "name": "Jaipur",
+    "state": "Rajasthan",
+    "role": "train",
+    "latitude": 26.9196,
+    "longitude": 75.7878,
+    "geocoded_admin1": "Rajasthan"
+  },
+  {
+    "id": "lucknow",
+    "name": "Lucknow",
+    "state": "Uttar Pradesh",
+    "role": "train",
+    "latitude": 26.8393,
+    "longitude": 80.9231,
+    "geocoded_admin1": "Uttar Pradesh"
+  },
+  {
+    "id": "chandigarh",
+    "name": "Chandigarh",
+    "state": "Chandigarh",
+    "role": "train",
+    "latitude": 30.7363,
+    "longitude": 76.7884,
+    "geocoded_admin1": "Chandigarh"
+  },
+  {
+    "id": "agra",
+    "name": "Agra",
+    "state": "Uttar Pradesh",
+    "role": "train",
+    "latitude": 27.1833,
+    "longitude": 78.0167,
+    "geocoded_admin1": "Uttar Pradesh"
+  },
+  {
+    "id": "dehradun",
+    "name": "Dehradun",
+    "state": "Uttarakhand",
+    "role": "train",
+    "latitude": 30.3244,
+    "longitude": 78.0339,
+    "geocoded_admin1": "Uttarakhand"
+  },
+  {
+    "id": "kanpur",
+    "name": "Kanpur",
+    "state": "Uttar Pradesh",
+    "role": "train",
+    "latitude": 26.4652,
+    "longitude": 80.3498,
+    "geocoded_admin1": "Uttar Pradesh"
+  },
+  {
+    "id": "amritsar",
+    "name": "Amritsar",
+    "state": "Punjab",
+    "role": "train",
+    "latitude": 31.6223,
+    "longitude": 74.8753,
+    "geocoded_admin1": "Punjab"
+  },
+  {
+    "id": "bikaner",
+    "name": "Bikaner",
+    "state": "Rajasthan",
+    "role": "train",
+    "latitude": 28.0176,
+    "longitude": 73.3149,
+    "geocoded_admin1": "Rajasthan"
+  },
+  {
+    "id": "varanasi",
+    "name": "Varanasi",
+    "state": "Uttar Pradesh",
+    "role": "train",
+    "latitude": 25.3167,
+    "longitude": 83.0104,
+    "geocoded_admin1": "Uttar Pradesh"
+  },
+  {
+    "id": "vijayawada",
+    "name": "Vijayawada",
+    "state": "Andhra Pradesh",
+    "role": "train",
+    "latitude": 16.5074,
+    "longitude": 80.6466,
+    "geocoded_admin1": "Andhra Pradesh"
+  },
+  {
+    "id": "itanagar",
+    "name": "Itanagar",
+    "state": "Arunachal Pradesh",
+    "role": "train",
+    "latitude": 27.0869,
+    "longitude": 93.6099,
+    "geocoded_admin1": "Arunachal Pradesh"
+  },
+  {
+    "id": "guwahati",
+    "name": "Guwahati",
+    "state": "Assam",
+    "role": "train",
+    "latitude": 26.1844,
+    "longitude": 91.7458,
+    "geocoded_admin1": "Assam"
+  },
+  {
+    "id": "patna",
+    "name": "Patna",
+    "state": "Bihar",
+    "role": "train",
+    "latitude": 25.5941,
+    "longitude": 85.1356,
+    "geocoded_admin1": "Bihar"
+  },
+  {
+    "id": "raipur",
+    "name": "Raipur",
+    "state": "Chhattisgarh",
+    "role": "train",
+    "latitude": 21.2333,
+    "longitude": 81.6333,
+    "geocoded_admin1": "Chhattisgarh"
+  },
+  {
+    "id": "panaji",
+    "name": "Panaji",
+    "state": "Goa",
+    "role": "train",
+    "latitude": 15.4957,
+    "longitude": 73.8262,
+    "geocoded_admin1": "Goa"
+  },
+  {
+    "id": "ahmedabad",
+    "name": "Ahmedabad",
+    "state": "Gujarat",
+    "role": "train",
+    "latitude": 23.0258,
+    "longitude": 72.5873,
+    "geocoded_admin1": "Gujarat"
+  },
+  {
+    "id": "hisar",
+    "name": "Hisar",
+    "state": "Haryana",
+    "role": "train",
+    "latitude": 29.1539,
+    "longitude": 75.7229,
+    "geocoded_admin1": "Haryana"
+  },
+  {
+    "id": "shimla",
+    "name": "Shimla",
+    "state": "Himachal Pradesh",
+    "role": "train",
+    "latitude": 31.1044,
+    "longitude": 77.1666,
+    "geocoded_admin1": "Himachal Pradesh"
+  },
+  {
+    "id": "ranchi",
+    "name": "Ranchi",
+    "state": "Jharkhand",
+    "role": "train",
+    "latitude": 23.3432,
+    "longitude": 85.3094,
+    "geocoded_admin1": "Jharkhand"
+  },
+  {
+    "id": "bengaluru",
+    "name": "Bengaluru",
+    "state": "Karnataka",
+    "role": "train",
+    "latitude": 12.9719,
+    "longitude": 77.5937,
+    "geocoded_admin1": "Karnataka"
+  },
+  {
+    "id": "thiruvananthapuram",
+    "name": "Thiruvananthapuram",
+    "state": "Kerala",
+    "role": "train",
+    "latitude": 8.4855,
+    "longitude": 76.9492,
+    "geocoded_admin1": "Kerala"
+  },
+  {
+    "id": "bhopal",
+    "name": "Bhopal",
+    "state": "Madhya Pradesh",
+    "role": "train",
+    "latitude": 23.2547,
+    "longitude": 77.4029,
+    "geocoded_admin1": "Madhya Pradesh"
+  },
+  {
+    "id": "mumbai",
+    "name": "Mumbai",
+    "state": "Maharashtra",
+    "role": "train",
+    "latitude": 19.0728,
+    "longitude": 72.8826,
+    "geocoded_admin1": "Maharashtra"
+  },
+  {
+    "id": "imphal",
+    "name": "Imphal",
+    "state": "Manipur",
+    "role": "train",
+    "latitude": 24.8081,
+    "longitude": 93.9442,
+    "geocoded_admin1": "Manipur"
+  },
+  {
+    "id": "shillong",
+    "name": "Shillong",
+    "state": "Meghalaya",
+    "role": "train",
+    "latitude": 25.5689,
+    "longitude": 91.8831,
+    "geocoded_admin1": "Meghalaya"
+  },
+  {
+    "id": "aizawl",
+    "name": "Aizawl",
+    "state": "Mizoram",
+    "role": "train",
+    "latitude": 23.7289,
+    "longitude": 92.7179,
+    "geocoded_admin1": "Mizoram"
+  },
+  {
+    "id": "kohima",
+    "name": "Kohima",
+    "state": "Nagaland",
+    "role": "train",
+    "latitude": 25.6747,
+    "longitude": 94.111,
+    "geocoded_admin1": "Nagaland"
+  },
+  {
+    "id": "bhubaneswar",
+    "name": "Bhubaneswar",
+    "state": "Odisha",
+    "role": "train",
+    "latitude": 20.2724,
+    "longitude": 85.8338,
+    "geocoded_admin1": "Odisha"
+  },
+  {
+    "id": "gangtok",
+    "name": "Gangtok",
+    "state": "Sikkim",
+    "role": "train",
+    "latitude": 27.3257,
+    "longitude": 88.6122,
+    "geocoded_admin1": "Sikkim"
+  },
+  {
+    "id": "chennai",
+    "name": "Chennai",
+    "state": "Tamil Nadu",
+    "role": "train",
+    "latitude": 13.0878,
+    "longitude": 80.2785,
+    "geocoded_admin1": "Tamil Nadu"
+  },
+  {
+    "id": "hyderabad",
+    "name": "Hyderabad",
+    "state": "Telangana",
+    "role": "train",
+    "latitude": 17.384,
+    "longitude": 78.4564,
+    "geocoded_admin1": "Telangana"
+  },
+  {
+    "id": "agartala",
+    "name": "Agartala",
+    "state": "Tripura",
+    "role": "train",
+    "latitude": 23.8361,
+    "longitude": 91.2794,
+    "geocoded_admin1": "Tripura"
+  },
+  {
+    "id": "kolkata",
+    "name": "Kolkata",
+    "state": "West Bengal",
+    "role": "train",
+    "latitude": 22.5626,
+    "longitude": 88.363,
+    "geocoded_admin1": "West Bengal"
+  },
+  {
+    "id": "port_blair",
+    "name": "Port Blair",
+    "state": "Andaman and Nicobar",
+    "role": "train",
+    "latitude": 11.6661,
+    "longitude": 92.7464,
+    "geocoded_admin1": "Andaman and Nicobar"
+  },
+  {
+    "id": "daman",
+    "name": "Daman",
+    "state": "Dadra and Nagar Haveli and Daman and Diu",
+    "role": "train",
+    "latitude": 20.4143,
+    "longitude": 72.8324,
+    "geocoded_admin1": "Dadra and Nagar Haveli and Daman and Diu"
+  },
+  {
+    "id": "srinagar",
+    "name": "Srinagar",
+    "state": "Jammu and Kashmir",
+    "role": "train",
+    "latitude": 34.0857,
+    "longitude": 74.8055,
+    "geocoded_admin1": "Jammu and Kashmir"
+  },
+  {
+    "id": "leh",
+    "name": "Leh",
+    "state": "Ladakh",
+    "role": "train",
+    "latitude": 34.165,
+    "longitude": 77.584,
+    "geocoded_admin1": "Ladakh"
+  },
+  {
+    "id": "kavaratti",
+    "name": "Kavaratti",
+    "state": "Lakshadweep",
+    "role": "train",
+    "latitude": 10.5669,
+    "longitude": 72.642,
+    "geocoded_admin1": "Lakshadweep"
+  },
+  {
+    "id": "puducherry",
+    "name": "Puducherry",
+    "state": "Puducherry",
+    "role": "train",
+    "latitude": 11.9338,
+    "longitude": 79.8298,
+    "geocoded_admin1": "Puducherry"
+  },
+  {
+    "id": "aurangabad",
+    "name": "Aurangabad",
+    "state": "Maharashtra",
+    "role": "holdout",
+    "latitude": 19.8776,
+    "longitude": 75.3423,
+    "geocoded_admin1": "Maharashtra"
+  },
+  {
+    "id": "nagpur",
+    "name": "Nagpur",
+    "state": "Maharashtra",
+    "role": "holdout",
+    "latitude": 21.1463,
+    "longitude": 79.0849,
+    "geocoded_admin1": "Maharashtra"
+  },
+  {
+    "id": "coimbatore",
+    "name": "Coimbatore",
+    "state": "Tamil Nadu",
+    "role": "holdout",
+    "latitude": 11.0055,
+    "longitude": 76.9661,
+    "geocoded_admin1": "Tamil Nadu"
+  },
+  {
+    "id": "visakhapatnam",
+    "name": "Visakhapatnam",
+    "state": "Andhra Pradesh",
+    "role": "holdout",
+    "latitude": 17.6801,
+    "longitude": 83.2016,
+    "geocoded_admin1": "Andhra Pradesh"
+  },
+  {
+    "id": "jodhpur",
+    "name": "Jodhpur",
+    "state": "Rajasthan",
+    "role": "holdout",
+    "latitude": 26.2684,
+    "longitude": 73.0059,
+    "geocoded_admin1": "Rajasthan"
+  },
+  {
+    "id": "indore",
+    "name": "Indore",
+    "state": "Madhya Pradesh",
+    "role": "holdout",
+    "latitude": 22.7179,
+    "longitude": 75.8333,
+    "geocoded_admin1": "Madhya Pradesh"
+  },
+  {
+    "id": "gorakhpur",
+    "name": "Gorakhpur",
+    "state": "Uttar Pradesh",
+    "role": "holdout",
+    "latitude": 26.7663,
+    "longitude": 83.3689,
+    "geocoded_admin1": "Uttar Pradesh"
+  },
+  {
+    "id": "mangaluru",
+    "name": "Mangaluru",
+    "state": "Karnataka",
+    "role": "holdout",
+    "latitude": 12.9172,
+    "longitude": 74.856,
+    "geocoded_admin1": "Karnataka"
+  }
+]

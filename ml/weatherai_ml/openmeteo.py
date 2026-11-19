@@ -38,17 +38,46 @@ def _to_frame(payload: list[dict] | dict, names: list[str]) -> tuple[pd.DataFram
     return pd.concat(frames, ignore_index=True), elevation
 
 
-def _get(client: httpx.Client, url: str, params: dict, retries: int = 5) -> list[dict] | dict:
-    for attempt in range(retries):
-        response = client.get(url, params=params)
+def _rate_limit_wait(response: httpx.Response) -> tuple[int, str]:
+    """How long to wait after a 429, based on which free-tier limit was hit."""
+    try:
+        reason = str(response.json().get("reason", ""))
+    except ValueError:
+        reason = ""
+    lower = reason.lower()
+    now = time.time()
+    if "daily" in lower:
+        return 3600, reason  # check again every hour until the daily quota resets
+    if "hourly" in lower:
+        return int(3600 - now % 3600) + 90, reason  # just past the top of the next hour
+    return 65, reason or "rate limited"
+
+
+def _get(client: httpx.Client, url: str, params: dict, retries: int = 5, patient: bool = False) -> list[dict] | dict:
+    """GET with retries. `patient=True` (bulk downloads) waits out hourly and
+    daily limits indefinitely instead of giving up."""
+    attempt = 0
+    while True:
+        try:
+            response = client.get(url, params=params)
+        except httpx.TransportError as exc:
+            attempt += 1
+            if attempt >= retries and not patient:
+                raise
+            print(f"  network error ({exc}); retrying in 120 s", flush=True)
+            time.sleep(120)
+            continue
         if response.status_code == 429:
-            wait = 65 * (attempt + 1)
-            print(f"  rate limited, waiting {wait}s")
+            attempt += 1
+            wait, reason = _rate_limit_wait(response)
+            if not patient and attempt >= retries:
+                raise RuntimeError(f"Open-Meteo kept rate-limiting the request: {reason}")
+            stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            print(f"  [{stamp}] {reason}; waiting {wait // 60} min {wait % 60} s", flush=True)
             time.sleep(wait)
             continue
         response.raise_for_status()
         return response.json()
-    raise RuntimeError("Open-Meteo kept rate-limiting the request")
 
 
 def fetch_history(client: httpx.Client, city: City, start: str, end: str) -> tuple[pd.DataFrame, float]:
@@ -61,7 +90,7 @@ def fetch_history(client: httpx.Client, city: City, start: str, end: str) -> tup
         "hourly": ",".join(API_VARIABLES),
         "timezone": "GMT",
     }
-    return _to_frame(_get(client, HISTORICAL_URL, params), [name for name, _, _ in coords])
+    return _to_frame(_get(client, HISTORICAL_URL, params, patient=True), [name for name, _, _ in coords])
 
 
 def fetch_recent(client: httpx.Client, city: City, past_hours: int) -> tuple[pd.DataFrame, float]:

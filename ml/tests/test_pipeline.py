@@ -14,6 +14,7 @@ from weatherai_ml.config import (
     LOOKBACK_HOURS,
     SPLITS,
     TARGETS,
+    City,
 )
 from weatherai_ml.dataset import Dataset, residual_targets, window_ends
 from weatherai_ml.features import build_frames
@@ -114,6 +115,31 @@ def test_windows_stay_inside_split_city_and_clean_rows(split):
         assert ds.city_of_row[span].min() == ds.city_of_row[span].max()
         assert ds.times[span[0]] >= start and ds.times[span[-1]] <= end
         assert not ds.nan_rows[span].any()
+
+
+def test_held_out_cities_never_enter_training_windows():
+    ds = _toy_dataset()
+    ds.cities = (City("a", "A", 20.0, 75.0), City("b", "B", 25.0, 80.0, role="holdout"))
+    train_cities = ds.city_indices("train")
+    assert train_cities == {0}
+    for split in ("train", "val"):
+        ends = window_ends(ds, split, cities=train_cities)
+        assert len(ends) > 0 and set(ds.city_of_row[ends]) == {0}
+    unseen = window_ends(ds, "val", cities=ds.city_indices("holdout"))
+    assert set(ds.city_of_row[unseen]) == {1}
+
+
+def test_india_region_list_is_complete_and_separated():
+    from weatherai_ml.config import region_cities
+    from weatherai_ml.predict import haversine_km
+
+    cities = region_cities("india")
+    train = [c for c in cities if c.role == "train"]
+    holdout = [c for c in cities if c.role == "holdout"]
+    assert len(train) == 40 and len(holdout) == 8
+    assert len({c.id for c in cities}) == len(cities)
+    for h in holdout:
+        assert min(haversine_km(h.latitude, h.longitude, t.latitude, t.longitude) for t in train) >= 150
 
 
 def test_residual_targets_are_day_on_day_changes_within_a_city():
