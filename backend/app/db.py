@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, UniqueConstraint, create_engine
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship, sessionmaker
 
 from .config import get_settings
@@ -88,6 +88,44 @@ class SavedPlace(Base):
     longitude: Mapped[float] = mapped_column(Float)
     is_home: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Alert(Base):
+    """An official warning read from a public CAP feed (see app/alerts.py).
+
+    Kept until shortly after it expires, because the source feed only lists its
+    latest items and an active warning can scroll off it."""
+
+    __tablename__ = "alerts"
+    __table_args__ = (UniqueConstraint("source", "guid", name="uq_alert_guid"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source: Mapped[str] = mapped_column(String(16), index=True)
+    guid: Mapped[str] = mapped_column(String(64))
+    identifier: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
+    status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    msg_type: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    sender_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    event: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    severity: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    urgency: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    certainty: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    headline: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    instruction: Mapped[str | None] = mapped_column(Text, nullable=True)
+    area_desc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sent: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    onset: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True, nullable=True)
+    # Rings as "lat,lon lat,lon ...", several rings separated by "|"; plus a bounding box for a quick filter.
+    polygons: Mapped[str | None] = mapped_column(Text, nullable=True)
+    min_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    min_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    link: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 _engine = None

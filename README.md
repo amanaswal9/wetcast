@@ -3,6 +3,8 @@
 Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop interface.
 
 - **Dashboard**: current conditions, readings, air quality, sun, hourly chart and table, read-aloud summary.
+- **Official warnings** (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
+  (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
 - **Map**: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
   points, with the cities WeatherAI's own models cover marked.
 - **Forecast**: 7-day strip and per-day detail, plus WeatherAI's own LSTM, GRU and CNN-LSTM predictions
@@ -274,6 +276,7 @@ hour has passed. Forecasts people open on the Forecast page are stored and score
 | `GET /api/models`, `/api/models/{name}` | Metrics from the evaluation run |
 | `GET /api/models/{name}/evaluation?city=&include_samples=` | Per-horizon and per-city errors, actual-vs-predicted samples |
 | `GET /api/predictions?latitude=&longitude=&models=` | Live 24-hour predictions with error ranges; stored in PostgreSQL |
+| `GET /api/alerts?latitude=&longitude=&country=` | Official warnings in effect at a point: India from the stored Sachet feed, the US from the National Weather Service, otherwise a note that no feed is connected |
 | `GET /api/track-record?days=&city=` | Live track record: errors of stored forecasts once their hours have passed, per model, day and hours ahead, with persistence on the same hours |
 | `GET/POST/PUT /api/places`, `PUT/DELETE /api/places/{id}/home`, `DELETE /api/places/{id}` | Saved places per `X-Client-Id` (`PUT` replaces the whole list) |
 
@@ -306,6 +309,30 @@ arrows pointing where the wind blows. Values between points are not interpolated
   switch to a tile provider sized for it. (CARTO's basemaps were tried first, but they now require an API key.)
 - The scroll wheel zooms only after the map is clicked or focused, so the page scrolls past it normally.
 
+## Official warnings
+
+Free sources checked for item 9 (2026-11-20):
+
+| Source | Coverage | Access | Used |
+| --- | --- | --- | --- |
+| NDMA Sachet all-India CAP feed (`sachet.ndma.gov.in/cap_public_website/rss/rss_india.xml`) | India: IMD regional centres and state disaster authorities, with district polygons | Public RSS of CAP 1.2 messages, no key, marked public domain; no CORS, so the API reads it | Yes |
+| IMD's own API (`api.imd.gov.in`) | India: district warnings and nowcasts | Needs the caller's IP to be whitelisted by IMD on request | No (Sachet carries IMD's alerts) |
+| US National Weather Service (`api.weather.gov/alerts/active?point=`) | United States | Free, no key, point query | Yes, live with a 5-minute cache |
+| WMO Alert Hub, MeteoAlarm and other national CAP feeds | Many countries | Free feeds of varying format and coverage | Not yet |
+
+How it works (`backend/app/alerts.py`):
+
+- A job in the API reads the Sachet feed every 10 minutes (`WEATHERAI_ALERTS_POLL_MINUTES`; 0 turns it off),
+  fetches each new CAP message and its area polygon once, and keeps it until a week after it expires. The feed
+  lists only its latest 100 messages (one to five days' worth), so storing them keeps active warnings that have
+  scrolled off it. Updates and cancellations retire the messages they refer to; tests and exercises are ignored.
+- `GET /api/alerts` returns the warnings whose polygon contains the point (ray casting after a bounding-box
+  filter), worst first, and says when the feed hasn't been read for three polling intervals.
+- XML is parsed with `defusedxml`. Requests identify the app with a generic client name.
+- The Dashboard shows warnings in a message box with the issuer, area, validity and source. With none it shows
+  one line, and for India it adds that the feed isn't a complete archive. Elsewhere it says plainly that no
+  official feed is connected for that country.
+
 ## Data sources and labelling
 
 | What you see | Source | Label in the UI |
@@ -315,6 +342,7 @@ arrows pointing where the wind blows. Values between points are not interpolated
 | WeatherAI predictions | Our LSTM, GRU, CNN-LSTM | Model colour, dithered error range |
 | Historical trends | Open-Meteo archive (ERA5) | Named under the chart |
 | Station check | Meteostat | Models page |
+| Official warnings | NDMA Sachet (India), US National Weather Service | Source named under the warnings |
 | Weather map | Open-Meteo forecast at grid points, on OpenStreetMap tiles | "About this map" box under the map |
 
 ## Design system

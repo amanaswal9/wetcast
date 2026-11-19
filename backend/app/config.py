@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     # Track record: issue forecasts for every trained city and score past ones this often. 0 turns it off.
     track_record_interval_hours: int = 3
+    # Official alerts: read India's NDMA Sachet CAP feed this often. 0 turns polling off.
+    alerts_poll_minutes: int = 10
     # Open-Meteo needs no key. Keys for any future paid source go here, never in code.
 
 

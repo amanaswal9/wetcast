@@ -7,7 +7,8 @@ import pytest
 # Tests run against a throwaway SQLite file, never the real PostgreSQL database.
 TEST_DB = Path(__file__).parent / "test.db"
 os.environ["WEATHERAI_DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
-os.environ["WEATHERAI_TRACK_RECORD_INTERVAL_HOURS"] = "0"  # no background job in tests
+os.environ["WEATHERAI_TRACK_RECORD_INTERVAL_HOURS"] = "0"  # no background jobs in tests
+os.environ["WEATHERAI_ALERTS_POLL_MINUTES"] = "0"
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
