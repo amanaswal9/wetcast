@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Chart } from '../../components/chart/Chart'
 import { Button, Skeleton } from '../../components/retro'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { getTrackRecord, TARGET_LABELS, TARGET_UNITS, type ModelMetrics, type Target, type TrackRecord, type TrackStats } from '../../lib/api/weatherai'
-import { CHART_COLORS, CHART_FONT, MODEL_COLORS } from '../../lib/chartTheme'
+import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
 import { BackendNotice } from './BackendNotice'
 import { DASHES, fmt, improvement } from './format'
 import { Table } from './shared'
@@ -41,8 +41,9 @@ function DailyChart({ record, target, theme }: { record: TrackRecord; target: Ta
   const wide = useMediaQuery('(min-width: 640px)')
   const rows = dailyRows(record, target)
   const names: Record<string, string> = { ...Object.fromEntries(record.models.map((m) => [m.model, m.display_name])), [PERSISTENCE]: 'Persistence' }
-  const tick = { fill: colors.text, fontSize: 11, fontFamily: CHART_FONT }
   const few = rows.length < 4
+  // Leave room between date labels: about 10 on a wide chart, 5 on a phone.
+  const every = Math.max(1, Math.ceil(rows.length / (wide ? 10 : 5)))
   const series = [
     ...record.models.map((m, i) => ({ key: m.model, color: MODEL_COLORS[theme][m.model] ?? colors.model, dash: DASHES[i % DASHES.length], width: 2 })),
     { key: PERSISTENCE, color: MODEL_COLORS[theme].baseline, dash: '4 4', width: 3 },
@@ -50,31 +51,40 @@ function DailyChart({ record, target, theme }: { record: TrackRecord; target: Ta
   return (
     <>
       <div className="r-sunken p-1">
-        <ResponsiveContainer width="100%" height={wide ? 240 : 200}>
-          <LineChart data={rows} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke={colors.grid} vertical={false} />
-            <XAxis dataKey="date" tick={tick} tickLine={{ stroke: colors.axis }} axisLine={{ stroke: colors.axis }} tickFormatter={dayLabel} minTickGap={16} />
-            <YAxis width={48} tick={tick} tickLine={false} axisLine={{ stroke: colors.axis }} domain={[0, 'auto']} tickFormatter={(v: number) => v.toFixed(target === 'precipitation' ? 2 : 1)} />
-            <Tooltip
-              cursor={{ stroke: colors.axis, strokeDasharray: '2 2' }}
-              content={({ active, payload, label }) =>
-                active && payload?.length ? (
-                  <div className="r-tooltip tabular-nums">
-                    <div>{dayLabel(String(label))} (UTC)</div>
-                    {payload.map((p) => (
-                      <div key={String(p.dataKey)}>
-                        {names[String(p.dataKey)]}: MAE {fmt(Number(p.value), 3)} {TARGET_UNITS[target]}
-                      </div>
-                    ))}
+        <Chart
+          rows={rows}
+          colors={colors}
+          height={wide ? 240 : 200}
+          top={12}
+          yWidth={48}
+          xTicks={rows.flatMap((r, i) => (i % every === 0 ? [{ at: i, label: dayLabel(r.date) }] : []))}
+          y={{ domain: [0, 'auto'], format: (v) => v.toFixed(target === 'precipitation' ? 2 : 1) }}
+          series={series.map((s) => ({
+            type: 'line' as const,
+            key: s.key,
+            value: (r: (typeof rows)[number]) => (r as unknown as Record<string, number | undefined>)[s.key],
+            color: s.color,
+            width: s.width,
+            dash: s.dash || undefined,
+            curve: 'linear' as const,
+            dots: few,
+            connectGaps: true,
+          }))}
+          tooltip={(r) => (
+            <div className="r-tooltip tabular-nums">
+              <div>{dayLabel(r.date)} (UTC)</div>
+              {series.map((s) => {
+                const v = (r as unknown as Record<string, number | undefined>)[s.key]
+                return v === undefined ? null : (
+                  <div key={s.key}>
+                    {names[s.key]}: MAE {fmt(v, 3)} {TARGET_UNITS[target]}
                   </div>
-                ) : null
-              }
-            />
-            {series.map((s) => (
-              <Line key={s.key} dataKey={s.key} stroke={s.color} strokeWidth={s.width} strokeDasharray={s.dash} dot={few ? { r: 3, fill: s.color } : false} isAnimationActive={false} connectNulls />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
+                )
+              })}
+            </div>
+          )}
+          label={`Live track record by day, ${TARGET_LABELS[target].toLowerCase()}`}
+        />
       </div>
       <ul className="m-0 mt-2 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[0.92em]">
         {series.map((s) => (

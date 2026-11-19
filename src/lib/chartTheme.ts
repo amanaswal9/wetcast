@@ -1,8 +1,8 @@
 import type { Theme } from '../hooks/useTheme'
 
 /**
- * Recharts writes colours as SVG attributes, where CSS variables don't
- * resolve, so chart colours are mirrored here per theme.
+ * The SVG charts take colours as attributes (also used in legend swatches),
+ * so chart colours are mirrored here per theme rather than read from CSS.
  *
  * Series encoding used across WeatherAI:
  *  - past hours (Open-Meteo model estimate): solid line

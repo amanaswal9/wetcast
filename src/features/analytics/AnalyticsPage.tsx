@@ -1,12 +1,12 @@
 import { useId, useState } from 'react'
-import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Chart } from '../../components/chart/Chart'
 import { Button, GroupBox, MessageBox, Skeleton } from '../../components/retro'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { getDailyHistory } from '../../lib/api/openMeteo'
 import { getEvaluation, getModels, TARGET_LABELS, TARGET_UNITS, type Target } from '../../lib/api/weatherai'
-import { CHART_COLORS, CHART_FONT, MODEL_COLORS } from '../../lib/chartTheme'
+import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
 import { coordKey, placeShortLabel, round, shortDate } from '../../lib/format'
 import type { Place } from '../../types/weather'
 import { BackendNotice } from '../models/BackendNotice'
@@ -53,7 +53,6 @@ function ActualVsPredicted({ theme }: { theme: Theme }) {
   const evaluation = useResource(activeModel ? `eval:${activeModel}:${city}` : null, ({ signal }) => getEvaluation(activeModel!, { samplesFor: city }, signal))
   const colors = CHART_COLORS[theme]
   const wide = useMediaQuery('(min-width: 640px)')
-  const tick = { fill: colors.text, fontSize: 11, fontFamily: CHART_FONT }
 
   if (!models.data) {
     return models.status === 'error' ? <BackendNotice message={models.error?.message} onRetry={models.reload} /> : <Skeleton height={300} />
@@ -72,7 +71,7 @@ function ActualVsPredicted({ theme }: { theme: Theme }) {
       actual: sample[`${target}_actual`][i] as number | null,
       predicted: sample[`${target}_lead${lead}`][i] as number | null,
     })) ?? []
-  const dayTicks = rows.filter((_, i) => i % (wide ? 48 : 96) === 0).map((r) => r.time)
+  const dayTicks = rows.flatMap((r, i) => (i % (wide ? 48 : 96) === 0 ? [{ at: i, label: shortDate(istLabel(r.time)) }] : []))
   const modelColor = MODEL_COLORS[theme][activeModel ?? 'lstm']
   const perCity = evaluation.data
     ? cities.map((c) => ({ id: c.id, name: c.name, mae: evaluation.data!.per_city_mae[target][c.id] }))
@@ -111,35 +110,33 @@ function ActualVsPredicted({ theme }: { theme: Theme }) {
       ) : (
         <>
           <div className="r-sunken p-1">
-            <ResponsiveContainer width="100%" height={wide ? 260 : 220}>
-              <LineChart data={rows} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke={colors.grid} vertical={false} />
-                <XAxis dataKey="time" ticks={dayTicks} interval={0} tickFormatter={(t: string) => shortDate(istLabel(t))} tick={tick} tickLine={{ stroke: colors.axis }} axisLine={{ stroke: colors.axis }} />
-                <YAxis width={44} tick={tick} tickLine={false} axisLine={{ stroke: colors.axis }} domain={target === 'humidity' ? [0, 100] : ['auto', 'auto']} tickFormatter={(v: number) => (target === 'precipitation' ? v.toFixed(1) : `${round(v)}`)} />
-                <Tooltip
-                  cursor={{ stroke: colors.axis, strokeDasharray: '2 2' }}
-                  isAnimationActive={false}
-                  content={({ active, payload }) => {
-                    const row = active && payload?.length ? (payload[0].payload as (typeof rows)[number]) : null
-                    if (!row) return null
-                    const local = new Date(Date.parse(row.time.replace('Z', ':00Z')) + 5.5 * 3_600_000).toISOString()
-                    return (
-                      <div className="r-tooltip tabular-nums">
-                        <div>
-                          {shortDate(local.slice(0, 10))} {local.slice(11, 16)} IST
-                        </div>
-                        <div>Actual: {row.actual === null ? 'n/a' : fmtValue(row.actual, target)}</div>
-                        <div>
-                          {displayName}, {lead} h ahead: {row.predicted === null ? 'n/a' : fmtValue(row.predicted, target)}
-                        </div>
-                      </div>
-                    )
-                  }}
-                />
-                <Line dataKey="actual" stroke={colors.past} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls={false} />
-                <Line dataKey="predicted" stroke={modelColor} strokeWidth={1.5} strokeDasharray="5 2" dot={false} isAnimationActive={false} connectNulls={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            <Chart
+              rows={rows}
+              colors={colors}
+              height={wide ? 260 : 220}
+              top={12}
+              xTicks={dayTicks}
+              y={{ domain: target === 'humidity' ? [0, 100] : ['auto', 'auto'], format: (v) => (target === 'precipitation' ? v.toFixed(1) : `${round(v)}`) }}
+              series={[
+                { type: 'line', key: 'actual', value: (r) => r.actual, color: colors.past, width: 1.5, curve: 'linear' },
+                { type: 'line', key: 'predicted', value: (r) => r.predicted, color: modelColor, width: 1.5, dash: '5 2', curve: 'linear' },
+              ]}
+              tooltip={(row) => {
+                const local = new Date(Date.parse(row.time.replace('Z', ':00Z')) + 5.5 * 3_600_000).toISOString()
+                return (
+                  <div className="r-tooltip tabular-nums">
+                    <div>
+                      {shortDate(local.slice(0, 10))} {local.slice(11, 16)} IST
+                    </div>
+                    <div>Actual: {row.actual === null ? 'n/a' : fmtValue(row.actual, target)}</div>
+                    <div>
+                      {displayName}, {lead} h ahead: {row.predicted === null ? 'n/a' : fmtValue(row.predicted, target)}
+                    </div>
+                  </div>
+                )
+              }}
+              label={`Actual and predicted ${TARGET_LABELS[target].toLowerCase()} in ${cityName}`}
+            />
           </div>
           <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[0.92em]">
             <li className="flex items-center gap-1.5">
@@ -163,29 +160,22 @@ function ActualVsPredicted({ theme }: { theme: Theme }) {
             {displayName} error by city, {TARGET_LABELS[target].toLowerCase()}
           </h3>
           <div className="r-sunken p-1">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={perCity} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke={colors.grid} vertical={false} />
-                <XAxis dataKey="name" tick={tick} interval={0} angle={wide ? 0 : -40} textAnchor={wide ? 'middle' : 'end'} height={wide ? 24 : 50} tickLine={false} axisLine={{ stroke: colors.axis }} />
-                <YAxis width={44} tick={tick} tickLine={false} axisLine={{ stroke: colors.axis }} tickFormatter={(v: number) => v.toFixed(target === 'precipitation' ? 2 : 1)} />
-                <Tooltip
-                  cursor={{ fill: colors.grid }}
-                  isAnimationActive={false}
-                  content={({ active, payload }) =>
-                    active && payload?.length ? (
-                      <div className="r-tooltip tabular-nums">
-                        {String(payload[0].payload.name)}: MAE {Number(payload[0].value).toFixed(3)} {TARGET_UNITS[target]}
-                      </div>
-                    ) : null
-                  }
-                />
-                <Bar dataKey="mae" isAnimationActive={false}>
-                  {perCity.map((c) => (
-                    <Cell key={c.id} fill={c.id === city ? modelColor : colors.barPast} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <Chart
+              rows={perCity}
+              colors={colors}
+              height={wide ? 220 : 250}
+              top={8}
+              xTicks={perCity.map((c, i) => ({ at: i, label: c.name }))}
+              xTickAngle={wide ? 0 : -40}
+              y={{ domain: [0, 'auto'], format: (v) => v.toFixed(target === 'precipitation' ? 2 : 1) }}
+              series={[{ type: 'bars', key: 'mae', value: (c) => c.mae, color: (c) => (c.id === city ? modelColor : colors.barPast) }]}
+              tooltip={(c) => (
+                <div className="r-tooltip tabular-nums">
+                  {c.name}: MAE {c.mae.toFixed(3)} {TARGET_UNITS[target]}
+                </div>
+              )}
+              label={`${displayName} error by city`}
+            />
           </div>
           <p className="m-0 text-[0.92em] text-[var(--text-muted)]">Mean absolute error over the whole test period and all 24 hours ahead ({TARGET_UNITS[target]}).</p>
         </>
@@ -199,8 +189,6 @@ function HistoricalTrends({ place, theme }: { place: Place; theme: Theme }) {
   const history = useResource(`hist:${coordKey(place)}:${days}`, ({ signal }) => getDailyHistory(place, days, { signal }))
   const colors = CHART_COLORS[theme]
   const wide = useMediaQuery('(min-width: 640px)')
-  const tick = { fill: colors.text, fontSize: 11, fontFamily: CHART_FONT }
-  const patternId = `hist-band-${theme}`
 
   const rows = (history.data ?? []).map((d) => ({
     date: d.date,
@@ -209,7 +197,7 @@ function HistoricalTrends({ place, theme }: { place: Place; theme: Theme }) {
     rain: d.precipitationSum,
   }))
   const step = Math.max(1, Math.round(rows.length / (wide ? 8 : 4)))
-  const ticks = rows.filter((_, i) => i % step === 0).map((r) => r.date)
+  const ticks = rows.flatMap((r, i) => (i % step === 0 ? [{ at: i, label: shortDate(r.date) }] : []))
   const totalRain = rows.reduce((s, r) => s + (r.rain ?? 0), 0)
   const means = rows.map((r) => r.mean).filter((v): v is number => v !== null)
 
@@ -229,62 +217,48 @@ function HistoricalTrends({ place, theme }: { place: Place; theme: Theme }) {
             {means.length ? `${(means.reduce((a, b) => a + b, 0) / means.length).toFixed(1)}°C` : 'n/a'}, total rain {totalRain.toFixed(0)} mm.
           </p>
           <div className="r-sunken p-1">
-            <ResponsiveContainer width="100%" height={wide ? 240 : 200}>
-              <ComposedChart data={rows} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <pattern id={patternId} width="4" height="4" patternUnits="userSpaceOnUse">
-                    <rect width="2" height="2" fill={colors.forecast} />
-                    <rect x="2" y="2" width="2" height="2" fill={colors.forecast} />
-                  </pattern>
-                </defs>
-                <CartesianGrid stroke={colors.grid} vertical={false} />
-                <XAxis dataKey="date" ticks={ticks} interval={0} tickFormatter={shortDate} tick={tick} tickLine={{ stroke: colors.axis }} axisLine={{ stroke: colors.axis }} />
-                <YAxis width={44} tick={tick} tickLine={false} axisLine={{ stroke: colors.axis }} tickFormatter={(v: number) => `${round(v)}°`} domain={['auto', 'auto']} />
-                <Tooltip
-                  cursor={{ stroke: colors.axis, strokeDasharray: '2 2' }}
-                  isAnimationActive={false}
-                  content={({ active, payload }) => {
-                    const r = active && payload?.length ? (payload[0].payload as (typeof rows)[number]) : null
-                    if (!r) return null
-                    return (
-                      <div className="r-tooltip tabular-nums">
-                        <div>{shortDate(r.date)}</div>
-                        <div>Mean {r.mean === null ? 'n/a' : `${r.mean.toFixed(1)}°C`}</div>
-                        {r.range && (
-                          <div>
-                            Low {round(r.range[0])}°, high {round(r.range[1])}°
-                          </div>
-                        )}
-                        <div>Rain {r.rain === null ? 'n/a' : `${r.rain.toFixed(1)} mm`}</div>
-                      </div>
-                    )
-                  }}
-                />
-                <Area dataKey="range" stroke="none" fill={`url(#${patternId})`} fillOpacity={0.4} isAnimationActive={false} />
-                <Line dataKey="mean" stroke={colors.past} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
+            <Chart
+              rows={rows}
+              colors={colors}
+              height={wide ? 240 : 200}
+              top={12}
+              xTicks={ticks}
+              y={{ format: (v) => `${round(v)}°` }}
+              series={[
+                { type: 'band', key: 'range', lower: (r) => r.range?.[0], upper: (r) => r.range?.[1], color: colors.forecast, opacity: 0.4 },
+                { type: 'line', key: 'mean', value: (r) => r.mean, color: colors.past, width: 1.5, curve: 'linear' },
+              ]}
+              tooltip={(r) => (
+                <div className="r-tooltip tabular-nums">
+                  <div>{shortDate(r.date)}</div>
+                  <div>Mean {r.mean === null ? 'n/a' : `${r.mean.toFixed(1)}°C`}</div>
+                  {r.range && (
+                    <div>
+                      Low {round(r.range[0])}°, high {round(r.range[1])}°
+                    </div>
+                  )}
+                  <div>Rain {r.rain === null ? 'n/a' : `${r.rain.toFixed(1)} mm`}</div>
+                </div>
+              )}
+              label={`Daily temperature in ${placeShortLabel(place)}`}
+            />
           </div>
           <div className="r-sunken p-1">
-            <ResponsiveContainer width="100%" height={140}>
-              <BarChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke={colors.grid} vertical={false} />
-                <XAxis dataKey="date" ticks={ticks} interval={0} tickFormatter={shortDate} tick={tick} tickLine={{ stroke: colors.axis }} axisLine={{ stroke: colors.axis }} />
-                <YAxis width={44} tick={tick} tickLine={false} axisLine={{ stroke: colors.axis }} tickFormatter={(v: number) => `${round(v)}`} />
-                <Tooltip
-                  cursor={{ fill: colors.grid }}
-                  isAnimationActive={false}
-                  content={({ active, payload }) =>
-                    active && payload?.length ? (
-                      <div className="r-tooltip tabular-nums">
-                        {shortDate(String(payload[0].payload.date))}: {Number(payload[0].value ?? 0).toFixed(1)} mm
-                      </div>
-                    ) : null
-                  }
-                />
-                <Bar dataKey="rain" fill={colors.barForecast} isAnimationActive={false} />
-              </BarChart>
-            </ResponsiveContainer>
+            <Chart
+              rows={rows}
+              colors={colors}
+              height={140}
+              top={8}
+              xTicks={ticks}
+              y={{ domain: [0, 'auto'], format: (v) => `${round(v)}` }}
+              series={[{ type: 'bars', key: 'rain', value: (r) => r.rain, color: colors.barForecast }]}
+              tooltip={(r) => (
+                <div className="r-tooltip tabular-nums">
+                  {shortDate(r.date)}: {(r.rain ?? 0).toFixed(1)} mm
+                </div>
+              )}
+              label={`Daily rain in ${placeShortLabel(place)}`}
+            />
           </div>
           <p className="m-0 text-[0.92em] text-[var(--text-muted)]">
             Daily mean temperature (line), daily low to high (shaded) and daily rain in mm (bars). Source: Open-Meteo historical

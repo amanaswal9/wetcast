@@ -702,3 +702,58 @@ body {
     font-family: var(--font-ui);
   }
 }
+
+/* Window minimise / restore (replaces the Motion library). */
+@keyframes r-window-out {
+  to {
+    opacity: 0;
+    transform: translateY(48px) scale(0.92);
+  }
+}
+
+@keyframes r-window-in {
+  from {
+    opacity: 0;
+    transform: translateY(48px) scale(0.92);
+  }
+}
+
+.r-window-anim {
+  transform-origin: 0% 100%;
+}
+
+.r-window-anim[data-animate='true'][data-state='open'] {
+  animation: r-window-in 160ms linear;
+}
+
+.r-window-anim[data-state='closing'] {
+  animation: r-window-out 160ms linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .r-window-anim {
+    animation: none !important;
+  }
+}
+
+/* SVG charts: data fades in once (skipped when reduced motion is asked for). */
+@keyframes r-chart-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.r-chart-data {
+  animation: r-chart-in 250ms ease-out;
+}
+
+.r-chart:focus-visible {
+  outline: 1px dotted var(--text);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .r-chart-data {
+    animation: none;
+  }
+}
