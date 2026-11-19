@@ -2,6 +2,12 @@
 
 Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop interface.
 
+![WeatherAI demo: the Dashboard for Delhi, searching Jaipur, WeatherAI's model forecasts next to Open-Meteo, the weather map with temperature and wind, and the test-period results](docs/demo/weatherai-demo.gif)
+
+A 44-second tour recorded from the running app with live data ([MP4, 1280×720](docs/demo/weatherai-demo.mp4)).
+Only the title card, captions and pointer are drawn on top. Re-record it with `docs/demo/record_demo.py`
+(needs the dev servers, Playwright with Chromium, and ffmpeg).
+
 - **Dashboard**: current conditions, readings, air quality, sun, hourly chart and table, read-aloud summary.
 - **Official warnings** (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
   (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
