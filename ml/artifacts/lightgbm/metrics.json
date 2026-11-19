@@ -1,0 +1,943 @@
+{
+  "model": "lightgbm",
+  "display_name": "LightGBM",
+  "test": {
+    "temperature": {
+      "mae": 1.1532097294032166,
+      "rmse": 1.580503870675634,
+      "r2": 0.953895055381431,
+      "n": 1734000,
+      "unit": "\u00b0C"
+    },
+    "humidity": {
+      "mae": 5.947464507647313,
+      "rmse": 8.225067189470993,
+      "r2": 0.882758611710078,
+      "n": 1734000,
+      "unit": "%"
+    },
+    "precipitation": {
+      "mae": 0.12985646727352748,
+      "rmse": 0.5808373183163229,
+      "r2": 0.08480413117349439,
+      "n": 1734000,
+      "unit": "mm"
+    }
+  },
+  "persistence_baseline": {
+    "temperature": {
+      "mae": 1.3827549019607843,
+      "rmse": 1.962095647777276,
+      "r2": 0.9289446593219854,
+      "n": 1734000,
+      "unit": "\u00b0C"
+    },
+    "humidity": {
+      "mae": 7.592460784313725,
+      "rmse": 10.82703883322646,
+      "r2": 0.7968478454360479,
+      "n": 1734000,
+      "unit": "%"
+    },
+    "precipitation": {
+      "mae": 0.1825493079584775,
+      "rmse": 0.8091773807075143,
+      "r2": -0.7762025787385873,
+      "n": 1734000,
+      "unit": "mm"
+    }
+  },
+  "validation": {
+    "temperature": {
+      "mae": 1.000842751442596,
+      "rmse": 1.3710680942225866,
+      "r2": 0.9673241415098982,
+      "n": 2085360,
+      "unit": "\u00b0C"
+    },
+    "humidity": {
+      "mae": 5.373911191514021,
+      "rmse": 7.394253576023019,
+      "r2": 0.9074125988602381,
+      "n": 2085360,
+      "unit": "%"
+    },
+    "precipitation": {
+      "mae": 0.12633099841853324,
+      "rmse": 0.6522417352153076,
+      "r2": 0.0633331328154374,
+      "n": 2085360,
+      "unit": "mm"
+    }
+  },
+  "interval": {
+    "level": 0.8,
+    "method": "split conformal, calibrated on the validation year",
+    "halfwidth_by_horizon": {
+      "temperature": [
+        1.2324,
+        1.2655,
+        1.33,
+        1.3761,
+        1.4303,
+        1.4634,
+        1.4941,
+        1.5184,
+        1.5392,
+        1.5547,
+        1.5774,
+        1.597,
+        1.6108,
+        1.624,
+        1.6406,
+        1.6525,
+        1.672,
+        1.6794,
+        1.6887,
+        1.7003,
+        1.7106,
+        1.7267,
+        1.735,
+        1.7498
+      ],
+      "humidity": [
+        5.8673,
+        6.2949,
+        6.7687,
+        7.1424,
+        7.4678,
+        7.714,
+        7.9052,
+        8.1145,
+        8.3012,
+        8.4545,
+        8.5824,
+        8.6944,
+        8.791,
+        8.8626,
+        8.9381,
+        9.0137,
+        9.0949,
+        9.1675,
+        9.1779,
+        9.2366,
+        9.3139,
+        9.3769,
+        9.3733,
+        9.4299
+      ],
+      "precipitation": [
+        0.0747,
+        0.0824,
+        0.0904,
+        0.0939,
+        0.0951,
+        0.0992,
+        0.0997,
+        0.1005,
+        0.101,
+        0.1027,
+        0.1034,
+        0.1036,
+        0.1025,
+        0.1021,
+        0.1015,
+        0.1014,
+        0.1017,
+        0.1017,
+        0.1012,
+        0.1009,
+        0.1004,
+        0.1,
+        0.0994,
+        0.0986
+      ]
+    },
+    "test_coverage": {
+      "temperature": 0.7463,
+      "humidity": 0.7624,
+      "precipitation": 0.7974
+    }
+  },
+  "inference": {
+    "single_ms_median": 1.6560000003664754,
+    "batch256_ms_per_forecast": 0.4119136718259142,
+    "device": "CPU",
+    "cpu": "AMD64"
+  },
+  "windows": {
+    "val": 86890,
+    "test": 72250
+  },
+  "station_check": {
+    "source": "Meteostat hourly station observations (nearest station within 30 km)",
+    "note": "open_meteo = Open-Meteo's own data vs the station: the error floor of the training data.",
+    "overall": {
+      "temperature": {
+        "lead6": {
+          "mae": 1.266776474920213,
+          "rmse": 1.7126232047000116,
+          "r2": 0.9474210908735935,
+          "n": 71957
+        },
+        "lead24": {
+          "mae": 1.481657744045769,
+          "rmse": 2.009242128232273,
+          "r2": 0.9270816102494912,
+          "n": 71957
+        },
+        "open_meteo": {
+          "mae": 1.1093839019087068,
+          "rmse": 1.5296634818047796,
+          "r2": 0.9587434536001997,
+          "n": 72667
+        }
+      },
+      "humidity": {
+        "lead6": {
+          "mae": 6.520104027910077,
+          "rmse": 8.910263125901961,
+          "r2": 0.8571600255042355,
+          "n": 71939
+        },
+        "lead24": {
+          "mae": 7.736158406884312,
+          "rmse": 10.596710899309711,
+          "r2": 0.7979185164226864,
+          "n": 71939
+        },
+        "open_meteo": {
+          "mae": 6.199493454830762,
+          "rmse": 8.780017110682316,
+          "r2": 0.8615155274566204,
+          "n": 72649
+        }
+      }
+    },
+    "per_city": {
+      "delhi": {
+        "available": true,
+        "station": {
+          "id": "42182",
+          "name": "New Delhi / Safdarjung",
+          "distance_km": 3.5
+        },
+        "role": "train",
+        "temperature_lead6": {
+          "mae": 1.450370968937072,
+          "rmse": 1.8607568411900814,
+          "r2": 0.9396122418250318,
+          "n": 7225
+        },
+        "temperature_lead24": {
+          "mae": 1.7162877633892404,
+          "rmse": 2.198968725997589,
+          "r2": 0.9150678286562304,
+          "n": 7225
+        },
+        "temperature_open_meteo": {
+          "mae": 1.4656661184210527,
+          "rmse": 1.8936191764782897,
+          "r2": 0.9384507397454436,
+          "n": 7296
+        },
+        "humidity_lead6": {
+          "mae": 9.799728335617687,
+          "rmse": 12.449257345211613,
+          "r2": 0.6420029059214557,
+          "n": 7222
+        },
+        "humidity_lead24": {
+          "mae": 10.785145307989277,
+          "rmse": 13.805047838871861,
+          "r2": 0.5601508516482367,
+          "n": 7222
+        },
+        "humidity_open_meteo": {
+          "mae": 10.98464280817222,
+          "rmse": 13.825810046689528,
+          "r2": 0.5597071045115345,
+          "n": 7293
+        }
+      },
+      "jaipur": {
+        "available": true,
+        "station": {
+          "id": "42348",
+          "name": "Jaipur / Sanganer",
+          "distance_km": 10.7
+        },
+        "role": "train",
+        "temperature_lead6": {
+          "mae": 1.618130724258698,
+          "rmse": 2.066371593033963,
+          "r2": 0.9025408936301157,
+          "n": 7225
+        },
+        "temperature_lead24": {
+          "mae": 1.858051727843102,
+          "rmse": 2.3797546571041637,
+          "r2": 0.8692435083219802,
+          "n": 7225
+        },
+        "temperature_open_meteo": {
+          "mae": 1.2101425438596491,
+          "rmse": 1.5926236559994715,
+          "r2": 0.943319208188852,
+          "n": 7296
+        },
+        "humidity_lead6": {
+          "mae": 7.31066816557917,
+          "rmse": 9.81931074377565,
+          "r2": 0.8135872252206389,
+          "n": 7225
+        },
+        "humidity_lead24": {
+          "mae": 8.721074761809293,
+          "rmse": 11.900855027901526,
+          "r2": 0.7256117563880533,
+          "n": 7225
+        },
+        "humidity_open_meteo": {
+          "mae": 6.41625548245614,
+          "rmse": 8.658995740664277,
+          "r2": 0.8560976270086815,
+          "n": 7296
+        }
+      },
+      "lucknow": {
+        "available": true,
+        "station": {
+          "id": "42368",
+          "name": "Lucknow",
+          "distance_km": 2.6
+        },
+        "role": "train",
+        "temperature_lead6": {
+          "mae": 0.9473424517936893,
+          "rmse": 1.3002067810933375,
+          "r2": 0.9627362293974377,
+          "n": 7180
+        },
+        "temperature_lead24": {
+          "mae": 1.1506133787971131,
+          "rmse": 1.6067917870201247,
+          "r2": 0.9426006156494496,
+          "n": 7180
+        },
+        "temperature_open_meteo": {
+          "mae": 0.9976279133912562,
+          "rmse": 1.3265085296849732,
+          "r2": 0.9619465169306095,
+          "n": 7251
+        },
+        "humidity_lead6": {
+          "mae": 4.85888990229402,
+          "rmse": 6.667300973651464,
+          "r2": 0.9223136717777246,
+          "n": 7180
+        },
+        "humidity_lead24": {
+          "mae": 6.292019050531124,
+          "rmse": 8.858732580433283,
+          "r2": 0.8629588900676421,
+          "n": 7180
+        },
+        "humidity_open_meteo": {
+          "mae": 4.7383809129775205,
+          "rmse": 6.690015655778036,
+          "r2": 0.9217239388487889,
+          "n": 7251
+        }
+      },
+      "chandigarh": {
+        "available": true,
+        "station": {
+          "id": "42105",
+          "name": "Chandigarh / S?rajpur",
+          "distance_km": 9.9
+        },
+        "role": "train",
+        "temperature_lead6": {
+          "mae": 1.5405966766800694,
+          "rmse": 2.0127080928197008,
+          "r2": 0.9309026815779331,
+          "n": 7180
+        },
+        "temperature_lead24": {
+          "mae": 1.7642900481625148,
+          "rmse": 2.3224155006615663,
+          "r2": 0.9073968498147401,
+          "n": 7180
+        },
+        "temperature_open_meteo": {
+          "mae": 1.2517445869535238,
+          "rmse": 1.7213465845863225,
+          "r2": 0.9502612396922331,
+          "n": 7251
+        },
+        "humidity_lead6": {
+          "mae": 7.6260686414068575,
+          "rmse": 10.02770131200758,
+          "r2": 0.7919745260771847,
+          "n": 7176
+        },
+        "humidity_lead24": {
+          "mae": 8.89259520289871,
+          "rmse": 11.7283552819616,
+          "r2": 0.7153234591013291,
+          "n": 7176
+        },
+        "humidity_open_meteo": {
+          "mae": 6.951566165309783,
+          "rmse": 9.233087051950731,
+          "r2": 0.8237133409889457,
+          "n": 7247
+        }
+      },
+      "agra": {
+        "available": true,
+        "station": {
+          "id": "42261",
+          "name": "Agra",
+          "distance_km": 2.7
+        },
+        "role": "train",
+        "temperature_lead6": {
+          "mae": 0.9770471829841955,
+          "rmse": 1.3397198210573427,
+          "r2": 0.9671998659687898,
+          "n": 7180
+        },
+        "temperature_lead24": {
+          "mae": 1.2020150731495063,
+          "rmse": 1.6477113632246931,
+          "r2": 0.9499654251771964,
+          "n": 7180
+        },
+        "temperature_open_meteo": {
+          "mae": 0.8823886360502001,
+          "rmse": 1.2446913891622235,
+          "r2": 0.972205302865095,
+          "n": 7251
+        },
+        "humidity_lead6": {
+          "mae": 5.129846780829906,
+          "rmse": 7.006945004825116,
+          "r2": 0.9116934022865553,
+          "n": 7180
+        },
+        "humidity_lead24": {
+          "mae": 6.482627604049259,
+          "rmse": 8.91283620523236,
+          "r2": 0.8570046349107125,
+          "n": 7180
+        },
+        "humidity_open_meteo": {
+          "mae": 4.531237070748862,
+          "rmse": 6.6275503934220925,
+          "r2": 0.9211341645760609,
+          "n": 7251
+        }
+      },
+      "dehradun": {
+        "available": true,
+        "station": {
+          "id": "42111",
+          "name": "Dehradun",
+          "distance_km": 0.1
+        },
+        "role": "train",
+        "temperature_lead6": {
+          "mae": 1.4041059830920801,
+          "rmse": 1.8509205397874975,
+          "r2": 0.9200590563348845,
+          "n": 7189
+        },
+        "temperature_lead24": {
+          "mae": 1.5772482219601596,
+          "rmse": 2.090758420761118,
+          "r2": 0.8973525757189069,
+          "n": 7189
+        },
+        "temperature_open_meteo": {
+          "mae": 1.1747107438016529,
+          "rmse": 1.6623069700900366,
+          "r2": 0.9365848489451538,
+          "n": 7260
+        },
+        "humidity_lead6": {
+          "mae": 7.107621160961079,
+          "rmse": 9.44804493565625,
+          "r2": 0.7938657602402086,
+          "n": 7185
+        },
+        "humidity_lead24": {
+          "mae": 8.063379372516406,
+          "rmse": 10.777046977322893,
+          "r2": 0.731641503488151,
+          "n": 7185
+        },
+        "humidity_open_meteo": {
+          "mae": 6.580485115766263,
+          "rmse": 9.458914231263497,
+          "r2": 0.7927076272443652,
+          "n": 7256
+        }
+      },
+      "kanpur": {
+        "available": true,
+        "station": {
+          "id": "42366",
+          "name": "Kanpur",
+          "distance_km": 3.9
+        },
+        "role": "train",
+        "temperature_lead6": {
+          "mae": 0.9934884270092911,
+          "rmse": 1.361260740761375,
+          "r2": 0.9631320962254252,
+          "n": 7180
+        },
+        "temperature_lead24": {
+          "mae": 1.171850520724617,
+          "rmse": 1.6032993640162487,
+          "r2": 0.9484193594217172,
+          "n": 7180
+        },
+        "temperature_open_meteo": {
+          "mae": 1.0426837677561716,
+          "rmse": 1.3978434638646198,
+          "r2": 0.9617549694097267,
+          "n": 7251
+        },
+        "humidity_lead6": {
+          "mae": 5.148105320871691,
+          "rmse": 7.005255902731284,
+          "r2": 0.9187333761101429,
+          "n": 7180
+        },
+        "humidity_lead24": {
+          "mae": 6.541223595672767,
+          "rmse": 9.005429803291777,
+          "r2": 0.8657298563644269,
+          "n": 7180
+        },
+        "humidity_open_meteo": {
+          "mae": 5.3344366294304235,
+          "rmse": 7.641047178622376,
+          "r2": 0.9033425147247266,
+          "n": 7251
+        }
+      },
+      "amritsar": {
+        "available": true,
+        "station": {
+          "id": "42071",
+          "name": "Amritsar",
+          "distance_km": 0.5
+        },
+        "role": "train",
+        "temperature_lead6": {
+          "mae": 1.4253674242298366,
+          "rmse": 1.9018580880614155,
+          "r2": 0.9461882838042985,
+          "n": 7225
+        },
+        "temperature_lead24": {
+          "mae": 1.6954001557613119,
+          "rmse": 2.2939927385210463,
+          "r2": 0.921162381574325,
+          "n": 7225
+        },
+        "temperature_open_meteo": {
+          "mae": 1.1257401315789475,
+          "rmse": 1.534265961127237,
+          "r2": 0.9654454866723197,
+          "n": 7296
+        },
+        "humidity_lead6": {
+          "mae": 6.315272541056977,
+          "rmse": 8.3995107826642,
+          "r2": 0.8421006904883434,
+          "n": 7224
+        },
+        "humidity_lead24": {
+          "mae": 7.309351202061274,
+          "rmse": 9.856307301114839,
+          "r2": 0.7824109963492761,
+          "n": 7224
+        },
+        "humidity_open_meteo": {
+          "mae": 6.186429061000686,
+          "rmse": 8.27634431721067,
+          "r2": 0.8472581609007486,
+          "n": 7295
+        }
+      },
+      "bikaner": {
+        "available": true,
+        "station": {
+          "id": "42165",
+          "name": "Bikaner",
+          "distance_km": 2.8
+        },
+        "role": "train",
+        "temperature_lead6": {
+          "mae": 1.2375737028473892,
+          "rmse": 1.7339398680395828,
+          "r2": 0.9531061712597205,
+          "n": 7189
+        },
+        "temperature_lead24": {
+          "mae": 1.4282128755645103,
+          "rmse": 2.0203784139625705,
+          "r2": 0.9358513821547805,
+          "n": 7189
+        },
+        "temperature_open_meteo": {
+          "mae": 0.998581267217631,
+          "rmse": 1.4677961778921182,
+          "r2": 0.9671463171838929,
+          "n": 7260
+        },
+        "humidity_lead6": {
+          "mae": 6.384993103560735,
+          "rmse": 9.04829316572901,
+          "r2": 0.8092826352993026,
+          "n": 7186
+        },
+        "humidity_lead24": {
+          "mae": 7.552833896425126,
+          "rmse": 10.794502262832975,
+          "r2": 0.7274906716181395,
+          "n": 7186
+        },
+        "humidity_open_meteo": {
+          "mae": 5.264572137246796,
+          "rmse": 7.9127371795996595,
+          "r2": 0.8567364743492928,
+          "n": 7257
+        }
+      },
+      "varanasi": {
+        "available": true,
+        "station": {
+          "id": "42483",
+          "name": "Varanasi",
+          "distance_km": 4.7
+        },
+        "role": "train",
+        "temperature_lead6": {
+          "mae": 1.0693689515618179,
+          "rmse": 1.4639986966652445,
+          "r2": 0.954742228840991,
+          "n": 7184
+        },
+        "temperature_lead24": {
+          "mae": 1.2475161385135116,
+          "rmse": 1.6948816780830502,
+          "r2": 0.938761688576417,
+          "n": 7184
+        },
+        "temperature_open_meteo": {
+          "mae": 0.9417643004824259,
+          "rmse": 1.3303740995144395,
+          "r2": 0.963308644157287,
+          "n": 7255
+        },
+        "humidity_lead6": {
+          "mae": 5.4974246829090765,
+          "rmse": 7.560999944957983,
+          "r2": 0.9031064438455361,
+          "n": 7181
+        },
+        "humidity_lead24": {
+          "mae": 6.700655234191483,
+          "rmse": 9.152880187244087,
+          "r2": 0.8579477750235642,
+          "n": 7181
+        },
+        "humidity_open_meteo": {
+          "mae": 4.97904026475455,
+          "rmse": 7.160672762952624,
+          "r2": 0.9130230941453885,
+          "n": 7252
+        }
+      }
+    }
+  },
+  "kind": "gbm",
+  "trained_at": "2026-11-19T17:13:46+00:00",
+  "pipeline_version": "1.0.0",
+  "framework": {
+    "lightgbm": "4.7.0"
+  },
+  "parameters": 1354,
+  "trees": {
+    "temperature": 784,
+    "humidity": 452,
+    "precipitation": 118
+  },
+  "feature_importance": {
+    "temperature": [
+      {
+        "feature": "prev_temperature",
+        "share": 0.125
+      },
+      {
+        "feature": "doy_cos",
+        "share": 0.09
+      },
+      {
+        "feature": "doy_sin",
+        "share": 0.0783
+      },
+      {
+        "feature": "prev_humidity",
+        "share": 0.0612
+      },
+      {
+        "feature": "target_hour_sin",
+        "share": 0.0467
+      },
+      {
+        "feature": "target_hour_cos",
+        "share": 0.0331
+      },
+      {
+        "feature": "c_temp",
+        "share": 0.0259
+      },
+      {
+        "feature": "c_temp_lag24",
+        "share": 0.0232
+      },
+      {
+        "feature": "n_temp",
+        "share": 0.02
+      },
+      {
+        "feature": "c_pressure_lag24",
+        "share": 0.0198
+      }
+    ],
+    "humidity": [
+      {
+        "feature": "prev_humidity",
+        "share": 0.1752
+      },
+      {
+        "feature": "doy_sin",
+        "share": 0.0694
+      },
+      {
+        "feature": "c_rh",
+        "share": 0.0552
+      },
+      {
+        "feature": "target_hour_sin",
+        "share": 0.053
+      },
+      {
+        "feature": "doy_cos",
+        "share": 0.0477
+      },
+      {
+        "feature": "target_hour_cos",
+        "share": 0.0443
+      },
+      {
+        "feature": "hours_ahead",
+        "share": 0.0367
+      },
+      {
+        "feature": "c_rh_lag24",
+        "share": 0.0263
+      },
+      {
+        "feature": "prev_temperature",
+        "share": 0.026
+      },
+      {
+        "feature": "w_rh",
+        "share": 0.0244
+      }
+    ],
+    "precipitation": [
+      {
+        "feature": "c_precip_log1p",
+        "share": 0.1479
+      },
+      {
+        "feature": "w_precip_log1p",
+        "share": 0.0771
+      },
+      {
+        "feature": "prev_precipitation",
+        "share": 0.0464
+      },
+      {
+        "feature": "s_precip_log1p",
+        "share": 0.0428
+      },
+      {
+        "feature": "doy_sin",
+        "share": 0.0377
+      },
+      {
+        "feature": "doy_cos",
+        "share": 0.0359
+      },
+      {
+        "feature": "hours_ahead",
+        "share": 0.0308
+      },
+      {
+        "feature": "e_precip_log1p",
+        "share": 0.0298
+      },
+      {
+        "feature": "w_cloud",
+        "share": 0.0278
+      },
+      {
+        "feature": "n_precip_log1p",
+        "share": 0.024
+      }
+    ]
+  },
+  "config": {
+    "lookback_hours": 48,
+    "target_mode": "residual24",
+    "loss": "mse",
+    "train_stride_hours": 4
+  },
+  "training": {
+    "epochs_run": null,
+    "best_epoch": null,
+    "best_val_loss": null,
+    "seconds": 115.1,
+    "train_windows": 43630,
+    "train_stride_hours": 4
+  },
+  "data": {
+    "source": "Open-Meteo Historical Forecast API (best_match), hourly",
+    "region": "North India",
+    "region_id": "north_india",
+    "cities": [
+      {
+        "id": "delhi",
+        "name": "Delhi",
+        "state": "",
+        "role": "train",
+        "latitude": 28.6139,
+        "longitude": 77.209,
+        "elevation_m": 214.0
+      },
+      {
+        "id": "jaipur",
+        "name": "Jaipur",
+        "state": "",
+        "role": "train",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "elevation_m": 431.0
+      },
+      {
+        "id": "lucknow",
+        "name": "Lucknow",
+        "state": "",
+        "role": "train",
+        "latitude": 26.8467,
+        "longitude": 80.9462,
+        "elevation_m": 117.0
+      },
+      {
+        "id": "chandigarh",
+        "name": "Chandigarh",
+        "state": "",
+        "role": "train",
+        "latitude": 30.7333,
+        "longitude": 76.7794,
+        "elevation_m": 343.0
+      },
+      {
+        "id": "agra",
+        "name": "Agra",
+        "state": "",
+        "role": "train",
+        "latitude": 27.1767,
+        "longitude": 78.0081,
+        "elevation_m": 170.0
+      },
+      {
+        "id": "dehradun",
+        "name": "Dehradun",
+        "state": "",
+        "role": "train",
+        "latitude": 30.3165,
+        "longitude": 78.0322,
+        "elevation_m": 652.0
+      },
+      {
+        "id": "kanpur",
+        "name": "Kanpur",
+        "state": "",
+        "role": "train",
+        "latitude": 26.4499,
+        "longitude": 80.3319,
+        "elevation_m": 133.0
+      },
+      {
+        "id": "amritsar",
+        "name": "Amritsar",
+        "state": "",
+        "role": "train",
+        "latitude": 31.634,
+        "longitude": 74.8723,
+        "elevation_m": 234.0
+      },
+      {
+        "id": "bikaner",
+        "name": "Bikaner",
+        "state": "",
+        "role": "train",
+        "latitude": 28.0229,
+        "longitude": 73.3119,
+        "elevation_m": 227.0
+      },
+      {
+        "id": "varanasi",
+        "name": "Varanasi",
+        "state": "",
+        "role": "train",
+        "latitude": 25.3176,
+        "longitude": 82.9739,
+        "elevation_m": 81.0
+      }
+    ],
+    "splits": {
+      "train": [
+        "2023-01-01T00:00",
+        "2024-12-31T23:00"
+      ],
+      "val": [
+        "2025-01-01T00:00",
+        "2025-12-31T23:00"
+      ],
+      "test": [
+        "2026-01-01T00:00",
+        "2026-10-31T23:00"
+      ]
+    },
+    "lookback_hours": 48,
+    "horizon_hours": 24,
+    "n_features": 42,
+    "targets": [
+      "temperature",
+      "humidity",
+      "precipitation"
+    ]
+  }
+}

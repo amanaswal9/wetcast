@@ -113,6 +113,54 @@ class Predictor:
         return Prediction(issued_at=issued, times=times, values=values, lower=lower, upper=upper)
 
 
+@dataclass
+class InputSpec:
+    """What the API needs to know to fetch enough history for a model."""
+
+    lookback: int
+    horizon: int
+
+
+class GBMPredictor:
+    """Live inference for the LightGBM model, using gbm.build_matrix exactly as in training."""
+
+    def __init__(self, model_dir: Path):
+        from .gbm import GBMForecaster
+
+        self.model_dir = model_dir
+        self.name = model_dir.name
+        self.forecaster = GBMForecaster(model_dir)
+        self.metrics = json.loads((model_dir / "metrics.json").read_text())
+        self.halfwidth = np.array([self.metrics["interval"]["halfwidth_by_horizon"][t] for t in TARGETS], dtype=float).T
+        self.preprocessor = InputSpec(lookback=self.forecaster.lookback, horizon=len(self.halfwidth))
+
+    def predict(self, features: pd.DataFrame) -> Prediction:
+        from .config import FEATURE_ORDER
+        from .gbm import build_matrix
+        from .preprocess import FeatureOrderError
+
+        if list(features.columns) != list(FEATURE_ORDER):
+            raise FeatureOrderError("Feature columns or their order differ from the trained pipeline.")
+        lookback, horizon = self.preprocessor.lookback, self.preprocessor.horizon
+        window = Predictor.usable(features).iloc[-lookback:]
+        if len(window) < lookback or window.isna().any().any():
+            raise InsufficientHistoryError(f"Need {lookback} complete recent hours; the data has gaps.")
+        if not window.index.equals(pd.date_range(window.index[0], periods=lookback, freq="h")):
+            raise InsufficientHistoryError("Recent hours are not contiguous.")
+        F = window.to_numpy(dtype=np.float32)
+        last = window.iloc[-horizon:]
+        prev = np.zeros((1, horizon, len(TARGETS)))
+        prev[0, :, TARGETS.index("temperature")] = last["c_temp"].to_numpy(dtype=float)
+        prev[0, :, TARGETS.index("humidity")] = last["c_rh"].to_numpy(dtype=float)
+        prev[0, :, TARGETS.index("precipitation")] = np.expm1(last["c_precip_log1p"].to_numpy(dtype=float))
+        issued = window.index[-1]
+        X = build_matrix(F, np.array([issued.hour]), np.array([len(F) - 1]), prev)
+        values = self.forecaster.predict_matrix(X, prev)[0]
+        lower, upper = apply_ranges(values, self.halfwidth)
+        times = [issued + pd.Timedelta(hours=i) for i in range(1, horizon + 1)]
+        return Prediction(issued_at=issued, times=times, values=values, lower=lower, upper=upper)
+
+
 def apply_ranges(values: np.ndarray, halfwidth: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     lower = values - halfwidth
     upper = values + halfwidth

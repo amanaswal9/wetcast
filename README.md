@@ -122,7 +122,24 @@ so they are offline and deterministic. Synthetic data is never used for training
 | Spatial context | Each city plus four points about 55 km north, south, east and west |
 | Input | Last 48 hours × 42 features (7 weather variables × 5 points, time of day, season, latitude, longitude, elevation) |
 | Output | Next 24 hours of temperature, humidity and rain at the city |
-| Architectures | Two-layer LSTM, two-layer GRU, causal CNN + LSTM (`ml/weatherai_ml/models.py`) |
+| Architectures | Two-layer LSTM, two-layer GRU, causal CNN + LSTM (`ml/weatherai_ml/models.py`), LightGBM gradient-boosted trees (`ml/weatherai_ml/gbm.py`), and an equal-weight ensemble (`ml/weatherai_ml/ensemble.py`) |
+
+**LightGBM** turns each forecast into 24 table rows (one per hour ahead) built from the current features, the
+city's last 24 hours (lags 1, 3, 6, 12, 24) and the value 24 hours before each predicted hour, predicting the
+day-on-day change like the version 2 networks. One booster per target, early-stopped on the validation year.
+It is the strongest single model here (test temperature MAE 1.15 °C, humidity 5.95 %), runs a forecast in about
+2 ms, and its feature importance is shown on the Models page; its rain MAE is weaker than the networks'.
+
+**The ensemble** averages member predictions with equal weights. Whether LightGBM joins it was decided on the
+validation year between two candidate sets fixed in advance (networks only, or networks plus LightGBM); the
+four-model set won and gives the best test temperature MAE, 1.13 °C.
+
+Rebuild both after training the networks:
+
+```bash
+~/.venvs/weatherai/Scripts/python -m weatherai_ml.gbm
+~/.venvs/weatherai/Scripts/python -m weatherai_ml.ensemble
+```
 
 Retrain with:
 

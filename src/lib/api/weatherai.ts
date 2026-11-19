@@ -86,10 +86,13 @@ export interface ModelMetrics {
     train_stride_hours?: number
     note?: string
   }
-  /** Present on the ensemble: which models it averages. */
-  kind?: 'ensemble'
+  /** "ensemble" averages other models; "gbm" is LightGBM (trees, no epochs). */
+  kind?: 'ensemble' | 'gbm'
   members?: string[]
   method?: string
+  trees?: Record<Target, number>
+  feature_importance?: Record<Target, { feature: string; share: number }[]>
+  member_selection?: { rule: string; candidates: { members: string[]; validation_score: number }[] }
   data: {
     source: string
     region: string

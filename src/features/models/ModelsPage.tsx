@@ -11,7 +11,41 @@ import { BackendNotice } from './BackendNotice'
 
 const TARGETS: Target[] = ['temperature', 'humidity', 'precipitation']
 /** Line patterns per model, so lines differ by more than colour. */
-const DASHES = ['', '6 3', '2 3', '10 3 2 3']
+const DASHES = ['', '6 3', '2 3', '10 3 2 3', '1 2']
+
+/** Plain-language names for LightGBM's input features. */
+function featureLabel(name: string): string {
+  const point: Record<string, string> = { c: 'city', n: 'north point', s: 'south point', e: 'east point', w: 'west point' }
+  const what: Record<string, string> = {
+    temp: 'temperature',
+    rh: 'humidity',
+    precip_log1p: 'rain',
+    pressure: 'pressure',
+    cloud: 'cloud',
+    wind_u: 'east-west wind',
+    wind_v: 'north-south wind',
+  }
+  const fixed: Record<string, string> = {
+    prev_temperature: 'temperature 24 h earlier',
+    prev_humidity: 'humidity 24 h earlier',
+    prev_precipitation: 'rain 24 h earlier',
+    hours_ahead: 'hours ahead',
+    target_hour_sin: 'hour of day',
+    target_hour_cos: 'hour of day',
+    hour_sin: 'hour now',
+    hour_cos: 'hour now',
+    doy_sin: 'time of year',
+    doy_cos: 'time of year',
+    lat: 'latitude',
+    lon: 'longitude',
+    elevation: 'elevation',
+  }
+  if (fixed[name]) return fixed[name]
+  const lag = name.match(/^(\w)_(.+)_lag(\d+)$/)
+  if (lag) return `${point[lag[1]] ?? lag[1]} ${what[lag[2]] ?? lag[2]}, ${lag[3]} h ago`
+  const m = name.match(/^(\w)_(.+)$/)
+  return m && point[m[1]] ? `${point[m[1]]} ${what[m[2]] ?? m[2]} now` : name
+}
 
 function fmt(value: number, digits = 2): string {
   return Number.isFinite(value) ? value.toFixed(digits) : 'n/a'
@@ -206,8 +240,12 @@ export function ModelsPage({ theme }: { theme: Theme }) {
           Every number below comes from the {first.data.splits.test[0].slice(0, 10)} to {first.data.splits.test[1].slice(0, 10)} test
           period, which the models never saw while training. Persistence is a naive baseline that predicts the same hour on the
           previous day; a useful model should beat it.
-          {list.some((m) => m.kind === 'ensemble') &&
-            ' The Ensemble is the plain average of the other models, with equal weights, so nothing in it was tuned on the test period.'}
+          {(() => {
+            const ens = list.find((m) => m.kind === 'ensemble')
+            if (!ens) return null
+            const names = (ens.members ?? []).map((n) => list.find((m) => m.model === n)?.display_name ?? n).join(', ')
+            return ` The Ensemble is the plain average of ${names}, with equal weights. Which models to include was decided on the validation year, not the test period.`
+          })()}
         </p>
         <TargetPicker value={target} onChange={setTarget} />
         <Table
@@ -291,6 +329,34 @@ export function ModelsPage({ theme }: { theme: Theme }) {
         )}
       </GroupBox>
 
+      {(() => {
+        const gbm = list.find((m) => m.kind === 'gbm' && m.feature_importance)
+        if (!gbm?.feature_importance) return null
+        // Time features are stored as sine/cosine pairs; combine each pair under one name.
+        const combined = new Map<string, number>()
+        for (const f of gbm.feature_importance[target]) {
+          const label = featureLabel(f.feature)
+          combined.set(label, (combined.get(label) ?? 0) + f.share)
+        }
+        const top = [...combined.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([feature, share]) => ({ feature, share }))
+        return (
+          <GroupBox title={`What ${gbm.display_name} relies on`}>
+            <p className="m-0 mb-2 max-w-[75ch]">
+              Unlike the neural networks, LightGBM can show which inputs mattered most. For {TARGET_LABELS[target].toLowerCase()}, its top
+              five, by share of the model&apos;s total improvement:
+            </p>
+            <Table
+              caption={`Most important inputs for ${TARGET_LABELS[target].toLowerCase()}`}
+              head={['Input', 'Share']}
+              rows={top.map((f) => [f.feature, `${(f.share * 100).toFixed(0)}%`])}
+            />
+          </GroupBox>
+        )
+      })()}
+
       <GroupBox title="Speed and size">
         <Table
           caption="Model size, training and inference time"
@@ -298,7 +364,11 @@ export function ModelsPage({ theme }: { theme: Theme }) {
           rows={list.map((m) => [
             m.display_name,
             m.parameters.toLocaleString(),
-            m.kind === 'ensemble' ? 'Averages the others' : `${m.training.epochs_run} (${m.training.best_epoch})`,
+            m.kind === 'ensemble'
+              ? 'Averages the others'
+              : m.kind === 'gbm' && m.trees
+                ? `${TARGETS.map((t) => m.trees![t]).join(' / ')} trees`
+                : `${m.training.epochs_run} (${m.training.best_epoch})`,
             m.kind === 'ensemble' ? 'None of its own' : minutes(m.training.seconds),
             `${fmt(m.inference.single_ms_median, 1)} ms`,
             `${fmt(m.inference.batch256_ms_per_forecast, 3)} ms`,

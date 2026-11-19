@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = ["numpy", "pandas", "httpx"]
 
 [project.optional-dependencies]
-train = ["tensorflow>=2.20", "scikit-learn", "pyarrow", "meteostat"]
+train = ["tensorflow>=2.20", "lightgbm>=4.5", "scikit-learn", "pyarrow", "meteostat"]
 
 [build-system]
 requires = ["setuptools>=68"]
