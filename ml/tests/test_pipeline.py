@@ -215,6 +215,55 @@ def test_predictor_uses_last_complete_hour_when_newest_is_incomplete():
     assert np.isfinite(pred.values).all()
 
 
+def test_gbm_matrix_layout():
+    from weatherai_ml.gbm import H, build_matrix, feature_names
+
+    features, targets = build_frames(synthetic_long_frame(80), DELHI, 216.0)
+    F = features.to_numpy(dtype=np.float32)
+    ends = np.array([50, 70])
+    prev = targets.to_numpy()[ends[:, None] + np.arange(1, H + 1)[None, :] - 24]
+    X = build_matrix(F, features.index[ends].hour.to_numpy(), ends, prev)
+    names = feature_names()
+    assert X.shape == (2 * H, len(names))
+    rows = X.reshape(2, H, -1)
+    assert np.allclose(rows[0, :, names.index("hours_ahead")], np.arange(1, H + 1))
+    assert np.allclose(rows[1, 0, names.index("c_temp_lag24")], F[70 - 24, list(FEATURE_ORDER).index("c_temp")])
+    assert np.allclose(rows[0, :, names.index("prev_temperature")], prev[0, :, 0])
+    # The value at t itself is a feature; the value at t+1 (the future) must not be.
+    assert np.allclose(rows[0, 0, names.index("c_temp")], F[50, list(FEATURE_ORDER).index("c_temp")])
+
+
+def test_gbm_targets_round_trip():
+    from weatherai_ml.gbm import to_physical, training_targets
+
+    rng = np.random.default_rng(7)
+    y = np.stack([rng.normal(25, 5, (4, 24)), rng.uniform(10, 95, (4, 24)), rng.gamma(0.3, 1, (4, 24))], axis=2)
+    prev = y + rng.normal(0, 2, y.shape)
+    prev[..., 2] = np.abs(prev[..., 2])
+    assert np.allclose(to_physical(training_targets(y, prev), prev), y)
+
+
+GBM_DIR = ARTIFACTS_DIR / "lightgbm"
+
+
+@pytest.mark.skipif(not (GBM_DIR / "gbm_config.json").exists(), reason="LightGBM not trained")
+def test_gbm_predictor_outputs_valid_forecast():
+    from weatherai_ml.predict import GBMPredictor
+
+    predictor = GBMPredictor(GBM_DIR)
+    features, _ = build_frames(synthetic_long_frame(predictor.preprocessor.lookback + 6), DELHI, 216.0)
+    features.iloc[-1, features.columns.get_loc("e_temp")] = np.nan  # newest hour incomplete
+    pred = predictor.predict(features)
+    assert pred.values.shape == (HORIZON_HOURS, len(TARGETS))
+    assert pred.issued_at == features.index[-2]
+    assert np.all(pred.lower <= pred.values + 1e-9) and np.all(pred.values <= pred.upper + 1e-9)
+    assert (pred.values[:, TARGETS.index("precipitation")] >= 0).all()
+    gappy = features.copy()
+    gappy.iloc[-10, 0] = np.nan
+    with pytest.raises(InsufficientHistoryError):
+        predictor.predict(gappy)
+
+
 @pytest.mark.skipif(
     len(TRAINED) < 3 or not (ARTIFACTS_DIR / "ensemble" / "ensemble.json").exists(), reason="ensemble not built"
 )

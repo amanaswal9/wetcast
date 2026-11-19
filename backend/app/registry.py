@@ -7,20 +7,22 @@ import logging
 from functools import lru_cache
 from pathlib import Path
 
+from weatherai_ml.gbm import GBM_NAME
 from weatherai_ml.models import DISPLAY_NAMES, ENSEMBLE_NAME, MODEL_NAMES
-from weatherai_ml.predict import EnsemblePredictor, Predictor
+from weatherai_ml.predict import EnsemblePredictor, GBMPredictor, Predictor
 
 from .config import get_settings
 
 log = logging.getLogger("weatherai.registry")
 REQUIRED = ("model.keras", "preprocessor.json", "metrics.json", "evaluation.json")
 REQUIRED_ENSEMBLE = ("ensemble.json", "metrics.json", "evaluation.json")
+REQUIRED_GBM = ("gbm_config.json", "metrics.json", "evaluation.json", "model_temperature.txt", "model_humidity.txt", "model_precipitation.txt")
 
 
 class ModelRegistry:
     def __init__(self, artifacts_dir: Path):
         self.artifacts_dir = artifacts_dir
-        self._predictors: dict[str, Predictor | EnsemblePredictor] = {}
+        self._predictors: dict[str, Predictor | GBMPredictor | EnsemblePredictor] = {}
         for name in MODEL_NAMES:
             folder = artifacts_dir / name
             missing = [f for f in REQUIRED if not (folder / f).exists()]
@@ -29,6 +31,10 @@ class ModelRegistry:
                 continue
             self._predictors[name] = Predictor(folder)
             log.info("model %s registered", name)
+        gbm_folder = artifacts_dir / GBM_NAME
+        if all((gbm_folder / f).exists() for f in REQUIRED_GBM):
+            self._predictors[GBM_NAME] = GBMPredictor(gbm_folder)
+            log.info("model %s registered", GBM_NAME)
         self._register_ensemble()
 
     def _register_ensemble(self) -> None:
@@ -48,7 +54,7 @@ class ModelRegistry:
     def names(self) -> list[str]:
         return list(self._predictors)
 
-    def get(self, name: str) -> Predictor | EnsemblePredictor | None:
+    def get(self, name: str) -> Predictor | GBMPredictor | EnsemblePredictor | None:
         return self._predictors.get(name)
 
     def metrics(self, name: str) -> dict:
