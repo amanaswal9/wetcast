@@ -169,11 +169,12 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     const fresh = lastRefresh.current !== refreshToken
     lastRefresh.current = refreshToken
     if (fresh) clearGridCache()
-    // Panning within points already fetched needs no request (and no "Loading" flicker).
-    if (uncachedPoints(grid.points).length === 0) return
+    // Points already cached (panning, or coming back to the page) load at once with no
+    // "Loading" message; only new points wait for the map to stop moving and show it.
+    const missing = uncachedPoints(grid.points).length
     const controller = new AbortController()
     const timer = window.setTimeout(() => {
-      setStatus({ kind: 'loading', points: grid.points.length })
+      if (missing > 0) setStatus({ kind: 'loading', points: missing })
       getGridForecasts(grid.points, {
         signal: controller.signal,
         fresh,
@@ -187,7 +188,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
           if (isAbort(error)) return
           setStatus({ kind: 'error', message: toApiError(error).message })
         })
-    }, 350)
+    }, missing > 0 ? 350 : 0)
     return () => {
       window.clearTimeout(timer)
       controller.abort()
