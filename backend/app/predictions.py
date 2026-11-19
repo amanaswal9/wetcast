@@ -72,7 +72,8 @@ def recent_features(registry: ModelRegistry, city: City, lookback: int) -> pd.Da
     return features
 
 
-def store_run(session: Session, model: str, city: City, prediction: Prediction) -> None:
+def store_run(session: Session, model: str, city: City, prediction: Prediction) -> bool:
+    """Store a forecast once; return False if this model already stored one for that hour."""
     issued = prediction.issued_at.to_pydatetime()
     exists = session.scalar(
         select(PredictionRun.id).where(
@@ -80,7 +81,7 @@ def store_run(session: Session, model: str, city: City, prediction: Prediction) 
         )
     )
     if exists:
-        return
+        return False
     run = PredictionRun(model=model, city_id=city.id, issued_at=issued)
     for lead, valid in enumerate(prediction.times, start=1):
         for k, target in enumerate(TARGETS):
@@ -96,6 +97,7 @@ def store_run(session: Session, model: str, city: City, prediction: Prediction) 
             )
     session.add(run)
     session.commit()
+    return True
 
 
 def supported_cities() -> list[City]:

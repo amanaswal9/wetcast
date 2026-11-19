@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     prediction_cache_seconds: int = 900
     log_level: str = "INFO"
+    # Track record: issue forecasts for every trained city and score past ones this often. 0 turns it off.
+    track_record_interval_hours: int = 3
     # Open-Meteo needs no key. Keys for any future paid source go here, never in code.
 
 

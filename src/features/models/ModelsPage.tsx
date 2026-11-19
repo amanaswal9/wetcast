@@ -1,5 +1,5 @@
 import { useReducedMotion } from 'motion/react'
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Button, GroupBox, Skeleton } from '../../components/retro'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
@@ -8,10 +8,11 @@ import type { Theme } from '../../hooks/useTheme'
 import { getEvaluation, getModels, TARGET_LABELS, TARGET_UNITS, type Evaluation, type ModelMetrics, type Target } from '../../lib/api/weatherai'
 import { CHART_COLORS, CHART_FONT, MODEL_COLORS } from '../../lib/chartTheme'
 import { BackendNotice } from './BackendNotice'
+import { DASHES, fmt, improvement } from './format'
+import { Table } from './shared'
+import { TrackRecordPanel } from './TrackRecord'
 
 const TARGETS: Target[] = ['temperature', 'humidity', 'precipitation']
-/** Line patterns per model, so lines differ by more than colour. */
-const DASHES = ['', '6 3', '2 3', '10 3 2 3', '1 2']
 
 /** Plain-language names for LightGBM's input features. */
 function featureLabel(name: string): string {
@@ -45,50 +46,6 @@ function featureLabel(name: string): string {
   if (lag) return `${point[lag[1]] ?? lag[1]} ${what[lag[2]] ?? lag[2]}, ${lag[3]} h ago`
   const m = name.match(/^(\w)_(.+)$/)
   return m && point[m[1]] ? `${point[m[1]]} ${what[m[2]] ?? m[2]} now` : name
-}
-
-function fmt(value: number, digits = 2): string {
-  return Number.isFinite(value) ? value.toFixed(digits) : 'n/a'
-}
-
-function improvement(model: number, baseline: number): string {
-  if (!Number.isFinite(model) || !Number.isFinite(baseline) || baseline === 0) return 'n/a'
-  const pct = ((baseline - model) / baseline) * 100
-  return pct >= 0 ? `${pct.toFixed(0)}% lower` : `${Math.abs(pct).toFixed(0)}% higher`
-}
-
-function Table({ caption, head, rows }: { caption: string; head: string[]; rows: ReactNode[][] }) {
-  return (
-    <div className="r-sunken overflow-x-auto">
-      <table className="r-table min-w-[480px]">
-        <caption className="sr-only">{caption}</caption>
-        <thead>
-          <tr>
-            {head.map((h, i) => (
-              <th key={i} scope="col">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((cells, r) => (
-            <tr key={r}>
-              {cells.map((c, i) =>
-                i === 0 ? (
-                  <th key={i} scope="row">
-                    {c}
-                  </th>
-                ) : (
-                  <td key={i}>{c}</td>
-                ),
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
 }
 
 function TargetPicker({ value, onChange }: { value: Target; onChange: (t: Target) => void }) {
@@ -270,7 +227,11 @@ export function ModelsPage({ theme }: { theme: Theme }) {
         )}
       </GroupBox>
 
-      <GroupBox title="Error by hours ahead">
+      <GroupBox title="Live track record">
+        <TrackRecordPanel models={list} target={target} theme={theme} />
+      </GroupBox>
+
+      <GroupBox title="Error by hours ahead (test period)">
         {evaluations.data ? (
           <HorizonChart evaluations={evaluations.data} models={list} target={target} theme={theme} />
         ) : evaluations.status === 'error' ? (

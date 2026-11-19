@@ -285,3 +285,21 @@ def test_predictor_refuses_gappy_history():
     features.iloc[-10, 0] = np.nan
     with pytest.raises(InsufficientHistoryError):
         predictor.predict(features)
+
+
+def test_live_requests_fail_fast_on_daily_limit():
+    """A daily-limit 429 must raise at once for live callers, not sleep for an hour."""
+    import time as _time
+
+    import httpx
+
+    from weatherai_ml.openmeteo import _get
+
+    def handler(request):
+        return httpx.Response(429, json={"error": True, "reason": "Daily API request limit exceeded."})
+
+    started = _time.perf_counter()
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(RuntimeError, match="rate-limiting"):
+            _get(client, "https://example.invalid", {}, retries=2)
+    assert _time.perf_counter() - started < 5
