@@ -84,10 +84,6 @@ def engine():
     return _engine
 
 
-def create_tables() -> None:
-    Base.metadata.create_all(engine())
-
-
 def get_session() -> Iterator[Session]:
     if _SessionLocal is None:
         init_engine()

@@ -82,7 +82,7 @@ python -m venv ~/.venvs/weatherai
 # 2. Database: create a role and database, then copy backend/.env.example to backend/.env and fill it in
 #    CREATE ROLE weatherai LOGIN PASSWORD '...'; CREATE DATABASE weatherai OWNER weatherai;
 
-# 3. API (tables are created on startup)
+# 3. API (applies database migrations on startup)
 cd backend
 ~/.venvs/weatherai/Scripts/python -m uvicorn app.main:app --port 8000
 
@@ -93,6 +93,23 @@ npm run dev        # http://localhost:5173
 
 Without the backend running, the Dashboard, Forecast, Locations and historical trends still work; the model
 panels say the prediction service isn't reachable.
+
+### Database migrations
+
+The schema is managed with Alembic (`backend/alembic/`, settings in `backend/alembic.ini`; the database URL
+always comes from `WEATHERAI_DATABASE_URL`). The API upgrades the database to the latest migration when it
+starts. A database created by an older version (tables but no migration record) is recorded as the baseline
+`0001` without touching its data; one with only some of the tables is refused with a message.
+
+```bash
+cd backend
+~/.venvs/weatherai/Scripts/python -m alembic current                                   # revision in use
+~/.venvs/weatherai/Scripts/python -m alembic revision --autogenerate -m "describe change"  # after editing app/db.py
+~/.venvs/weatherai/Scripts/python -m alembic upgrade head                               # apply without starting the API
+```
+
+Read every generated migration before committing it. `tests/test_migrations.py` fails if `app/db.py` and the
+migrations disagree.
 
 ### Tests
 
