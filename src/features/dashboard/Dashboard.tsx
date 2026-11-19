@@ -1,7 +1,8 @@
 import { Button, GroupBox, MessageBox, Skeleton } from '../../components/retro'
 import type { ResourceState } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
-import type { AirQuality, Forecast } from '../../types/weather'
+import type { AirQuality, Forecast, Place } from '../../types/weather'
+import { AlertsPanel } from '../alerts/AlertsPanel'
 import { CurrentConditions } from './CurrentConditions'
 import { HourlyPanel } from './HourlyPanel'
 import { Readings } from './Readings'
@@ -9,6 +10,7 @@ import { Summary } from './Summary'
 import { SunPanel } from './SunPanel'
 
 interface DashboardProps {
+  place: Place
   forecast: ResourceState<Forecast> & { reload: () => void }
   air: ResourceState<AirQuality>
   summary: string | null
@@ -46,7 +48,7 @@ function DashboardSkeleton() {
   )
 }
 
-export function Dashboard({ forecast, air, summary, theme, speech }: DashboardProps) {
+export function Dashboard({ place, forecast, air, summary, theme, speech }: DashboardProps) {
   if (!forecast.data) {
     if (forecast.status === 'error') {
       return (
@@ -68,6 +70,9 @@ export function Dashboard({ forecast, air, summary, theme, speech }: DashboardPr
   const data = forecast.data
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+      <div className="min-w-0 lg:col-span-2 empty:hidden">
+        <AlertsPanel place={place} />
+      </div>
       {forecast.status === 'error' && (
         <div className="lg:col-span-2">
           <MessageBox

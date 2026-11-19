@@ -215,6 +215,42 @@ export async function getTrackRecord(days: number, signal?: AbortSignal): Promis
   return body as TrackRecord
 }
 
+/** An official warning, as issued (CAP fields). */
+export interface OfficialAlert {
+  id: string | null
+  event: string | null
+  severity: 'Extreme' | 'Severe' | 'Moderate' | 'Minor' | 'Unknown' | null
+  urgency: string | null
+  certainty: string | null
+  headline: string | null
+  description: string | null
+  instruction: string | null
+  area: string | null
+  onset: string | null
+  expires: string | null
+  sender: string | null
+  link: string | null
+}
+
+export interface AlertsResult {
+  coverage: 'india' | 'us' | 'none'
+  checked_at: string
+  feed_checked_at?: string | null
+  stale: boolean
+  error?: string
+  source: { name: string; url: string } | null
+  note: string
+  alerts: OfficialAlert[]
+}
+
+export async function getAlerts(latitude: number, longitude: number, country: string | undefined, signal?: AbortSignal): Promise<AlertsResult> {
+  const params = new URLSearchParams({ latitude: latitude.toFixed(4), longitude: longitude.toFixed(4) })
+  if (country && /^[A-Za-z]{2}$/.test(country)) params.set('country', country)
+  const { status, body } = await getJson(`/api/alerts?${params}`, signal)
+  if (status !== 200) throw new ApiError('http', detailOf(body, `The alerts service returned an error (${status}).`), status)
+  return body as AlertsResult
+}
+
 /** Cities WeatherAI's models were trained on (they only predict there). */
 export async function getCoverage(signal?: AbortSignal): Promise<CoveredCity[]> {
   const { status, body } = await getJson('/api/coverage', signal)

@@ -7,6 +7,7 @@ import logging
 import re
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
@@ -22,6 +23,7 @@ from weatherai_ml.preprocess import FeatureOrderError
 from .config import get_settings
 from .db import SavedPlace, engine, get_session
 from .migrations import migrate
+from . import alerts as official_alerts
 from .accuracy import track_record_summary
 from .predictions import UpstreamError, recent_features, store_run, supported_cities
 from .registry import ModelRegistry, get_registry
@@ -48,12 +50,15 @@ async def lifespan(_: FastAPI):
     migrate(engine())
     registry = get_registry()
     log.info("startup complete; models available: %s", ", ".join(registry.names) or "none")
-    task = None
+    tasks = []
     if settings.track_record_interval_hours > 0:
-        task = asyncio.create_task(scheduler(settings.track_record_interval_hours))
+        tasks.append(asyncio.create_task(scheduler(settings.track_record_interval_hours)))
         log.info("track record: forecasts issued and scored every %d h", settings.track_record_interval_hours)
+    if settings.alerts_poll_minutes > 0:
+        tasks.append(asyncio.create_task(official_alerts.scheduler(settings.alerts_poll_minutes)))
+        log.info("alerts: NDMA Sachet feed read every %d min", settings.alerts_poll_minutes)
     yield
-    if task is not None:
+    for task in tasks:
         task.cancel()
 
 
@@ -242,6 +247,55 @@ def track_record(
     if city is not None and city not in {c.id for c in supported_cities()}:
         raise HTTPException(status_code=404, detail=f"No trained city called {city!r}.")
     return track_record_summary(session, registry, days=days, city=city)
+
+
+# ---- official alerts -----------------------------------------------------------------
+
+SACHET_NOTE = (
+    "Official alerts for India from NDMA's Sachet portal, which carries warnings from the India Meteorological "
+    "Department and state disaster management authorities. Only alerts whose mapped area includes this point are "
+    "shown. The feed is not a complete archive, so no alert here does not rule out a local warning: check IMD "
+    "(mausam.imd.gov.in) or your state authority when the weather looks dangerous."
+)
+NWS_NOTE = "Official alerts from the US National Weather Service for this point."
+NONE_NOTE = (
+    "WeatherAI doesn't have an official warning feed for this country yet. It reads India's NDMA Sachet portal "
+    "(IMD and state authorities) and the US National Weather Service. Check your national weather service for warnings."
+)
+
+
+@app.get("/api/alerts")
+def alerts(
+    session: SessionDep,
+    latitude: Annotated[float, Query(ge=-90, le=90)],
+    longitude: Annotated[float, Query(ge=-180, le=180)],
+    country: Annotated[str | None, Query(min_length=2, max_length=2, pattern="^[A-Za-z]{2}$")] = None,
+) -> dict:
+    """Official severe-weather alerts in effect at a point, from the source that covers it."""
+    coverage = official_alerts.coverage_for(latitude, longitude, country)
+    checked = datetime.now(timezone.utc)
+    body: dict = {"coverage": coverage, "checked_at": checked.isoformat(), "alerts": [], "stale": False}
+    if coverage == "india":
+        rows = official_alerts.active_sachet_alerts(session, latitude, longitude, checked)
+        poll = official_alerts.POLL
+        interval = max(settings.alerts_poll_minutes, 1)
+        body.update(
+            source={"name": "NDMA Sachet (IMD and state authorities)", "url": official_alerts.SACHET_HOME},
+            note=SACHET_NOTE,
+            alerts=official_alerts.sort_alerts([official_alerts.alert_out(a) for a in rows]),
+            feed_checked_at=poll.last_ok.isoformat() if poll.last_ok else None,
+            stale=poll.last_ok is None or checked - poll.last_ok > timedelta(minutes=3 * interval),
+        )
+    elif coverage == "us":
+        body.update(source={"name": "US National Weather Service", "url": official_alerts.NWS_HOME}, note=NWS_NOTE)
+        try:
+            body["alerts"] = official_alerts.sort_alerts(official_alerts.fetch_nws(latitude, longitude))
+            body["feed_checked_at"] = checked.isoformat()
+        except official_alerts.AlertSourceError as exc:
+            body.update(stale=True, feed_checked_at=None, error=str(exc))
+    else:
+        body.update(source=None, note=NONE_NOTE)
+    return body
 
 
 # ---- saved places ---------------------------------------------------------------------

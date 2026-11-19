@@ -216,7 +216,7 @@ export default function App() {
                   <ErrorBoundary resetKey={`${page}:${place.id}`}>
                   <Suspense fallback={<PageLoading />}>
                   {page === 'dashboard' && (
-                    <Dashboard forecast={forecast} air={air} summary={summary} theme={theme} speech={speech} />
+                    <Dashboard place={place} forecast={forecast} air={air} summary={summary} theme={theme} speech={speech} />
                   )}
                   {page === 'forecast' && (
                     <ForecastPage place={place} theme={theme} refreshToken={refreshToken} onSelectPlace={selectPlace} />

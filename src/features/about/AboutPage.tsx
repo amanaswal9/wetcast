@@ -196,6 +196,20 @@ export function AboutPage({ theme }: { theme: Theme }) {
               </tr>
               <tr>
                 <th scope="row">
+                  <Link href="https://sachet.ndma.gov.in/">NDMA Sachet</Link> (IMD and state authorities)
+                </th>
+                <td>Official weather warnings in India</td>
+                <td>Public domain (as stated in its feed)</td>
+              </tr>
+              <tr>
+                <th scope="row">
+                  <Link href="https://www.weather.gov/">US National Weather Service</Link>
+                </th>
+                <td>Official weather warnings in the United States</td>
+                <td>Public domain (US government)</td>
+              </tr>
+              <tr>
+                <th scope="row">
                   <Link href="https://www.openstreetmap.org/copyright">OpenStreetMap</Link> tiles, drawn with{' '}
                   <Link href="https://leafletjs.com/">Leaflet</Link>
                 </th>
