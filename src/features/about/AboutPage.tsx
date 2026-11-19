@@ -216,6 +216,10 @@ export function AboutPage({ theme }: { theme: Theme }) {
             Saved places are stored on the server under an anonymous ID for each browser, so they don&apos;t follow you to another
             device yet.
           </li>
+          <li>
+            Voice search uses your browser&apos;s own speech recognition: Chrome and Edge send the audio to their makers&apos; speech
+            services, Safari to Apple&apos;s. WeatherAI never receives the audio, only the words. Firefox doesn&apos;t offer it.
+          </li>
         </ul>
       </GroupBox>
 

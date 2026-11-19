@@ -189,7 +189,13 @@ export default function App() {
                 </nav>
                 <div className="r-divider" />
                 <div className="flex flex-wrap items-center gap-1.5 p-1.5">
-                  <CitySearch onSelect={selectPlace} />
+                  <CitySearch
+                    onSelect={selectPlace}
+                    voice
+                    onVoicePage={(next) => {
+                      window.location.hash = `#/${next}`
+                    }}
+                  />
                   <div className="flex flex-wrap gap-1.5">
                     <Button onClick={locate} aria-busy={locating} icon={<LocateFixed size={14} />}>
                       {locating ? 'Locating…' : 'My location'}

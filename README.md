@@ -57,6 +57,13 @@ The interface font is Tahoma on Windows, falling back to Verdana on Mac and iPho
 on Android; all three were checked for clipped text. Read aloud uses the browser's speech engine, which is
 available in current Chrome, Edge, Safari and Firefox; the button is hidden where it isn't.
 
+Voice search (the microphone next to the city search) uses the browser's speech recognition: Chrome, Edge and
+Safari support it; Firefox doesn't, so the button is hidden there. It needs https or localhost and microphone
+permission. Phrases like "weather in Jaipur", "will it rain in Mumbai this week" or "open the models page" are
+parsed by fixed rules in `src/lib/voice.ts` (tested in `voice.test.ts`); if the top search result matches the
+spoken city exactly, it opens directly and says which place it chose. Chrome and Edge process the audio on their
+makers' servers and Safari on Apple's; WeatherAI only receives the recognised words.
+
 To open the development server from a phone on the same Wi-Fi, run `npm run dev -- --host` and visit the
 address Vite prints (Windows may ask to allow Node through the firewall). For real use, deploy it (see Deployment).
 
@@ -92,6 +99,7 @@ panels say the prediction service isn't reachable.
 ```bash
 cd ml && ~/.venvs/weatherai/Scripts/python -m pytest tests          # pipeline, leakage, predictor
 cd backend && ~/.venvs/weatherai/Scripts/python -m pytest tests     # API (offline; uses SQLite and synthetic inputs)
+npm test                                                             # frontend unit tests (Vitest)
 npm run build && npm run lint                                        # frontend type-check, build, lint
 ```
 
