@@ -4,9 +4,10 @@ The ensemble is the plain average of member predictions (in physical units).
 Equal weights are deliberate: there is nothing to tune, so nothing can be
 fitted to the test set.
 
-Which members to include is decided on the validation year only, between two
-candidate sets fixed in advance: the three neural networks, or the three plus
-LightGBM (when LightGBM is trained). The score is the mean, over temperature,
+Which members to include is decided on the validation year only, between
+candidate sets fixed in advance: the three recurrent networks, plus every
+combination of the later additions that are trained (LightGBM; the
+ST-Transformer, added 2026-11-20 before its test results were seen). The score is the mean, over temperature,
 humidity and rain, of validation MAE divided by the persistence baseline's MAE.
 The chosen ensemble is then evaluated by exactly the same code as the single
 models (train.evaluate).
@@ -30,7 +31,7 @@ from . import PIPELINE_VERSION
 from .config import FEATURE_ORDER, HORIZON_HOURS, REGION_NAMES, SPLITS, TARGETS, artifacts_dir, raw_dir
 from .dataset import load_dataset, residual_targets, window_ends
 from .gbm import GBM_NAME, GBMForecaster
-from .models import DISPLAY_NAMES, ENSEMBLE_NAME, MODEL_NAMES
+from .models import DISPLAY_NAMES, ENSEMBLE_NAME, MODEL_NAMES, RNN_NAMES, TRANSFORMER_NAME
 from .preprocess import RESIDUAL_INDICES, Preprocessor
 from .train import REGION_LABELS, evaluate, predict, split_metrics
 
@@ -79,8 +80,9 @@ def main() -> None:
     if (root / GBM_NAME / "gbm_config.json").exists():
         available.append(GBM_NAME)
     members = {n: Member(n, root, ds) for n in available}
-    neural = [n for n in MODEL_NAMES if n in members]
-    candidates = [neural] + ([neural + [GBM_NAME]] if GBM_NAME in members else [])
+    base = [n for n in RNN_NAMES if n in members]
+    extras = [n for n in (GBM_NAME, TRANSFORMER_NAME) if n in members]
+    candidates = [base + [e for i, e in enumerate(extras) if mask >> i & 1] for mask in range(2 ** len(extras))]
 
     extra_bad = np.zeros(len(ds.times), dtype=bool)
     if any(m.target_mode == "residual24" for m in members.values()):

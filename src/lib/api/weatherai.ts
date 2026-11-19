@@ -75,7 +75,14 @@ export interface ModelMetrics {
   windows: { val: number; test: number }
   trained_at: string
   parameters: number
-  config?: { lookback_hours: number; target_mode: 'direct' | 'residual24'; loss: 'mse' | 'huber'; train_stride_hours: number }
+  config?: {
+    lookback_hours: number
+    target_mode: 'direct' | 'residual24'
+    loss: 'mse' | 'huber'
+    train_stride_hours: number
+    /** Transformer settings (patch hours, token width, blocks, heads, dropout). */
+    architecture?: { patch: number; dim: number; layers: number; heads: number; dropout: number }
+  }
   framework: { tensorflow: string; keras: string }
   training: {
     epochs_run: number | null

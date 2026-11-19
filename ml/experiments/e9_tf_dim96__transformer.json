@@ -1,0 +1,66 @@
+{
+  "experiment": "e9_tf_dim96",
+  "model": "transformer",
+  "config": {
+    "lookback_hours": 48,
+    "target_mode": "residual24",
+    "loss": "huber",
+    "train_stride_hours": 4,
+    "architecture": {
+      "patch": 6,
+      "dim": 96,
+      "layers": 2,
+      "heads": 4,
+      "dropout": 0.1
+    }
+  },
+  "validation": {
+    "temperature": {
+      "mae": 1.0163634965547144,
+      "rmse": 1.4162836333929896,
+      "r2": 0.9651334135767231,
+      "n": 2085360,
+      "unit": "\u00b0C"
+    },
+    "humidity": {
+      "mae": 5.611530983573257,
+      "rmse": 7.784557874417491,
+      "r2": 0.8973802109935614,
+      "n": 2085360,
+      "unit": "%"
+    },
+    "precipitation": {
+      "mae": 0.10858788175557399,
+      "rmse": 0.6705495335165697,
+      "r2": 0.010012483737360744,
+      "n": 2085360,
+      "unit": "mm"
+    }
+  },
+  "validation_persistence": {
+    "temperature": {
+      "mae": 1.2032452909809337,
+      "rmse": 1.6889432493418626,
+      "r2": 0.950416284009754,
+      "n": 2085360,
+      "unit": "\u00b0C"
+    },
+    "humidity": {
+      "mae": 6.625368281735527,
+      "rmse": 9.399761770855251,
+      "r2": 0.8503774997576126,
+      "n": 2085360,
+      "unit": "%"
+    },
+    "precipitation": {
+      "mae": 0.17238793301875935,
+      "rmse": 0.8903750115648833,
+      "r2": -0.7454761326765431,
+      "n": 2085360,
+      "unit": "mm"
+    }
+  },
+  "epochs_run": 12,
+  "best_epoch": 8,
+  "seconds": 712.1
+}

@@ -106,8 +106,17 @@ def test_lightgbm_is_served(client, monkeypatch):
 @pytest.mark.skipif(not HAS_MODELS, reason="no trained models yet")
 def test_unknown_model_is_rejected(client, monkeypatch):
     monkeypatch.setattr(predictions, "fetch_recent", fake_fetch)
-    r = client.get("/api/predictions", params={"latitude": 28.61, "longitude": 77.21, "models": "transformer"})
+    r = client.get("/api/predictions", params={"latitude": 28.61, "longitude": 77.21, "models": "no_such_model"})
     assert r.status_code == 400
+
+
+@pytest.mark.skipif("transformer" not in get_registry().names, reason="transformer not trained")
+def test_transformer_is_served(client, monkeypatch):
+    monkeypatch.setattr(predictions, "fetch_recent", fake_fetch)
+    r = client.get("/api/predictions", params={"latitude": 28.61, "longitude": 77.21, "models": "transformer"})
+    assert r.status_code == 200, r.text
+    model = r.json()["models"][0]
+    assert model["display_name"] == "ST-Transformer" and len(model["points"]) == 24
 
 
 @pytest.mark.skipif(not HAS_MODELS, reason="no trained models yet")

@@ -63,8 +63,8 @@ export function AboutPage({ theme }: { theme: Theme }) {
               predict, what a professional forecast says, and how often each turned out right.
             </p>
             <p className="m-0 mt-2">
-              Everyday weather comes from Open-Meteo for any city in the world. WeatherAI&apos;s own LSTM, GRU and CNN-LSTM models
-              cover ten cities in North India, where they were trained and tested.
+              Everyday weather comes from Open-Meteo for any city in the world. WeatherAI&apos;s own models (LSTM, GRU, CNN-LSTM, a
+              spatio-temporal Transformer, LightGBM and their ensemble) cover ten cities in North India, where they were trained and tested.
             </p>
           </div>
         </div>
