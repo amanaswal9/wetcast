@@ -1,0 +1,179 @@
+import { useState } from 'react'
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Button, Skeleton } from '../../components/retro'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useResource } from '../../hooks/useResource'
+import type { Theme } from '../../hooks/useTheme'
+import { getTrackRecord, TARGET_LABELS, TARGET_UNITS, type ModelMetrics, type Target, type TrackRecord, type TrackStats } from '../../lib/api/weatherai'
+import { CHART_COLORS, CHART_FONT, MODEL_COLORS } from '../../lib/chartTheme'
+import { BackendNotice } from './BackendNotice'
+import { DASHES, fmt, improvement } from './format'
+import { Table } from './shared'
+
+const WINDOWS = [7, 30, 90] as const
+const LEADS = ['1-6', '7-12', '13-18', '19-24']
+const PERSISTENCE = 'persistence'
+
+function dayLabel(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' })
+}
+
+function dateTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
+/** Daily rows for the chart: one MAE per model plus persistence on the same hours (weighted by hours scored). */
+function dailyRows(record: TrackRecord, target: Target) {
+  const byDate = new Map<string, { mae: Record<string, number>; n: number; persistence: number }>()
+  for (const r of record.daily) {
+    if (r.target !== target) continue
+    const day = byDate.get(r.date) ?? { mae: {}, n: 0, persistence: 0 }
+    day.mae[r.model] = r.mae
+    day.n += r.n
+    day.persistence += r.persistence_mae * r.n
+    byDate.set(r.date, day)
+  }
+  return [...byDate.entries()].map(([date, day]) => ({ date, ...day.mae, [PERSISTENCE]: day.persistence / day.n }))
+}
+
+function DailyChart({ record, target, theme }: { record: TrackRecord; target: Target; theme: Theme }) {
+  const colors = CHART_COLORS[theme]
+  const wide = useMediaQuery('(min-width: 640px)')
+  const rows = dailyRows(record, target)
+  const names: Record<string, string> = { ...Object.fromEntries(record.models.map((m) => [m.model, m.display_name])), [PERSISTENCE]: 'Persistence' }
+  const tick = { fill: colors.text, fontSize: 11, fontFamily: CHART_FONT }
+  const few = rows.length < 4
+  const series = [
+    ...record.models.map((m, i) => ({ key: m.model, color: MODEL_COLORS[theme][m.model] ?? colors.model, dash: DASHES[i % DASHES.length], width: 2 })),
+    { key: PERSISTENCE, color: MODEL_COLORS[theme].baseline, dash: '4 4', width: 3 },
+  ]
+  return (
+    <>
+      <div className="r-sunken p-1">
+        <ResponsiveContainer width="100%" height={wide ? 240 : 200}>
+          <LineChart data={rows} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke={colors.grid} vertical={false} />
+            <XAxis dataKey="date" tick={tick} tickLine={{ stroke: colors.axis }} axisLine={{ stroke: colors.axis }} tickFormatter={dayLabel} minTickGap={16} />
+            <YAxis width={48} tick={tick} tickLine={false} axisLine={{ stroke: colors.axis }} domain={[0, 'auto']} tickFormatter={(v: number) => v.toFixed(target === 'precipitation' ? 2 : 1)} />
+            <Tooltip
+              cursor={{ stroke: colors.axis, strokeDasharray: '2 2' }}
+              content={({ active, payload, label }) =>
+                active && payload?.length ? (
+                  <div className="r-tooltip tabular-nums">
+                    <div>{dayLabel(String(label))} (UTC)</div>
+                    {payload.map((p) => (
+                      <div key={String(p.dataKey)}>
+                        {names[String(p.dataKey)]}: MAE {fmt(Number(p.value), 3)} {TARGET_UNITS[target]}
+                      </div>
+                    ))}
+                  </div>
+                ) : null
+              }
+            />
+            {series.map((s) => (
+              <Line key={s.key} dataKey={s.key} stroke={s.color} strokeWidth={s.width} strokeDasharray={s.dash} dot={few ? { r: 3, fill: s.color } : false} isAnimationActive={false} connectNulls />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <ul className="m-0 mt-2 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[0.92em]">
+        {series.map((s) => (
+          <li key={s.key} className="flex items-center gap-1.5">
+            <svg width="26" height="10" aria-hidden="true">
+              <line x1="0" y1="5" x2="26" y2="5" stroke={s.color} strokeWidth={s.width} strokeDasharray={s.dash} />
+            </svg>
+            {names[s.key]}
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
+export function TrackRecordPanel({ models, target, theme }: { models: ModelMetrics[]; target: Target; theme: Theme }) {
+  const [days, setDays] = useState<(typeof WINDOWS)[number]>(30)
+  const record = useResource(`track:${days}`, ({ signal }) => getTrackRecord(days, signal))
+  const unit = TARGET_UNITS[target]
+  const digits = target === 'precipitation' ? 3 : 2
+
+  const picker = (
+    <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label="Period">
+      {WINDOWS.map((d) => (
+        <Button key={d} aria-pressed={days === d} onClick={() => setDays(d)}>
+          Last {d} days
+        </Button>
+      ))}
+    </div>
+  )
+
+  if (!record.data) {
+    return record.status === 'error' ? <BackendNotice message={record.error?.message} onRetry={record.reload} /> : <Skeleton height={240} />
+  }
+  const r = record.data
+  const every = r.interval_hours > 0 ? `Every ${r.interval_hours} hours the server` : 'The server'
+  const intro = (
+    <p className="m-0 mb-2 max-w-[75ch]">
+      {every} issues a 24-hour forecast from each model for all {models[0]?.data.cities.length ?? 10} trained cities, and keeps the forecasts
+      people open on the Forecast page too. Once an hour is {r.settle_hours} hours in the past, every forecast for it is scored. {r.source}
+    </p>
+  )
+
+  const totals = r.totals.filter((t) => t.target === target)
+  if (totals.length === 0) {
+    return (
+      <>
+        {intro}
+        {picker}
+        <p className="m-0 max-w-[75ch]">
+          Nothing has been scored in the last {days} days yet. A forecast can be scored about {24 + r.settle_hours} hours after it is issued, once
+          all 24 of its hours have passed and settled.{r.pending_points > 0 && ` ${r.pending_points.toLocaleString()} forecast values are waiting.`}
+        </p>
+      </>
+    )
+  }
+
+  const stat = (model: string, rows: TrackStats[]) => rows.find((t) => t.model === model)
+  const spanDays = r.first_valid_at && r.last_valid_at ? (Date.parse(r.last_valid_at) - Date.parse(r.first_valid_at)) / 86_400_000 : 0
+  return (
+    <>
+      {intro}
+      {picker}
+      <p className="m-0 mb-2 max-w-[75ch] tabular-nums">
+        {r.runs.toLocaleString()} forecasts for {r.cities} {r.cities === 1 ? 'city' : 'cities'}, scored hours from {r.first_valid_at && dateTime(r.first_valid_at)} to{' '}
+        {r.last_valid_at && dateTime(r.last_valid_at)}. {r.pending_points.toLocaleString()} forecast values are still waiting for their hour to pass.
+      </p>
+      {spanDays < 7 && (
+        <p className="m-0 mb-2 max-w-[75ch]">
+          <strong>Early days:</strong> this covers less than a week, and a single week's weather can make any model look better or worse than it is. The
+          test-period column is the steadier figure until this record has several weeks.
+        </p>
+      )}
+      <Table
+        caption={`${TARGET_LABELS[target]}: live track record`}
+        head={['Model', `MAE (${unit})`, `Persistence MAE (${unit})`, 'MAE vs persistence', 'Inside range', 'Hours scored', `Test-period MAE (${unit})`]}
+        rows={r.models.flatMap((m) => {
+          const t = stat(m.model, totals)
+          if (!t) return []
+          const test = models.find((x) => x.model === m.model)?.test[target].mae
+          return [[m.display_name, fmt(t.mae, digits), fmt(t.persistence_mae, digits), improvement(t.mae, t.persistence_mae), `${(t.coverage * 100).toFixed(0)}%`, t.n.toLocaleString(), test === undefined ? '–' : fmt(test, digits)]]
+        })}
+      />
+      <p className="m-0 mt-1 mb-3 max-w-[75ch] text-[0.92em] text-[var(--text-muted)]">
+        {r.baseline} "Inside range" is how often what happened fell inside the model's {Math.round((models[0]?.interval.level ?? 0.8) * 100)}% range.
+      </p>
+      <DailyChart record={r} target={target} theme={theme} />
+      <p className="m-0 mt-1 mb-3 text-[0.92em] text-[var(--text-muted)]">Mean absolute error per day (UTC) of the hours being forecast, {TARGET_LABELS[target].toLowerCase()} ({unit}).</p>
+      <Table
+        caption={`${TARGET_LABELS[target]}: live error by hours ahead`}
+        head={['Model', ...LEADS.map((l) => `${l} h ahead`)]}
+        rows={r.models.map((m) => [
+          m.display_name,
+          ...LEADS.map((l) => {
+            const t = r.by_lead.find((b) => b.model === m.model && b.target === target && b.lead === l)
+            return t ? fmt(t.mae, digits) : '–'
+          }),
+        ])}
+      />
+    </>
+  )
+}

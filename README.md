@@ -240,6 +240,28 @@ in service until the all-India ones are evaluated.
   Open-Meteo's own data against the same stations to show the data source's error floor.
 - Models only predict for the ten trained cities. Elsewhere the API answers `unsupported_location`.
 - Training targets are Open-Meteo model data, not observations; live inputs come from the same model family.
+- A **live track record** keeps scoring the models after training (below).
+
+### Live track record
+
+A background job in the API (`backend/app/track_record.py`) runs every 3 hours, aligned to UTC hours. For each
+of the ten cities it fetches the last 72 hours (one Open-Meteo request), issues and stores a 24-hour forecast
+from every model, saves the city centre's past hours as observations, and scores every stored forecast whose
+hour has passed. Forecasts people open on the Forecast page are stored and scored the same way.
+
+- **What happened** is Open-Meteo's record of past hours at the city centre: the same kind of data the models
+  were trained and tested on, not a weather-station reading. An hour is saved only once it is 6 hours old,
+  so newer model runs no longer change it, and it is never overwritten.
+- **Baseline:** each scored value also stores persistence (the same hour a day earlier), so models and the
+  baseline are compared on exactly the same hours. The share of values inside the 80% range is reported too.
+- A forecast can be scored about 30 hours after it is issued. Older unscored forecasts (up to 90 days) are
+  backfilled with one centre-only request.
+- The Models page shows the record for the last 7, 30 or 90 days next to the test-period figures, with a
+  warning while it covers less than a week.
+- Cost: about 80 Open-Meteo calls a day (10 cities × 8 cycles), out of the free tier's 10,000. If a limit is
+  hit, that cycle fails quickly for the affected cities and the next cycle catches up.
+- Run one cycle by hand: `cd backend && python -m app.track_record`. Turn the job off with
+  `WEATHERAI_TRACK_RECORD_INTERVAL_HOURS=0`. Run the API with one worker, or the job runs once per worker.
 
 ## API
 
@@ -250,6 +272,7 @@ in service until the all-India ones are evaluated.
 | `GET /api/models`, `/api/models/{name}` | Metrics from the evaluation run |
 | `GET /api/models/{name}/evaluation?city=&include_samples=` | Per-horizon and per-city errors, actual-vs-predicted samples |
 | `GET /api/predictions?latitude=&longitude=&models=` | Live 24-hour predictions with error ranges; stored in PostgreSQL |
+| `GET /api/track-record?days=&city=` | Live track record: errors of stored forecasts once their hours have passed, per model, day and hours ahead, with persistence on the same hours |
 | `GET/POST/PUT /api/places`, `PUT/DELETE /api/places/{id}/home`, `DELETE /api/places/{id}` | Saved places per `X-Client-Id` (`PUT` replaces the whole list) |
 
 Interactive docs: http://localhost:8000/docs.

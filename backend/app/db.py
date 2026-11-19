@@ -39,13 +39,37 @@ class PredictionPoint(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     run_id: Mapped[int] = mapped_column(ForeignKey("prediction_runs.id", ondelete="CASCADE"), index=True)
-    valid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    valid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     lead_hours: Mapped[int] = mapped_column(Integer)
     target: Mapped[str] = mapped_column(String(16))
     value: Mapped[float] = mapped_column(Float)
     lower: Mapped[float] = mapped_column(Float)
     upper: Mapped[float] = mapped_column(Float)
+    # Filled in by the track-record job once what happened is known (app/track_record.py).
+    observed: Mapped[float | None] = mapped_column(Float, nullable=True)
+    persistence: Mapped[float | None] = mapped_column(Float, nullable=True)  # same hour one day earlier
+    scored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     run: Mapped[PredictionRun] = relationship(back_populates="points")
+
+
+class Observation(Base):
+    """What happened at a city centre, hour by hour, used to score stored forecasts.
+
+    Source: Open-Meteo's record of past hours (the same kind of data the models
+    were trained and tested on), saved only once it is several hours old so that
+    later model runs no longer change it. It is not a weather-station reading."""
+
+    __tablename__ = "observations"
+    __table_args__ = (UniqueConstraint("city_id", "valid_at", name="uq_observation"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    city_id: Mapped[str] = mapped_column(String(32), index=True)
+    valid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    temperature: Mapped[float | None] = mapped_column(Float, nullable=True)
+    humidity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    precipitation: Mapped[float | None] = mapped_column(Float, nullable=True)
+    source: Mapped[str] = mapped_column(String(32), default="open-meteo")
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class SavedPlace(Base):
@@ -82,6 +106,14 @@ def engine():
     if _engine is None:
         init_engine()
     return _engine
+
+
+def new_session() -> Session:
+    """A session for background jobs (close it, e.g. `with new_session() as s:`)."""
+    if _SessionLocal is None:
+        init_engine()
+    assert _SessionLocal is not None
+    return _SessionLocal()
 
 
 def get_session() -> Iterator[Session]:

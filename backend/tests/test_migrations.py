@@ -8,7 +8,9 @@ from alembic.runtime.migration import MigrationContext
 from sqlalchemy import create_engine, inspect, text
 
 from app.db import Base
-from app.migrations import current_revision, head_revision, migrate
+from alembic import command
+
+from app.migrations import BASELINE, alembic_config, current_revision, head_revision, migrate
 
 
 @pytest.fixture()
@@ -32,8 +34,17 @@ def test_models_match_migrations(sqlite_engine):
     assert diff == []
 
 
+def make_legacy(engine) -> None:
+    """A database as the old create_all left it: the baseline tables, no migration record."""
+    cfg = alembic_config()
+    with engine.begin() as conn:
+        cfg.attributes["connection"] = conn
+        command.upgrade(cfg, BASELINE)
+        conn.execute(text("DROP TABLE alembic_version"))
+
+
 def test_legacy_create_all_database_is_stamped_and_keeps_data(sqlite_engine):
-    Base.metadata.create_all(sqlite_engine)
+    make_legacy(sqlite_engine)
     with sqlite_engine.begin() as conn:
         conn.execute(
             text(
@@ -46,6 +57,7 @@ def test_legacy_create_all_database_is_stamped_and_keeps_data(sqlite_engine):
     assert migrate(sqlite_engine) == head_revision()
     with sqlite_engine.connect() as conn:
         assert conn.execute(text("SELECT name FROM saved_places")).scalar_one() == "Delhi"
+    assert set(Base.metadata.tables) <= set(inspect(sqlite_engine).get_table_names())  # later migrations ran
 
 
 def test_running_twice_is_harmless(sqlite_engine):

@@ -70,7 +70,8 @@ def _get(client: httpx.Client, url: str, params: dict, retries: int = 5, patient
         if response.status_code == 429:
             attempt += 1
             wait, reason = _rate_limit_wait(response)
-            if not patient and attempt >= retries:
+            # Live callers (a web request, the track-record job) must not sleep for an hour.
+            if not patient and (attempt >= retries or wait > 120):
                 raise RuntimeError(f"Open-Meteo kept rate-limiting the request: {reason}")
             stamp = time.strftime("%Y-%m-%d %H:%M:%S")
             print(f"  [{stamp}] {reason}; waiting {wait // 60} min {wait % 60} s", flush=True)
@@ -91,6 +92,21 @@ def fetch_history(client: httpx.Client, city: City, start: str, end: str) -> tup
         "timezone": "GMT",
     }
     return _to_frame(_get(client, HISTORICAL_URL, params, patient=True), [name for name, _, _ in coords])
+
+
+def fetch_centre_recent(client: httpx.Client, city: City, past_hours: int) -> pd.DataFrame:
+    """The city centre's last `past_hours` hours (up to 92 days), one location only.
+    Used to look up what happened when scoring older stored forecasts."""
+    params = {
+        "latitude": round(city.latitude, 4),
+        "longitude": round(city.longitude, 4),
+        "hourly": ",".join(API_VARIABLES),
+        "timezone": "GMT",
+        "past_hours": min(past_hours, 92 * 24),
+        "forecast_hours": 1,
+    }
+    frame, _ = _to_frame(_get(client, FORECAST_URL, params, retries=2), ["c"])
+    return frame
 
 
 def fetch_recent(client: httpx.Client, city: City, past_hours: int) -> tuple[pd.DataFrame, float]:

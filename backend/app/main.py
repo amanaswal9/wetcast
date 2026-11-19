@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import time
@@ -21,8 +22,10 @@ from weatherai_ml.preprocess import FeatureOrderError
 from .config import get_settings
 from .db import SavedPlace, engine, get_session
 from .migrations import migrate
+from .accuracy import track_record_summary
 from .predictions import UpstreamError, recent_features, store_run, supported_cities
 from .registry import ModelRegistry, get_registry
+from .track_record import scheduler
 from .schemas import (
     CityOut,
     HealthOut,
@@ -45,7 +48,13 @@ async def lifespan(_: FastAPI):
     migrate(engine())
     registry = get_registry()
     log.info("startup complete; models available: %s", ", ".join(registry.names) or "none")
+    task = None
+    if settings.track_record_interval_hours > 0:
+        task = asyncio.create_task(scheduler(settings.track_record_interval_hours))
+        log.info("track record: forecasts issued and scored every %d h", settings.track_record_interval_hours)
     yield
+    if task is not None:
+        task.cancel()
 
 
 app = FastAPI(title="WeatherAI API", version="0.1.0", lifespan=lifespan)
@@ -217,6 +226,22 @@ def predictions(
         ),
         models=results,
     )
+
+
+# ---- live track record ---------------------------------------------------------------
+
+
+@app.get("/api/track-record")
+def track_record(
+    session: SessionDep,
+    registry: RegistryDep,
+    days: Annotated[int, Query(ge=1, le=365)] = 30,
+    city: Annotated[str | None, Query(max_length=32)] = None,
+) -> dict:
+    """How stored forecasts did once the weather they predicted had happened."""
+    if city is not None and city not in {c.id for c in supported_cities()}:
+        raise HTTPException(status_code=404, detail=f"No trained city called {city!r}.")
+    return track_record_summary(session, registry, days=days, city=city)
 
 
 # ---- saved places ---------------------------------------------------------------------

@@ -180,6 +180,41 @@ export async function getEvaluation(model: string, options: { samplesFor?: strin
   return body as Evaluation
 }
 
+/** One group of scored forecast hours from the live track record. */
+export interface TrackStats {
+  model: string
+  target: Target
+  n: number
+  mae: number
+  persistence_mae: number
+  coverage: number
+}
+
+export interface TrackRecord {
+  days: number
+  city: string | null
+  first_valid_at: string | null
+  last_valid_at: string | null
+  runs: number
+  cities: number
+  pending_points: number
+  settle_hours: number
+  /** How often the server issues and scores forecasts; 0 when the job is off. */
+  interval_hours: number
+  models: { model: string; display_name: string }[]
+  totals: TrackStats[]
+  daily: (TrackStats & { date: string })[]
+  by_lead: (TrackStats & { lead: string })[]
+  source: string
+  baseline: string
+}
+
+export async function getTrackRecord(days: number, signal?: AbortSignal): Promise<TrackRecord> {
+  const { status, body } = await getJson(`/api/track-record?days=${days}`, signal)
+  if (status !== 200) throw new ApiError('http', detailOf(body, `The track record returned an error (${status}).`), status)
+  return body as TrackRecord
+}
+
 export interface Health {
   status: string
   database: string

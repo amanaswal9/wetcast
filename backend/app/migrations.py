@@ -23,6 +23,8 @@ from .db import Base
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 BASELINE = "0001"
+# Tables create_all made before migrations existed (revision 0001).
+BASELINE_TABLES = frozenset({"prediction_runs", "prediction_points", "saved_places"})
 log = logging.getLogger("weatherai.migrations")
 # Alembic logs "Context impl ..." for every step; migrate() logs what changed instead.
 logging.getLogger("alembic.runtime.migration").setLevel(logging.WARNING)
@@ -53,7 +55,7 @@ def migrate(engine: Engine) -> str:
         revision = MigrationContext.configure(conn).get_current_revision()
         if revision is None:
             existing = set(inspect(conn).get_table_names()) & set(Base.metadata.tables)
-            if existing == set(Base.metadata.tables):
+            if existing == BASELINE_TABLES:
                 log.info("database was created before migrations; stamping baseline %s", BASELINE)
                 command.stamp(cfg, BASELINE)
             elif existing:
