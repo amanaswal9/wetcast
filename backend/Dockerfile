@@ -13,6 +13,8 @@ COPY ml/pyproject.toml ml/pyproject.toml
 COPY ml/weatherai_ml ml/weatherai_ml
 RUN pip install --no-cache-dir ./ml
 COPY ml/artifacts ml/artifacts
+COPY backend/alembic.ini backend/alembic.ini
+COPY backend/alembic backend/alembic
 COPY backend/app backend/app
 
 ENV WEATHERAI_ARTIFACTS_DIR=/srv/ml/artifacts

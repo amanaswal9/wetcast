@@ -19,7 +19,8 @@ from weatherai_ml.predict import InsufficientHistoryError, nearest_city
 from weatherai_ml.preprocess import FeatureOrderError
 
 from .config import get_settings
-from .db import SavedPlace, create_tables, get_session
+from .db import SavedPlace, engine, get_session
+from .migrations import migrate
 from .predictions import UpstreamError, recent_features, store_run, supported_cities
 from .registry import ModelRegistry, get_registry
 from .schemas import (
@@ -41,7 +42,7 @@ log = logging.getLogger("weatherai.api")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    create_tables()
+    migrate(engine())
     registry = get_registry()
     log.info("startup complete; models available: %s", ", ".join(registry.names) or "none")
     yield
