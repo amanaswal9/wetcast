@@ -184,7 +184,13 @@ class EnsemblePredictor:
         self.preprocessor = max((m.preprocessor for m in members), key=lambda p: p.lookback)
 
     def predict(self, features: pd.DataFrame) -> Prediction:
-        preds = [m.predict(features) for m in self.members]
+        return self.combine([m.predict(features) for m in self.members])
+
+    def combine(self, preds: list[Prediction]) -> Prediction:
+        """The ensemble from member predictions already made (in member order), so a
+        caller that ran the members anyway doesn't run them twice."""
+        if len(preds) != len(self.members):
+            raise ValueError(f"expected {len(self.members)} member predictions, got {len(preds)}")
         issued = {p.issued_at for p in preds}
         if len(issued) != 1:
             raise InsufficientHistoryError("Ensemble members disagree on the last complete hour.")

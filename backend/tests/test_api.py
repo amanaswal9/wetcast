@@ -192,3 +192,10 @@ def test_places_replace_validates(client):
 def test_places_validate_coordinates(client):
     bad = {"place_id": "x", "name": "Nowhere", "latitude": 95, "longitude": 0}
     assert client.post("/api/places", json=bad, headers=CLIENT).status_code == 422
+
+
+def test_large_responses_are_compressed(client):
+    r = client.get("/api/models", headers={"Accept-Encoding": "gzip"})
+    assert r.status_code == 200 and r.headers.get("content-encoding") == "gzip"
+    small = client.get("/api/health", headers={"Accept-Encoding": "gzip"})
+    assert "content-encoding" not in small.headers  # tiny responses aren't worth compressing

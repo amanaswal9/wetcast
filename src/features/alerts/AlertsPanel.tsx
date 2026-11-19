@@ -17,10 +17,18 @@ function clock(iso: string | null | undefined): string {
   return iso ? new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : 'never'
 }
 
-/** A one-line status in the same sunken style as the status bar. */
+/**
+ * A short status in the same sunken style as the status bar. It keeps two lines'
+ * height on phones (one on wider screens) whether it is still checking or done, so
+ * the weather below doesn't jump when the answer arrives.
+ */
 function StatusLine({ children }: { children: ReactNode }) {
   return (
-    <p className="r-status-field m-0 text-[0.92em]" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }} role="status">
+    <p
+      className="r-status-field m-0 min-h-[2.9em] text-[0.92em] sm:min-h-[1.6em]"
+      style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}
+      role="status"
+    >
       {children}
     </p>
   )
@@ -83,7 +91,7 @@ function Body({ result }: { result: AlertsResult }) {
     )
   }
   if (result.coverage === 'none') {
-    return <StatusLine>Official warnings: not available for this country in WeatherAI yet. Check your national weather service.</StatusLine>
+    return <StatusLine>Official warnings aren't available for this country in WeatherAI yet. Check your national weather service.</StatusLine>
   }
   if (result.stale) {
     return (
@@ -95,8 +103,8 @@ function Body({ result }: { result: AlertsResult }) {
   }
   return (
     <StatusLine>
-      Official warnings: none in effect for this point from {source?.name}, checked {clock(result.feed_checked_at)}.
-      {result.coverage === 'india' && ' The feed isn’t a complete archive; check IMD or your state authority if the weather looks dangerous.'}
+      No official warnings here from {result.coverage === 'india' ? 'NDMA Sachet (IMD)' : source?.name}, checked {clock(result.feed_checked_at)}.
+      {result.coverage === 'india' && ' Not a complete record: check IMD if the weather looks dangerous.'}
     </StatusLine>
   )
 }
@@ -106,7 +114,7 @@ export function AlertsPanel({ place }: { place: Place }) {
   const result = useResource(key, ({ signal }) => getAlerts(place.latitude, place.longitude, place.countryCode, signal), REFRESH_MS)
   if (!result.data) {
     if (result.status === 'error') return <StatusLine>Official warnings: unavailable right now (WeatherAI's server isn't reachable).</StatusLine>
-    return null
+    return <StatusLine>Official warnings: checking…</StatusLine>
   }
   return (
     <section aria-label="Official weather warnings">

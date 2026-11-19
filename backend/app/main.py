@@ -13,6 +13,7 @@ from typing import Annotated
 import hosted as hosted_errors
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import delete, select, text, update
 from sqlalchemy.orm import Session
@@ -27,7 +28,7 @@ from .migrations import migrate
 from . import alerts as official_alerts
 from . import assistant as weather_assistant
 from .accuracy import track_record_summary
-from .predictions import UpstreamError, recent_features, store_run, supported_cities
+from .predictions import UpstreamError, predict_models, recent_features, store_run, supported_cities
 from .registry import ModelRegistry, get_registry
 from .track_record import scheduler
 from .schemas import (
@@ -55,7 +56,7 @@ async def lifespan(_: FastAPI):
     migrate(engine())
     registry = get_registry()
     log.info("startup complete; models available: %s", ", ".join(registry.names) or "none")
-    tasks = []
+    tasks = [asyncio.create_task(asyncio.to_thread(registry.warm_up))]  # in the background: requests aren't held up
     if settings.track_record_interval_hours > 0:
         tasks.append(asyncio.create_task(scheduler(settings.track_record_interval_hours)))
         log.info("track record: forecasts issued and scored every %d h", settings.track_record_interval_hours)
@@ -68,6 +69,8 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="WeatherAI API", version="0.1.0", lifespan=lifespan)
+# Compress larger JSON (model metrics are ~75 KB as plain text, ~10 KB compressed).
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -196,16 +199,17 @@ def predictions(
     except UpstreamError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
+    try:
+        forecasts = predict_models(registry, city, names, features)
+    except InsufficientHistoryError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except FeatureOrderError as exc:
+        log.error("feature order mismatch: %s", exc)
+        raise HTTPException(status_code=500, detail="The model and the data pipeline are out of sync.") from exc
+
     results, issued = [], None
     for name in names:
-        predictor = registry.get(name)
-        try:
-            pred = predictor.predict(features)
-        except InsufficientHistoryError as exc:
-            raise HTTPException(status_code=503, detail=str(exc)) from exc
-        except FeatureOrderError as exc:
-            log.error("feature order mismatch for %s: %s", name, exc)
-            raise HTTPException(status_code=500, detail="The model and the data pipeline are out of sync.") from exc
+        pred = forecasts[name]
         issued = pred.issued_at
         try:
             store_run(session, name, city, pred)
