@@ -19,7 +19,7 @@ from weatherai_ml.config import (
 from weatherai_ml.dataset import Dataset, residual_targets, window_ends
 from weatherai_ml.features import build_frames
 from weatherai_ml.metrics import conformal_halfwidth, r2, summary
-from weatherai_ml.predict import InsufficientHistoryError, Predictor, nearest_city
+from weatherai_ml.predict import EnsemblePredictor, InsufficientHistoryError, Predictor, nearest_city
 from weatherai_ml.preprocess import FeatureOrderError, Preprocessor
 from weatherai_ml.synthetic import synthetic_long_frame
 
@@ -213,6 +213,20 @@ def test_predictor_uses_last_complete_hour_when_newest_is_incomplete():
     pred = predictor.predict(features)
     assert pred.issued_at == features.index[-2]
     assert np.isfinite(pred.values).all()
+
+
+@pytest.mark.skipif(
+    len(TRAINED) < 3 or not (ARTIFACTS_DIR / "ensemble" / "ensemble.json").exists(), reason="ensemble not built"
+)
+def test_ensemble_is_the_mean_of_its_members():
+    members = [Predictor(ARTIFACTS_DIR / n) for n in ("lstm", "gru", "cnn_lstm")]
+    ensemble = EnsemblePredictor(ARTIFACTS_DIR / "ensemble", members)
+    features, _ = build_frames(synthetic_long_frame(ensemble.preprocessor.lookback + 6), DELHI, 216.0)
+    pred = ensemble.predict(features)
+    expected = np.mean([m.predict(features).values for m in members], axis=0)
+    assert np.allclose(pred.values, expected)
+    assert np.all(pred.lower <= pred.values + 1e-9) and np.all(pred.values <= pred.upper + 1e-9)
+    assert pred.issued_at == members[0].predict(features).issued_at
 
 
 @pytest.mark.skipif(not TRAINED, reason="no trained models yet")

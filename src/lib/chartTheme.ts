@@ -56,8 +56,8 @@ export const CITY_DASHES = ['', '7 4', '2 3', '10 3 2 3']
 
 /** WeatherAI model colours: one per architecture, reused on every page. */
 export const MODEL_COLORS: Record<Theme, Record<string, string>> = {
-  light: { lstm: '#000080', gru: '#800080', cnn_lstm: '#800000', baseline: '#808080' },
-  dark: { lstm: '#ffff00', gru: '#ff80ff', cnn_lstm: '#00ffff', baseline: '#c0c0c0' },
+  light: { lstm: '#000080', gru: '#800080', cnn_lstm: '#800000', ensemble: '#006400', baseline: '#808080' },
+  dark: { lstm: '#ffff00', gru: '#ff80ff', cnn_lstm: '#00ffff', ensemble: '#80ff80', baseline: '#c0c0c0' },
 }
 
 export const CHART_FONT = "Tahoma, 'MS Sans Serif', Verdana, sans-serif"

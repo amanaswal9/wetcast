@@ -65,6 +65,33 @@ def test_predictions_for_delhi(client, monkeypatch):
     assert runs == len(get_registry().names)
 
 
+@pytest.mark.skipif("ensemble" not in get_registry().names, reason="ensemble not built")
+def test_ensemble_prediction_is_mean_of_members(client, monkeypatch):
+    monkeypatch.setattr(predictions, "fetch_recent", fake_fetch)
+    r = client.get("/api/predictions", params={"latitude": 28.61, "longitude": 77.21})
+    assert r.status_code == 200
+    by_model = {m["model"]: m["points"] for m in r.json()["models"]}
+    members = ["lstm", "gru", "cnn_lstm"]
+    for i in (0, 11, 23):
+        mean = sum(by_model[m][i]["temperature"] for m in members) / 3
+        assert abs(by_model["ensemble"][i]["temperature"] - mean) < 0.02  # values are rounded to 0.01
+
+
+def test_registry_refuses_ensemble_with_missing_member(tmp_path):
+    import shutil
+
+    from app.config import get_settings
+    from app.registry import ModelRegistry
+
+    real = get_settings().artifacts_dir
+    if not (real / "ensemble" / "ensemble.json").exists():
+        pytest.skip("ensemble not built")
+    shutil.copytree(real / "ensemble", tmp_path / "ensemble")
+    shutil.copytree(real / "lstm", tmp_path / "lstm")  # gru and cnn_lstm deliberately missing
+    registry = ModelRegistry(tmp_path)
+    assert registry.names == ["lstm"]
+
+
 @pytest.mark.skipif(not HAS_MODELS, reason="no trained models yet")
 def test_unknown_model_is_rejected(client, monkeypatch):
     monkeypatch.setattr(predictions, "fetch_recent", fake_fetch)

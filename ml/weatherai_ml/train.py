@@ -144,24 +144,33 @@ def coverage_of(true: np.ndarray, pred: np.ndarray, hw: list[float], target: str
 
 
 def evaluate(
-    name: str, model: keras.Model, pre: Preprocessor, ds: Dataset, X: np.ndarray, extra_bad: np.ndarray, out_dir
+    name: str,
+    predict_ends,
+    timing_fn,
+    lookback: int,
+    ds: Dataset,
+    extra_bad: np.ndarray,
+    out_dir,
+    display_name: str | None = None,
 ) -> tuple[dict, dict]:
-    L = pre.lookback
+    """Score any forecaster the same way. `predict_ends(ends)` returns physical-unit
+    predictions (n, horizon, targets); `timing_fn(ends)` returns inference timings."""
+    L = lookback
     train_cities, holdout_cities = ds.city_indices("train"), ds.city_indices("holdout")
     val_ends = window_ends(ds, "val", lookback=L, extra_bad=extra_bad, cities=train_cities)
     test_ends = window_ends(ds, "test", lookback=L, extra_bad=extra_bad, cities=train_cities)
     unseen_ends = window_ends(ds, "test", lookback=L, extra_bad=extra_bad, cities=holdout_cities)
 
-    val_pred = predict(model, pre, ds, X, val_ends)
+    val_pred = predict_ends(val_ends)
     val_true = ds.targets[future_index(val_ends)]
-    test_pred = predict(model, pre, ds, X, test_ends)
+    test_pred = predict_ends(test_ends)
     test_true = ds.targets[future_index(test_ends)]
     test_metrics, baseline = split_metrics(ds, test_ends, test_pred)
     val_metrics, _ = split_metrics(ds, val_ends, val_pred)
 
     unseen: dict | None = None
     if len(unseen_ends):
-        unseen_pred = predict(model, pre, ds, X, unseen_ends)
+        unseen_pred = predict_ends(unseen_ends)
         unseen_true = ds.targets[future_index(unseen_ends)]
         u_metrics, u_base = split_metrics(ds, unseen_ends, unseen_pred)
         unseen = {"test": u_metrics, "persistence_baseline": u_base, "pred": unseen_pred, "true": unseen_true}
@@ -187,7 +196,7 @@ def evaluate(
 
     metrics = {
         "model": name,
-        "display_name": DISPLAY_NAMES[name],
+        "display_name": display_name or DISPLAY_NAMES[name],
         "test": test_metrics,
         "persistence_baseline": baseline,
         "validation": val_metrics,
@@ -197,7 +206,7 @@ def evaluate(
             "halfwidth_by_horizon": halfwidth,
             "test_coverage": coverage,
         },
-        "inference": inference_timing(model, X, test_ends, L),
+        "inference": timing_fn(test_ends),
         "windows": {"val": int(len(val_ends)), "test": int(len(test_ends))},
     }
     if unseen:
@@ -317,7 +326,15 @@ def main() -> None:
         (out / "history.json").write_text(json.dumps({k: [float(v) for v in vals] for k, vals in history.history.items()}))
 
         print("Evaluating…")
-        metrics, evaluation = evaluate(name, model, pre, ds, X, extra_bad, out)
+        metrics, evaluation = evaluate(
+            name,
+            lambda ends: predict(model, pre, ds, X, ends),
+            lambda ends: inference_timing(model, X, ends, L),
+            L,
+            ds,
+            extra_bad,
+            out,
+        )
         metrics.update(
             {
                 "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),

@@ -6,7 +6,8 @@ import keras
 from keras import layers
 
 MODEL_NAMES = ("lstm", "gru", "cnn_lstm")
-DISPLAY_NAMES = {"lstm": "LSTM", "gru": "GRU", "cnn_lstm": "CNN-LSTM"}
+ENSEMBLE_NAME = "ensemble"
+DISPLAY_NAMES = {"lstm": "LSTM", "gru": "GRU", "cnn_lstm": "CNN-LSTM", "ensemble": "Ensemble"}
 
 
 def build_model(name: str, lookback: int, n_features: int, horizon: int, n_targets: int, loss: str = "mse") -> keras.Model:

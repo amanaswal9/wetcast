@@ -77,7 +77,19 @@ export interface ModelMetrics {
   parameters: number
   config?: { lookback_hours: number; target_mode: 'direct' | 'residual24'; loss: 'mse' | 'huber'; train_stride_hours: number }
   framework: { tensorflow: string; keras: string }
-  training: { epochs_run: number; best_epoch: number; best_val_loss: number; seconds: number; train_windows: number; train_stride_hours: number }
+  training: {
+    epochs_run: number | null
+    best_epoch: number | null
+    best_val_loss: number | null
+    seconds: number
+    train_windows?: number
+    train_stride_hours?: number
+    note?: string
+  }
+  /** Present on the ensemble: which models it averages. */
+  kind?: 'ensemble'
+  members?: string[]
+  method?: string
   data: {
     source: string
     region: string
