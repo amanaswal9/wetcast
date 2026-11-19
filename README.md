@@ -103,6 +103,13 @@ npm test                                                             # frontend 
 npm run build && npm run lint                                        # frontend type-check, build, lint
 ```
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request once the repository is on GitHub: a
+frontend job (`npm ci`, lint, Vitest, type-check and build) and a Python job (ML pipeline and API tests on
+Python 3.13 with CPU TensorFlow). It needs no secrets. After the first push, add a status badge to the top of
+this README with `![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)`, replacing OWNER/REPO.
+
 The API tests replace the Open-Meteo call with clearly labelled synthetic data (`weatherai_ml/synthetic.py`),
 so they are offline and deterministic. Synthetic data is never used for training, evaluation or the app.
 
