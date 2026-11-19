@@ -1,6 +1,6 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, GroupBox } from '../../components/retro'
 import { useResource } from '../../hooks/useResource'

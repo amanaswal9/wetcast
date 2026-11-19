@@ -1,32 +1,12 @@
-import { useReducedMotion } from 'motion/react'
-import {
-  Bar,
-  CartesianGrid,
-  ComposedChart,
-  Line,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  type TooltipContentProps,
-} from 'recharts'
+import { Chart, type Series } from '../../components/chart/Chart'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
-import { CHART_FONT, type ChartColors } from '../../lib/chartTheme'
+import type { ChartColors } from '../../lib/chartTheme'
 import { hhmm, round } from '../../lib/format'
 
 import type { Mode, Row } from './series'
 
-interface ChartTooltipProps {
-  active?: boolean
-  payload?: TooltipContentProps['payload']
-  unit: string
-}
-
-function ChartTooltip({ active, payload, unit }: ChartTooltipProps) {
-  if (!active || !payload?.length) return null
-  const row = payload[0]?.payload as Row | undefined
-  if (!row || row.value === null) return null
+function ChartTooltip({ row, unit }: { row: Row; unit: string }) {
+  if (row.value === null) return null
   return (
     <div className="r-tooltip tabular-nums">
       <div>
@@ -77,81 +57,33 @@ interface HourlyChartProps {
 }
 
 export function HourlyChart({ rows, mode, unit, colors, nowTime }: HourlyChartProps) {
-  const reduceMotion = useReducedMotion()
   const wide = useMediaQuery('(min-width: 640px)')
   const step = wide ? 3 : 6
-  const ticks = rows.filter((r) => Number(r.time.slice(11, 13)) % step === 0).map((r) => r.time)
-  const animate = !reduceMotion
-  const tick = { fill: colors.text, fontSize: 11, fontFamily: CHART_FONT }
-
+  const xTicks = rows.flatMap((r, i) => (Number(r.time.slice(11, 13)) % step === 0 ? [{ at: i, label: hhmm(r.time) }] : []))
+  const nowIndex = nowTime ? rows.findIndex((r) => r.time === nowTime) : -1
+  const series: Series<Row>[] =
+    mode === 'rain'
+      ? [
+          { type: 'bars', key: 'past', value: (r) => r.past, color: colors.barPast, stack: 'rain' },
+          { type: 'bars', key: 'forecast', value: (r) => r.forecast, color: colors.barForecast, stack: 'rain' },
+        ]
+      : [
+          { type: 'line', key: 'past', value: (r) => r.past, color: colors.past },
+          { type: 'line', key: 'forecast', value: (r) => r.forecast, color: colors.forecast, dash: '6 4' },
+        ]
   return (
-    <ResponsiveContainer width="100%" height={wide ? 260 : 220}>
-      <ComposedChart data={rows} margin={{ top: 16, right: 8, left: 0, bottom: 0 }} barCategoryGap={1}>
-        <CartesianGrid stroke={colors.grid} vertical={false} />
-        <XAxis
-          dataKey="time"
-          ticks={ticks}
-          interval={0}
-          tickFormatter={hhmm}
-          tick={tick}
-          tickLine={{ stroke: colors.axis }}
-          axisLine={{ stroke: colors.axis }}
-        />
-        <YAxis
-          width={44}
-          tick={tick}
-          tickLine={false}
-          axisLine={{ stroke: colors.axis }}
-          tickFormatter={(v: number) => `${round(v)}${mode === 'temperature' ? '°' : ''}`}
-          domain={mode === 'rain' ? [0, 100] : ['auto', 'auto']}
-          allowDecimals={false}
-        />
-        <Tooltip
-          content={(props) => <ChartTooltip active={props.active} payload={props.payload} unit={unit} />}
-          cursor={{ stroke: colors.axis, strokeDasharray: '2 2' }}
-          isAnimationActive={false}
-        />
-        {mode === 'rain' ? (
-          <>
-            <Bar dataKey="past" stackId="rain" fill={colors.barPast} isAnimationActive={animate} animationDuration={400} />
-            <Bar dataKey="forecast" stackId="rain" fill={colors.barForecast} isAnimationActive={animate} animationDuration={400} />
-          </>
-        ) : (
-          <>
-            <Line
-              dataKey="past"
-              type="monotone"
-              stroke={colors.past}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 3, fill: colors.past, stroke: colors.past }}
-              isAnimationActive={animate}
-              animationDuration={400}
-              connectNulls={false}
-            />
-            <Line
-              dataKey="forecast"
-              type="monotone"
-              stroke={colors.forecast}
-              strokeWidth={2}
-              strokeDasharray="6 4"
-              dot={false}
-              activeDot={{ r: 3, fill: colors.forecast, stroke: colors.forecast }}
-              isAnimationActive={animate}
-              animationDuration={400}
-              connectNulls={false}
-            />
-          </>
-        )}
-        {nowTime && (
-          <ReferenceLine
-            x={nowTime}
-            stroke={colors.text}
-            strokeDasharray="1 3"
-            label={{ value: 'Now', position: 'top', fill: colors.text, fontSize: 11, fontFamily: CHART_FONT }}
-          />
-        )}
-      </ComposedChart>
-    </ResponsiveContainer>
+    <Chart
+      rows={rows}
+      series={series}
+      colors={colors}
+      height={wide ? 260 : 220}
+      top={16}
+      xTicks={xTicks}
+      y={{ domain: mode === 'rain' ? [0, 100] : ['auto', 'auto'], format: (v) => `${round(v)}${mode === 'temperature' ? '°' : ''}` }}
+      markers={nowIndex >= 0 ? [{ at: nowIndex, label: 'Now' }] : []}
+      barGap={0.08}
+      tooltip={(row) => <ChartTooltip row={row} unit={unit} />}
+      label={`${mode === 'temperature' ? 'Temperature' : mode === 'rain' ? 'Chance of rain' : 'Wind'} by hour`}
+    />
   )
 }

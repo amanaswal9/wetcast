@@ -1,5 +1,4 @@
 import { Contrast, LocateFixed, RefreshCw, Star } from 'lucide-react'
-import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Button, TitleButton, Window } from '../components/retro'
 import { buildSummary } from '../features/dashboard/buildSummary'
@@ -8,6 +7,8 @@ import { usePlace } from '../hooks/usePlace'
 import { useResource } from '../hooks/useResource'
 import { MAX_SAVED, useSavedPlaces } from '../hooks/useSavedPlaces'
 import { useSpeech } from '../hooks/useSpeech'
+import { useOnline } from '../hooks/useOnline'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useTheme } from '../hooks/useTheme'
 import { getAirQuality, getForecast } from '../lib/api/openMeteo'
 import { getHealth } from '../lib/api/weatherai'
@@ -32,6 +33,21 @@ export default function App() {
   const { theme, toggle: toggleTheme } = useTheme()
   const speech = useSpeech()
   const [minimized, setMinimized] = useState(false)
+  // After the minimise animation the window is hidden (still mounted, so it keeps its state).
+  const [hiddenAway, setHiddenAway] = useState(false)
+  const [animateWindow, setAnimateWindow] = useState(false) // no animation on first load
+  const reduceMotion = useReducedMotion()
+  const online = useOnline()
+  const minimize = () => {
+    setAnimateWindow(true)
+    setMinimized(true)
+    if (reduceMotion) setHiddenAway(true) // no animation will run to say it ended
+  }
+  const restore = () => {
+    setAnimateWindow(true)
+    setMinimized(false)
+    setHiddenAway(false)
+  }
   const [maximized, setMaximized] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
@@ -134,7 +150,8 @@ export default function App() {
   }
 
   let status = 'Ready'
-  if (locating) status = 'Finding your location…'
+  if (!online) status = 'Offline: no new weather until you reconnect.'
+  else if (locating) status = 'Finding your location…'
   else if (forecast.status === 'loading' || forecast.status === 'idle') status = 'Loading weather…'
   else if (forecast.refreshing) status = 'Refreshing…'
   else if (forecast.status === 'error') status = forecast.data ? "Couldn't refresh. Showing earlier data." : "Couldn't load the weather."
@@ -143,7 +160,7 @@ export default function App() {
   const frame = maximized ? 'pb-[52px]' : 'pb-[52px] sm:px-4 sm:pt-4 sm:pb-[64px] md:px-6 md:pt-6'
 
   return (
-    <MotionConfig reducedMotion="user">
+    <>
       <a
         href="#content"
         onClick={(event) => {
@@ -156,112 +173,110 @@ export default function App() {
         <span>Skip to content</span>
       </a>
       <div className={`min-h-dvh ${frame}`}>
-        {/* initial={false}: no fade-in on first load, the page's static frame is already showing. */}
-        <AnimatePresence initial={false}>
-          {!minimized && (
-            <motion.div
-              key="main-window"
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92, y: 48 }}
-              transition={{ duration: 0.16, ease: 'linear' }}
-              style={{ transformOrigin: '0% 100%' }}
-              className={maximized ? 'w-full' : 'mx-auto w-full max-w-[1200px]'}
-            >
-              <Window
-                headingLevel={1}
-                title={title}
-                icon={<img src="/favicon.svg" width={16} height={16} alt="" />}
-                controls={
-                  <>
-                    <TitleButton glyph="minimize" label="Minimise" onClick={() => setMinimized(true)} />
-                    <TitleButton
-                      glyph={maximized ? 'restore' : 'maximize'}
-                      label={maximized ? 'Restore' : 'Maximise'}
-                      onClick={() => setMaximized((m) => !m)}
-                      className="hidden sm:inline-flex"
-                    />
-                  </>
-                }
-              >
-                <nav aria-label="Pages" className="r-menubar">
-                  {PAGES.map((p) => (
-                    <a
-                      key={p.id}
-                      href={`#/${p.id}`}
-                      // Start loading the page's code as soon as a pointer or finger reaches it.
-                      onPointerEnter={() => void loaders[p.id]().catch(() => undefined)}
-                      onPointerDown={() => void loaders[p.id]().catch(() => undefined)}
-                      onFocus={() => void loaders[p.id]().catch(() => undefined)}
-                      className="r-menu-item"
-                      aria-current={page === p.id ? 'page' : undefined}
-                    >
-                      {p.label}
-                    </a>
-                  ))}
-                </nav>
-                <div className="r-divider" />
-                <div className="flex flex-wrap items-center gap-1.5 p-1.5">
-                  <CitySearch
-                    onSelect={selectPlace}
-                    voice
-                    onVoicePage={(next) => {
-                      window.location.hash = `#/${next}`
-                    }}
-                  />
-                  <div className="flex flex-wrap gap-1.5">
-                    <Button onClick={locate} aria-busy={locating} icon={<LocateFixed size={14} />}>
-                      {locating ? 'Locating…' : 'My location'}
-                    </Button>
-                    <Button aria-pressed={placeSaved} onClick={toggleSaved} icon={<Star size={14} />}>
-                      {placeSaved ? 'Saved' : 'Save city'}
-                    </Button>
-                    <Button onClick={refresh} icon={<RefreshCw size={14} />}>
-                      Refresh
-                    </Button>
-                    <Button aria-pressed={theme === 'dark'} onClick={toggleTheme} icon={<Contrast size={14} />}>
-                      High contrast
-                    </Button>
-                  </div>
-                </div>
-                <div className="r-divider" />
-                <main id="content" tabIndex={-1} className="min-w-0 p-2 outline-none sm:p-3">
-                  <ErrorBoundary resetKey={`${page}:${place.id}`}>
-                  <Suspense fallback={<PageLoading />}>
-                  {page === 'dashboard' && (
-                    <Dashboard place={place} forecast={forecast} air={air} summary={summary} theme={theme} speech={speech} />
-                  )}
-                  {page === 'forecast' && (
-                    <ForecastPage place={place} theme={theme} refreshToken={refreshToken} onSelectPlace={selectPlace} />
-                  )}
-                  {page === 'map' && <MapPage place={place} theme={theme} refreshToken={refreshToken} onSelectPlace={selectPlace} />}
-                  {page === 'assistant' && <AssistantPage place={place} />}
-                  {page === 'models' && <ModelsPage theme={theme} />}
-                  {page === 'about' && <AboutPage theme={theme} />}
-                  {page === 'analytics' && <AnalyticsPage place={place} theme={theme} />}
-                  {page === 'locations' && (
-                    <LocationsPage place={place} saved={saved} theme={theme} refreshToken={refreshToken} onOpen={openPlace} />
-                  )}
-                  {!pageInfo.ready && <PlannedPage page={pageInfo} />}
-                  </Suspense>
-                  </ErrorBoundary>
-                </main>
-                <div className="flex gap-0.5 pt-0.5 text-[0.92em]">
-                  <div className="r-status-field min-w-0 flex-1" role="status">
-                    {notice ?? status}
-                  </div>
-                  <div className="r-status-field hidden sm:block">Source: Open-Meteo</div>
-                  <div className="r-status-field hidden tabular-nums sm:block">
-                    {forecast.data ? `Updated ${localClock(new Date(forecast.data.fetchedAt))}` : 'Not updated yet'}
-                  </div>
-                  <div className="r-status-field hidden md:block">{modelStatus}</div>
-                </div>
-              </Window>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* No animation on first load: the page's static frame is already showing. */}
+        <div
+          hidden={hiddenAway}
+          inert={minimized}
+          data-state={minimized ? 'closing' : 'open'}
+          data-animate={animateWindow ? 'true' : undefined}
+          onAnimationEnd={(event) => {
+            // Only the window's own animation; animations inside it (loading shimmer) bubble up too.
+            if (event.target === event.currentTarget && minimized) setHiddenAway(true)
+          }}
+          className={`r-window-anim ${maximized ? 'w-full' : 'mx-auto w-full max-w-[1200px]'}`}
+        >
+          <Window
+            headingLevel={1}
+            title={title}
+            icon={<img src="/favicon.svg" width={16} height={16} alt="" />}
+            controls={
+              <>
+                <TitleButton glyph="minimize" label="Minimise" onClick={minimize} />
+                <TitleButton
+                  glyph={maximized ? 'restore' : 'maximize'}
+                  label={maximized ? 'Restore' : 'Maximise'}
+                  onClick={() => setMaximized((m) => !m)}
+                  className="hidden sm:inline-flex"
+                />
+              </>
+            }
+          >
+            <nav aria-label="Pages" className="r-menubar">
+              {PAGES.map((p) => (
+                <a
+                  key={p.id}
+                  href={`#/${p.id}`}
+                  // Start loading the page's code as soon as a pointer or finger reaches it.
+                  onPointerEnter={() => void loaders[p.id]().catch(() => undefined)}
+                  onPointerDown={() => void loaders[p.id]().catch(() => undefined)}
+                  onFocus={() => void loaders[p.id]().catch(() => undefined)}
+                  className="r-menu-item"
+                  aria-current={page === p.id ? 'page' : undefined}
+                >
+                  {p.label}
+                </a>
+              ))}
+            </nav>
+            <div className="r-divider" />
+            <div className="flex flex-wrap items-center gap-1.5 p-1.5">
+              <CitySearch
+                onSelect={selectPlace}
+                voice
+                onVoicePage={(next) => {
+                  window.location.hash = `#/${next}`
+                }}
+              />
+              <div className="flex flex-wrap gap-1.5">
+                <Button onClick={locate} aria-busy={locating} icon={<LocateFixed size={14} />}>
+                  {locating ? 'Locating…' : 'My location'}
+                </Button>
+                <Button aria-pressed={placeSaved} onClick={toggleSaved} icon={<Star size={14} />}>
+                  {placeSaved ? 'Saved' : 'Save city'}
+                </Button>
+                <Button onClick={refresh} icon={<RefreshCw size={14} />}>
+                  Refresh
+                </Button>
+                <Button aria-pressed={theme === 'dark'} onClick={toggleTheme} icon={<Contrast size={14} />}>
+                  High contrast
+                </Button>
+              </div>
+            </div>
+            <div className="r-divider" />
+            <main id="content" tabIndex={-1} className="min-w-0 p-2 outline-none sm:p-3">
+              <ErrorBoundary resetKey={`${page}:${place.id}`}>
+              <Suspense fallback={<PageLoading />}>
+              {page === 'dashboard' && (
+                <Dashboard place={place} forecast={forecast} air={air} summary={summary} theme={theme} speech={speech} />
+              )}
+              {page === 'forecast' && (
+                <ForecastPage place={place} theme={theme} refreshToken={refreshToken} onSelectPlace={selectPlace} />
+              )}
+              {page === 'map' && <MapPage place={place} theme={theme} refreshToken={refreshToken} onSelectPlace={selectPlace} />}
+              {page === 'assistant' && <AssistantPage place={place} />}
+              {page === 'models' && <ModelsPage theme={theme} />}
+              {page === 'about' && <AboutPage theme={theme} />}
+              {page === 'analytics' && <AnalyticsPage place={place} theme={theme} />}
+              {page === 'locations' && (
+                <LocationsPage place={place} saved={saved} theme={theme} refreshToken={refreshToken} onOpen={openPlace} />
+              )}
+              {!pageInfo.ready && <PlannedPage page={pageInfo} />}
+              </Suspense>
+              </ErrorBoundary>
+            </main>
+            <div className="flex gap-0.5 pt-0.5 text-[0.92em]">
+              <div className="r-status-field min-w-0 flex-1" role="status">
+                {notice ?? status}
+              </div>
+              <div className="r-status-field hidden sm:block">Source: Open-Meteo</div>
+              <div className="r-status-field hidden tabular-nums sm:block">
+                {forecast.data ? `Updated ${localClock(new Date(forecast.data.fetchedAt))}` : 'Not updated yet'}
+              </div>
+              <div className="r-status-field hidden md:block">{modelStatus}</div>
+            </div>
+          </Window>
+        </div>
       </div>
-      <Taskbar title={title} minimized={minimized} onToggleWindow={() => setMinimized((m) => !m)} />
-    </MotionConfig>
+      <Taskbar title={title} minimized={minimized} onToggleWindow={() => (minimized ? restore() : minimize())} />
+    </>
   )
 }

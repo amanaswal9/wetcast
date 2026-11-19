@@ -1,13 +1,12 @@
 import * as RadixTabs from '@radix-ui/react-tabs'
-import { useReducedMotion } from 'motion/react'
 import { useState } from 'react'
-import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts'
+import { Chart } from '../../components/chart/Chart'
 import { Button, GroupBox, MessageBox, Skeleton } from '../../components/retro'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { getPredictions, TARGET_LABELS, TARGET_UNITS, type Predictions, type Target } from '../../lib/api/weatherai'
-import { CHART_COLORS, CHART_FONT, MODEL_COLORS } from '../../lib/chartTheme'
+import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
 import { coordKey, hhmm, round, utcToLocal } from '../../lib/format'
 import type { Place, WeekForecast } from '../../types/weather'
 
@@ -59,17 +58,7 @@ function format(value: number, target: Target): string {
   return target === 'precipitation' ? `${value.toFixed(1)} mm` : `${round(value)}${TARGET_UNITS[target] === '°C' ? '°C' : '%'}`
 }
 
-interface TipProps {
-  active?: boolean
-  payload?: TooltipContentProps['payload']
-  target: Target
-  modelName: string
-}
-
-function PredictionTooltip({ active, payload, target, modelName }: TipProps) {
-  if (!active || !payload?.length) return null
-  const row = payload[0]?.payload as Row | undefined
-  if (!row) return null
+function PredictionTooltip({ row, target, modelName }: { row: Row; target: Target; modelName: string }) {
   return (
     <div className="r-tooltip tabular-nums">
       <div>{hhmm(row.time)} local time</div>
@@ -99,46 +88,31 @@ function PredictionChart({
   const colors = CHART_COLORS[theme]
   const modelColor = MODEL_COLORS[theme][model] ?? colors.model
   const wide = useMediaQuery('(min-width: 640px)')
-  const reduceMotion = useReducedMotion()
-  const tick = { fill: colors.text, fontSize: 11, fontFamily: CHART_FONT }
   const step = wide ? 3 : 6
-  const ticks = rows.filter((r) => Number(r.time.slice(11, 13)) % step === 0).map((r) => r.time)
-  const patternId = `dither-${model}-${theme}`
+  const xTicks = rows.flatMap((r, i) => (Number(r.time.slice(11, 13)) % step === 0 ? [{ at: i, label: hhmm(r.time) }] : []))
   const hasOpenMeteo = rows.some((r) => r.openMeteo !== null)
 
   return (
     <>
       <div className="r-sunken p-1">
-        <ResponsiveContainer width="100%" height={wide ? 260 : 220}>
-          <ComposedChart data={rows} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
-            <defs>
-              <pattern id={patternId} width="4" height="4" patternUnits="userSpaceOnUse">
-                <rect width="2" height="2" fill={modelColor} />
-                <rect x="2" y="2" width="2" height="2" fill={modelColor} />
-              </pattern>
-            </defs>
-            <CartesianGrid stroke={colors.grid} vertical={false} />
-            <XAxis dataKey="time" ticks={ticks} interval={0} tickFormatter={hhmm} tick={tick} tickLine={{ stroke: colors.axis }} axisLine={{ stroke: colors.axis }} />
-            <YAxis
-              width={44}
-              tick={tick}
-              tickLine={false}
-              axisLine={{ stroke: colors.axis }}
-              domain={target === 'humidity' ? [0, 100] : target === 'precipitation' ? [0, 'auto'] : ['auto', 'auto']}
-              tickFormatter={(v: number) => (target === 'precipitation' ? v.toFixed(1) : `${round(v)}`)}
-            />
-            <Tooltip
-              content={(p) => <PredictionTooltip active={p.active} payload={p.payload} target={target} modelName={modelName} />}
-              cursor={{ stroke: colors.axis, strokeDasharray: '2 2' }}
-              isAnimationActive={false}
-            />
-            <Area dataKey="band" stroke="none" fill={`url(#${patternId})`} fillOpacity={0.45} isAnimationActive={false} />
-            {hasOpenMeteo && (
-              <Line dataKey="openMeteo" type="monotone" stroke={colors.forecast} strokeWidth={2} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
-            )}
-            <Line dataKey="model" type="monotone" stroke={modelColor} strokeWidth={2.5} dot={false} isAnimationActive={!reduceMotion} animationDuration={400} />
-          </ComposedChart>
-        </ResponsiveContainer>
+        <Chart
+          rows={rows}
+          colors={colors}
+          height={wide ? 260 : 220}
+          top={12}
+          xTicks={xTicks}
+          y={{
+            domain: target === 'humidity' ? [0, 100] : target === 'precipitation' ? [0, 'auto'] : ['auto', 'auto'],
+            format: (v) => (target === 'precipitation' ? v.toFixed(1) : `${round(v)}`),
+          }}
+          series={[
+            { type: 'band', key: 'band', lower: (r) => r.band[0], upper: (r) => r.band[1], color: modelColor, opacity: 0.45 },
+            ...(hasOpenMeteo ? [{ type: 'line' as const, key: 'openMeteo', value: (r: Row) => r.openMeteo, color: colors.forecast, dash: '6 4' }] : []),
+            { type: 'line', key: 'model', value: (r) => r.model, color: modelColor, width: 2.5 },
+          ]}
+          tooltip={(row) => <PredictionTooltip row={row} target={target} modelName={modelName} />}
+          label={`${modelName} ${TARGET_LABELS[target].toLowerCase()} prediction`}
+        />
       </div>
       <ul className="m-0 mt-2 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[0.92em]">
         <li className="flex items-center gap-1.5">
@@ -149,7 +123,13 @@ function PredictionChart({
         </li>
         <li className="flex items-center gap-1.5">
           <svg width="22" height="10" aria-hidden="true">
-            <rect width="22" height="10" fill={`url(#${patternId})`} opacity="0.45" />
+            <defs>
+              <pattern id={`legend-dither-${model}-${theme}`} width="4" height="4" patternUnits="userSpaceOnUse">
+                <rect width="2" height="2" fill={modelColor} />
+                <rect x="2" y="2" width="2" height="2" fill={modelColor} />
+              </pattern>
+            </defs>
+            <rect width="22" height="10" fill={`url(#legend-dither-${model}-${theme})`} opacity="0.45" />
           </svg>
           Error range
         </li>

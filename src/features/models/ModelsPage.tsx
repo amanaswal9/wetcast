@@ -1,12 +1,11 @@
-import { useReducedMotion } from 'motion/react'
 import { useState } from 'react'
-import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Chart } from '../../components/chart/Chart'
 import { Button, GroupBox, Skeleton } from '../../components/retro'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { getEvaluation, getModels, TARGET_LABELS, TARGET_UNITS, type Evaluation, type ModelMetrics, type Target } from '../../lib/api/weatherai'
-import { CHART_COLORS, CHART_FONT, MODEL_COLORS } from '../../lib/chartTheme'
+import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
 import { BackendNotice } from './BackendNotice'
 import { DASHES, fmt, improvement } from './format'
 import { Table } from './shared'
@@ -62,36 +61,30 @@ function TargetPicker({ value, onChange }: { value: Target; onChange: (t: Target
 
 function MaeBars({ models, target, theme }: { models: ModelMetrics[]; target: Target; theme: Theme }) {
   const colors = CHART_COLORS[theme]
-  const reduceMotion = useReducedMotion()
+  const wide = useMediaQuery('(min-width: 640px)')
   const data = [
     ...models.map((m) => ({ name: m.display_name, key: m.model, mae: m.test[target].mae })),
     { name: 'Persistence', key: 'baseline', mae: models[0].persistence_baseline[target].mae },
   ]
-  const tick = { fill: colors.text, fontSize: 11, fontFamily: CHART_FONT }
   return (
     <div className="r-sunken mt-3 p-1">
-      <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={data} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke={colors.grid} vertical={false} />
-          <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: colors.axis }} />
-          <YAxis width={48} tick={tick} tickLine={false} axisLine={{ stroke: colors.axis }} tickFormatter={(v: number) => v.toFixed(target === 'precipitation' ? 2 : 1)} />
-          <Tooltip
-            cursor={{ fill: colors.grid }}
-            content={({ active, payload }) =>
-              active && payload?.length ? (
-                <div className="r-tooltip tabular-nums">
-                  {String(payload[0].payload.name)}: MAE {fmt(Number(payload[0].value), 3)} {TARGET_UNITS[target]}
-                </div>
-              ) : null
-            }
-          />
-          <Bar dataKey="mae" isAnimationActive={!reduceMotion} animationDuration={400}>
-            {data.map((d) => (
-              <Cell key={d.key} fill={MODEL_COLORS[theme][d.key] ?? colors.past} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <Chart
+        rows={data}
+        colors={colors}
+        height={wide ? 200 : 250}
+        top={12}
+        yWidth={48}
+        xTicks={data.map((d, i) => ({ at: i, label: d.name }))}
+        xTickAngle={wide ? 0 : -45}
+        y={{ domain: [0, 'auto'], format: (v) => v.toFixed(target === 'precipitation' ? 2 : 1) }}
+        series={[{ type: 'bars', key: 'mae', value: (d) => d.mae, color: (d) => MODEL_COLORS[theme][d.key] ?? colors.past }]}
+        tooltip={(d) => (
+          <div className="r-tooltip tabular-nums">
+            {d.name}: MAE {fmt(d.mae, 3)} {TARGET_UNITS[target]}
+          </div>
+        )}
+        label={`Test-period error by model, ${TARGET_LABELS[target].toLowerCase()}`}
+      />
       <p className="m-0 px-1 pt-1 text-[0.92em] text-[var(--text-muted)]">Mean absolute error on the test period (lower is better), {TARGET_UNITS[target]}.</p>
     </div>
   )
@@ -100,43 +93,39 @@ function MaeBars({ models, target, theme }: { models: ModelMetrics[]; target: Ta
 function HorizonChart({ evaluations, models, target, theme }: { evaluations: Evaluation[]; models: ModelMetrics[]; target: Target; theme: Theme }) {
   const colors = CHART_COLORS[theme]
   const wide = useMediaQuery('(min-width: 640px)')
-  const rows = Array.from({ length: evaluations[0]?.per_horizon_mae[target].length ?? 0 }, (_, h) => {
-    const row: Record<string, number> = { lead: h + 1 }
-    evaluations.forEach((e) => {
-      row[e.model] = e.per_horizon_mae[target][h]
-    })
-    return row
-  })
-  const tick = { fill: colors.text, fontSize: 11, fontFamily: CHART_FONT }
+  const rows = Array.from({ length: evaluations[0]?.per_horizon_mae[target].length ?? 0 }, (_, h) => ({ lead: h + 1 }))
   const names = Object.fromEntries(models.map((m) => [m.model, m.display_name]))
   return (
     <>
       <div className="r-sunken p-1">
-        <ResponsiveContainer width="100%" height={wide ? 240 : 200}>
-          <LineChart data={rows} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke={colors.grid} vertical={false} />
-            <XAxis dataKey="lead" tick={tick} tickLine={{ stroke: colors.axis }} axisLine={{ stroke: colors.axis }} ticks={[1, 6, 12, 18, 24]} tickFormatter={(v: number) => `${v} h`} />
-            <YAxis width={48} tick={tick} tickLine={false} axisLine={{ stroke: colors.axis }} tickFormatter={(v: number) => v.toFixed(target === 'precipitation' ? 2 : 1)} domain={[0, 'auto']} />
-            <Tooltip
-              cursor={{ stroke: colors.axis, strokeDasharray: '2 2' }}
-              content={({ active, payload, label }) =>
-                active && payload?.length ? (
-                  <div className="r-tooltip tabular-nums">
-                    <div>{String(label)} h ahead</div>
-                    {payload.map((p) => (
-                      <div key={String(p.dataKey)}>
-                        {names[String(p.dataKey)]}: MAE {fmt(Number(p.value), 3)} {TARGET_UNITS[target]}
-                      </div>
-                    ))}
-                  </div>
-                ) : null
-              }
-            />
-            {evaluations.map((e, i) => (
-              <Line key={e.model} dataKey={e.model} stroke={MODEL_COLORS[theme][e.model]} strokeWidth={2} strokeDasharray={DASHES[i % DASHES.length]} dot={false} isAnimationActive={false} />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
+        <Chart
+          rows={rows}
+          colors={colors}
+          height={wide ? 240 : 200}
+          top={12}
+          yWidth={48}
+          xTicks={[1, 6, 12, 18, 24].filter((l) => l <= rows.length).map((l) => ({ at: l - 1, label: `${l} h` }))}
+          y={{ domain: [0, 'auto'], format: (v) => v.toFixed(target === 'precipitation' ? 2 : 1) }}
+          series={evaluations.map((e, i) => ({
+            type: 'line' as const,
+            key: e.model,
+            value: (r: { lead: number }) => e.per_horizon_mae[target][r.lead - 1],
+            color: MODEL_COLORS[theme][e.model] ?? colors.model,
+            dash: DASHES[i % DASHES.length] || undefined,
+            curve: 'linear' as const,
+          }))}
+          tooltip={(r) => (
+            <div className="r-tooltip tabular-nums">
+              <div>{r.lead} h ahead</div>
+              {evaluations.map((e) => (
+                <div key={e.model}>
+                  {names[e.model]}: MAE {fmt(e.per_horizon_mae[target][r.lead - 1], 3)} {TARGET_UNITS[target]}
+                </div>
+              ))}
+            </div>
+          )}
+          label={`Test-period error by hours ahead, ${TARGET_LABELS[target].toLowerCase()}`}
+        />
       </div>
       <ul className="m-0 mt-2 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[0.92em]">
         {evaluations.map((e, i) => (
