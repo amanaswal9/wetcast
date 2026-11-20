@@ -48,6 +48,12 @@ export default function App() {
     setMinimized(false)
     setHiddenAway(false)
   }
+  // Choosing a page (Start menu, quick launch, voice) brings a minimised window back.
+  const [shownPage, setShownPage] = useState(page)
+  if (shownPage !== page) {
+    setShownPage(page)
+    if (minimized) restore()
+  }
   const [maximized, setMaximized] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
@@ -158,6 +164,8 @@ export default function App() {
 
   // Bottom padding always clears the fixed taskbar.
   const frame = maximized ? 'pb-[52px]' : 'pb-[52px] sm:px-4 sm:pt-4 sm:pb-[64px] md:px-6 md:pt-6'
+  // Keeps the window clear of notches and rounded corners (needs viewport-fit=cover in index.html).
+  const safeArea = { padding: 'env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)' }
 
   return (
     <>
@@ -172,6 +180,7 @@ export default function App() {
       >
         <span>Skip to content</span>
       </a>
+      <div style={safeArea}>
       <div className={`min-h-dvh ${frame}`}>
         {/* No animation on first load: the page's static frame is already showing. */}
         <div
@@ -201,7 +210,8 @@ export default function App() {
               </>
             }
           >
-            <nav aria-label="Pages" className="r-menubar">
+            {/* On phones the taskbar's Start menu and quick launch take over, keeping the header short. */}
+            <nav aria-label="Pages" className="r-menubar max-sm:hidden">
               {PAGES.map((p) => (
                 <a
                   key={p.id}
@@ -217,7 +227,7 @@ export default function App() {
                 </a>
               ))}
             </nav>
-            <div className="r-divider" />
+            <div className="r-divider max-sm:hidden" />
             <div className="flex flex-wrap items-center gap-1.5 p-1.5">
               <CitySearch
                 onSelect={selectPlace}
@@ -226,17 +236,18 @@ export default function App() {
                   window.location.hash = `#/${next}`
                 }}
               />
-              <div className="flex flex-wrap gap-1.5">
+              {/* Icon-only on phones, so search and these fit on one row. */}
+              <div className="r-toolbar flex flex-wrap gap-1.5">
                 <Button onClick={locate} aria-busy={locating} icon={<LocateFixed size={14} />}>
-                  {locating ? 'Locating…' : 'My location'}
+                  <span className="max-sm:sr-only">{locating ? 'Locating…' : 'My location'}</span>
                 </Button>
                 <Button aria-pressed={placeSaved} onClick={toggleSaved} icon={<Star size={14} />}>
-                  {placeSaved ? 'Saved' : 'Save city'}
+                  <span className="max-sm:sr-only">{placeSaved ? 'Saved' : 'Save city'}</span>
                 </Button>
                 <Button onClick={refresh} icon={<RefreshCw size={14} />}>
-                  Refresh
+                  <span className="max-sm:sr-only">Refresh</span>
                 </Button>
-                <Button aria-pressed={theme === 'dark'} onClick={toggleTheme} icon={<Contrast size={14} />}>
+                <Button aria-pressed={theme === 'dark'} onClick={toggleTheme} icon={<Contrast size={14} />} className="max-sm:hidden">
                   High contrast
                 </Button>
               </div>
@@ -276,7 +287,15 @@ export default function App() {
           </Window>
         </div>
       </div>
-      <Taskbar title={title} minimized={minimized} onToggleWindow={() => (minimized ? restore() : minimize())} />
+      </div>
+      <Taskbar
+        title={title}
+        page={page}
+        minimized={minimized}
+        onToggleWindow={() => (minimized ? restore() : minimize())}
+        highContrast={theme === 'dark'}
+        onToggleContrast={toggleTheme}
+      />
     </>
   )
 }

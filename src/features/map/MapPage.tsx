@@ -109,6 +109,10 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     placeIdRef.current = place.id
   }, [place.id])
   const initial = useRef({ latitude: place.latitude, longitude: place.longitude, reduceMotion })
+  // On touch screens one finger scrolls the page and two fingers move and zoom the map, so the
+  // map can never trap the page's scrolling.
+  const [touch] = useState(() => window.matchMedia('(pointer: coarse)').matches)
+  const [touchHint, setTouchHint] = useState(false)
   const [data, setData] = useState<Map<string, PointForecast>>(() => new Map())
   const [status, setStatus] = useState<Status>({ kind: 'loading', points: 0 })
   const [retry, setRetry] = useState(0)
@@ -129,6 +133,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
       preferCanvas: true,
       // The page scrolls past the map; the wheel zooms only once the map has been clicked or focused.
       scrollWheelZoom: false,
+      dragging: !window.matchMedia('(pointer: coarse)').matches,
       zoomAnimation: !start.reduceMotion,
       fadeAnimation: !start.reduceMotion,
       markerZoomAnimation: !start.reduceMotion,
@@ -149,7 +154,20 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     map.on('resize', update)
     map.on('click', (e: L.LeafletMouseEvent) => setPickedFor({ placeId: placeIdRef.current, at: [e.latlng.lat, e.latlng.lng] }))
     update()
+    // One finger sliding over the map (scrolling the page) shows how to move the map instead.
+    let hintTimer: number | undefined
+    const onTouchMove = (event: TouchEvent) => {
+      if (map.dragging.enabled()) return
+      const hint = event.touches.length === 1
+      setTouchHint(hint)
+      window.clearTimeout(hintTimer)
+      if (hint) hintTimer = window.setTimeout(() => setTouchHint(false), 1500)
+    }
+    const el = container.current
+    el.addEventListener('touchmove', onTouchMove, { passive: true })
     return () => {
+      el.removeEventListener('touchmove', onTouchMove)
+      window.clearTimeout(hintTimer)
       map.remove()
       mapRef.current = null
     }
@@ -321,14 +339,23 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
             {hourText}
           </span>
         </div>
-        <div className="r-sunken p-0.5">
+        <div className="r-sunken relative p-0.5">
           <div
             ref={container}
             data-theme={theme}
             className="r-map h-[clamp(320px,60vh,620px)] w-full"
             role="application"
-            aria-label="Weather map. Drag or use the arrow keys to move, plus and minus to zoom (or the mouse wheel after clicking the map). Click a square for its values."
+            aria-label={
+              touch
+                ? 'Weather map. Move and zoom with two fingers; tap a square for its values.'
+                : 'Weather map. Drag or use the arrow keys to move, plus and minus to zoom (or the mouse wheel after clicking the map). Click a square for its values.'
+            }
           />
+          {touchHint && (
+            <div className="r-map-hint" aria-hidden="true">
+              Use two fingers to move the map
+            </div>
+          )}
         </div>
         <div className="mt-1 flex flex-wrap justify-between gap-x-3 text-[0.92em]" role="status">
           <span>

@@ -160,7 +160,7 @@ export function CitySearch({
   const showVoice = voice && speech.supported
 
   return (
-    <div className="flex min-w-0 flex-1 basis-[220px] gap-1.5">
+    <div className="flex min-w-0 flex-1 basis-[150px] gap-1.5 sm:basis-[220px]">
     <div className="relative min-w-0 flex-1">
       <label htmlFor={id} className="sr-only">
         {label}
