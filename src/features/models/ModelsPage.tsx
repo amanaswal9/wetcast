@@ -282,13 +282,29 @@ export function ModelsPage({ theme }: { theme: Theme }) {
       <GroupBox title="Error ranges">
         <p className="m-0 mb-2 max-w-[75ch]">
           Each prediction comes with a range sized from errors on the {first.data.splits.val[0].slice(0, 4)} validation year ({first.interval.method}).
+          {first.interval.halfwidth_by_month &&
+            ' Errors change with the season (spring is the hardest), so each calendar month gets its own ranges: wider in spring, narrower in autumn and winter.'}{' '}
           The table shows how often the real value actually fell inside it during the test period. The target is {Math.round(first.interval.level * 100)}%.
         </p>
         <Table
-          caption="Share of test values inside the error range"
-          head={['Model', ...TARGETS.map((t) => TARGET_LABELS[t])]}
-          rows={list.map((m) => [m.display_name, ...TARGETS.map((t) => `${(m.interval.test_coverage[t] * 100).toFixed(1)}%`)])}
+          caption={first.interval.test_coverage_unseen ? 'Share of test values inside the error range: trained cities, then held-out cities' : 'Share of test values inside the error range'}
+          head={first.interval.test_coverage_unseen
+            ? ['Model', ...TARGETS.map((t) => `${TARGET_LABELS[t]}, trained`), ...TARGETS.map((t) => `${TARGET_LABELS[t]}, held out`)]
+            : ['Model', ...TARGETS.map((t) => TARGET_LABELS[t])]}
+          rows={list.map((m) => [
+            m.display_name,
+            ...TARGETS.map((t) => `${(m.interval.test_coverage[t] * 100).toFixed(1)}%`),
+            ...(first.interval.test_coverage_unseen
+              ? TARGETS.map((t) => (m.interval.test_coverage_unseen ? `${(m.interval.test_coverage_unseen[t] * 100).toFixed(1)}%` : '–'))
+              : []),
+          ])}
         />
+        {first.interval.test_coverage_unseen && (
+          <p className="m-0 mt-2 max-w-[75ch] text-[0.92em] text-[var(--text-muted)]">
+            The test period (January to October 2026) had a harder spring than 2025, so temperature and humidity ranges at the trained cities still fall a little short of
+            {' '}{Math.round(first.interval.level * 100)}%. At the held-out cities the rain ranges are on the wide side.
+          </p>
+        )}
       </GroupBox>
 
       <GroupBox title="Check against weather stations">

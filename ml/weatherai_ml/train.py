@@ -45,7 +45,7 @@ from .config import (
 
 REGION_LABELS = {"north_india": "North India", "india": "India"}
 from .dataset import Dataset, load_dataset, residual_targets, split_rows, window_ends
-from .metrics import conformal_halfwidth, mae, summary
+from .metrics import mae, monthly_halfwidths, summary
 from .models import DISPLAY_NAMES, MODEL_NAMES, TRANSFORMER_DEFAULTS, TRANSFORMER_NAME, build_model
 from .preprocess import RESIDUAL_INDICES, Preprocessor
 from .stations import station_check
@@ -133,7 +133,46 @@ def split_metrics(ds: Dataset, ends: np.ndarray, pred: np.ndarray) -> tuple[dict
     return model_m, base_m
 
 
-def coverage_of(true: np.ndarray, pred: np.ndarray, hw: list[float], target: str) -> float:
+def issue_months(ds: Dataset, ends: np.ndarray) -> np.ndarray:
+    """Calendar month (UTC) of each window's issue hour, the key for the monthly error ranges."""
+    return np.asarray(ds.times[ends].month)
+
+
+def halfwidths_for(table: list[list[float]], months: np.ndarray) -> np.ndarray:
+    """(n, horizon) half-widths: each window gets its issue month's row of `table` (12 x horizon)."""
+    return np.asarray(table, dtype=float)[np.asarray(months) - 1]
+
+
+def interval_block(
+    ds: Dataset, val_ends, val_true, val_pred, test_ends, test_true, test_pred,
+    unseen_ends=None, unseen_true=None, unseen_pred=None,
+) -> dict:
+    """The 80% error ranges: split conformal per calendar month and lead hour, calibrated on the
+    validation year at the training cities and checked on the test period."""
+    val_m, test_m = issue_months(ds, val_ends), issue_months(ds, test_ends)
+    by_month, flat, coverage, coverage_unseen = {}, {}, {}, {}
+    for k, target in enumerate(TARGETS):
+        table = monthly_halfwidths(np.abs(val_true[..., k] - val_pred[..., k]), val_m, INTERVAL_LEVEL)
+        by_month[target] = [[round(v, 4) for v in row] for row in table]
+        # Average over the months, for display and for anything that can't use the month.
+        flat[target] = [round(float(v), 4) for v in np.mean(np.asarray(table), axis=0)]
+        coverage[target] = coverage_of(test_true[..., k], test_pred[..., k], halfwidths_for(table, test_m), target)
+        if unseen_ends is not None and len(unseen_ends):
+            hw = halfwidths_for(table, issue_months(ds, unseen_ends))
+            coverage_unseen[target] = coverage_of(unseen_true[..., k], unseen_pred[..., k], hw, target)
+    block = {
+        "level": INTERVAL_LEVEL,
+        "method": "split conformal per calendar month, calibrated on the validation year",
+        "halfwidth_by_horizon": flat,
+        "halfwidth_by_month": by_month,
+        "test_coverage": coverage,
+    }
+    if coverage_unseen:
+        block["test_coverage_unseen"] = coverage_unseen
+    return block
+
+
+def coverage_of(true: np.ndarray, pred: np.ndarray, hw, target: str) -> float:
     lower = pred - np.asarray(hw)
     upper = pred + np.asarray(hw)
     if target == "precipitation":
@@ -175,19 +214,13 @@ def evaluate(
         u_metrics, u_base = split_metrics(ds, unseen_ends, unseen_pred)
         unseen = {"test": u_metrics, "persistence_baseline": u_base, "pred": unseen_pred, "true": unseen_true}
 
-    per_horizon, halfwidth, coverage, coverage_unseen, per_city = {}, {}, {}, {}, {}
+    per_horizon, per_city = {}, {}
     all_ends = np.concatenate([test_ends, unseen_ends]) if unseen else test_ends
     all_pred = np.concatenate([test_pred, unseen["pred"]]) if unseen else test_pred
     all_true = ds.targets[future_index(all_ends)]
     all_city = ds.city_of_row[all_ends]
     for k, target in enumerate(TARGETS):
         per_horizon[target] = [round(mae(test_true[:, h, k], test_pred[:, h, k]), 4) for h in range(H)]
-        # Split-conformal error range calibrated on the validation year, checked on the test period.
-        hw = [conformal_halfwidth(np.abs(val_true[:, h, k] - val_pred[:, h, k]), INTERVAL_LEVEL) for h in range(H)]
-        halfwidth[target] = [round(v, 4) for v in hw]
-        coverage[target] = coverage_of(test_true[..., k], test_pred[..., k], hw, target)
-        if unseen:
-            coverage_unseen[target] = coverage_of(unseen["true"][..., k], unseen["pred"][..., k], hw, target)
         per_city[target] = {
             city.id: round(mae(all_true[all_city == c, :, k], all_pred[all_city == c, :, k]), 4)
             for c, city in enumerate(ds.cities)
@@ -200,12 +233,10 @@ def evaluate(
         "test": test_metrics,
         "persistence_baseline": baseline,
         "validation": val_metrics,
-        "interval": {
-            "level": INTERVAL_LEVEL,
-            "method": "split conformal, calibrated on the validation year",
-            "halfwidth_by_horizon": halfwidth,
-            "test_coverage": coverage,
-        },
+        "interval": interval_block(
+            ds, val_ends, val_true, val_pred, test_ends, test_true, test_pred,
+            unseen_ends if unseen else None, unseen["true"] if unseen else None, unseen["pred"] if unseen else None,
+        ),
         "inference": timing_fn(test_ends),
         "windows": {"val": int(len(val_ends)), "test": int(len(test_ends))},
     }
@@ -213,7 +244,6 @@ def evaluate(
         # Held-out cities: never seen in training or validation, scored on the same test period.
         metrics["test_unseen"] = unseen["test"]
         metrics["persistence_baseline_unseen"] = unseen["persistence_baseline"]
-        metrics["interval"]["test_coverage_unseen"] = coverage_unseen
         metrics["windows"]["test_unseen"] = int(len(unseen_ends))
     evaluation = {
         "model": name,
