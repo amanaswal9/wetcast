@@ -409,8 +409,8 @@ Settings (all optional, in `backend/.env`):
 
 Rough cost per answer (about 6,000 tokens in and 800 out, before caching), at Hosted's published prices on
 2026-11-20: Opus 5.5 about $0.04, Sonnet 5.5 about $0.02, Haiku 5.5 about $0.001. The daily limits cap the
-worst case at 200 answers a day. The counters live in memory and reset when the API restarts, so the Console
-spend limit is the backstop.
+worst case at 200 answers a day. The counts are kept in the database (table `assistant_usage`), so restarting the API
+doesn't reset them; the Console spend limit is the backstop.
 
 Tests (`backend/tests/test_assistant.py`, `test_assistant_local.py`) replace Hosted and Ollama with scripted
 fakes and never call either.

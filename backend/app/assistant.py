@@ -17,13 +17,17 @@ import logging
 import os
 import threading
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from collections.abc import Callable
+from datetime import date, datetime, timedelta, timezone
 
 import hosted
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from . import assistant_data as data
 from .config import get_settings
+from . import db
+from .db import AssistantUsage
 from .registry import ModelRegistry
 
 log = logging.getLogger("weatherai.assistant")
@@ -161,34 +165,62 @@ def model_name(which: str | None) -> str:
 
 
 class DailyLimits:
-    """In-memory counters that reset each UTC day. They cap spending even if
-    someone hammers the endpoint; a spending limit in the Hosted Console is
-    the second line of defence."""
+    """Questions per visitor and in total for each UTC day. They cap spending even if someone
+    hammers the endpoint; a spending limit in the Hosted Console is the second line of defence.
 
-    def __init__(self):
+    The counts live in the database (table assistant_usage), so restarting the API doesn't reset
+    them. The lock keeps one API process's threads from both taking the last question; the API runs
+    as a single process."""
+
+    KEEP_DAYS = 7  # older counts are deleted
+
+    def __init__(self, sessions: Callable[[], Session] | None = None):
         self._lock = threading.Lock()
-        self._day: date | None = None
-        self._per_client: dict[str, int] = {}
-        self._total = 0
+        self._sessions = sessions
+        self._pruned: date | None = None
 
-    def take(self, client_id: str, per_client: int, total: int) -> None:
-        today = datetime.now(timezone.utc).date()
-        with self._lock:
-            if self._day != today:
-                self._day, self._per_client, self._total = today, {}, 0
-            if self._total >= total:
+    def _session(self) -> Session:
+        return self._sessions() if self._sessions is not None else db.new_session()
+
+    @staticmethod
+    def today() -> date:
+        return datetime.now(timezone.utc).date()
+
+    def take(self, client_id: str, per_client: int, total: int) -> date:
+        """Count one question, or raise AssistantUnavailable (429) when a limit is reached.
+        Returns the day it was counted on, for give_back."""
+        today = self.today()
+        with self._lock, self._session() as s:
+            if self._pruned != today:
+                s.execute(delete(AssistantUsage).where(AssistantUsage.day < today - timedelta(days=self.KEEP_DAYS)))
+                s.commit()
+                self._pruned = today
+            used = s.scalar(select(func.coalesce(func.sum(AssistantUsage.questions), 0)).where(AssistantUsage.day == today))
+            if used >= total:
                 raise AssistantUnavailable("daily_limit", "The assistant has answered all the questions it can today. Try again tomorrow.", 429)
-            if self._per_client.get(client_id, 0) >= per_client:
+            row = s.get(AssistantUsage, (today, client_id))
+            if row is not None and row.questions >= per_client:
                 raise AssistantUnavailable("client_limit", f"You've asked {per_client} questions today, the daily limit. Try again tomorrow.", 429)
-            self._per_client[client_id] = self._per_client.get(client_id, 0) + 1
-            self._total += 1
+            if row is None:
+                s.add(AssistantUsage(day=today, client_id=client_id, questions=1))
+            else:
+                row.questions += 1
+            s.commit()
+        return today
 
-    def give_back(self, client_id: str) -> None:
-        """Don't count a question that failed before Hosted answered it."""
-        with self._lock:
-            if self._per_client.get(client_id):
-                self._per_client[client_id] -= 1
-                self._total = max(self._total - 1, 0)
+    def give_back(self, client_id: str, day: date | None = None) -> None:
+        """Don't count a question that failed before it was answered."""
+        with self._lock, self._session() as s:
+            row = s.get(AssistantUsage, (day or self.today(), client_id))
+            if row is not None and row.questions > 0:
+                row.questions -= 1
+                s.commit()
+
+    def used(self, client_id: str) -> int:
+        """Questions this visitor has asked today."""
+        with self._session() as s:
+            row = s.get(AssistantUsage, (self.today(), client_id))
+            return row.questions if row is not None else 0
 
 
 LIMITS = DailyLimits()

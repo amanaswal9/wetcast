@@ -356,7 +356,7 @@ def ask_assistant(body: AssistantIn, session: SessionDep, registry: RegistryDep,
             },
         )
     try:
-        weather_assistant.LIMITS.take(client, settings.assistant_daily_limit_per_client, settings.assistant_daily_limit_total)
+        day = weather_assistant.LIMITS.take(client, settings.assistant_daily_limit_per_client, settings.assistant_daily_limit_total)
     except weather_assistant.AssistantUnavailable as exc:
         return JSONResponse(status_code=exc.status, content={"code": exc.code, "detail": str(exc)})
     try:
@@ -364,23 +364,23 @@ def ask_assistant(body: AssistantIn, session: SessionDep, registry: RegistryDep,
             [m.model_dump() for m in body.messages], body.place.model_dump(), session, registry
         )
     except weather_assistant.AssistantUnavailable as exc:
-        weather_assistant.LIMITS.give_back(client)
+        weather_assistant.LIMITS.give_back(client, day)
         log.warning("assistant unavailable: %s", exc)
         return JSONResponse(status_code=exc.status, content={"code": exc.code, "detail": str(exc)})
     except hosted_errors.RateLimitError as exc:
-        weather_assistant.LIMITS.give_back(client)
+        weather_assistant.LIMITS.give_back(client, day)
         log.warning("assistant rate limited: %s", exc)
         return JSONResponse(status_code=429, content={"code": "busy", "detail": "The assistant is busy. Try again in a minute."})
     except hosted_errors.AuthenticationError as exc:
-        weather_assistant.LIMITS.give_back(client)
+        weather_assistant.LIMITS.give_back(client, day)
         log.error("assistant API key rejected: %s", exc)
         return JSONResponse(status_code=503, content={"code": "assistant_not_configured", "detail": "The assistant's API key was rejected."})
     except hosted_errors.APIStatusError as exc:
-        weather_assistant.LIMITS.give_back(client)
+        weather_assistant.LIMITS.give_back(client, day)
         log.warning("assistant API error %s: %s", exc.status_code, exc)
         return JSONResponse(status_code=502, content={"code": "upstream", "detail": "The assistant couldn't answer right now. Try again."})
     except hosted_errors.APIConnectionError as exc:
-        weather_assistant.LIMITS.give_back(client)
+        weather_assistant.LIMITS.give_back(client, day)
         log.warning("assistant connection error: %s", exc)
         return JSONResponse(status_code=502, content={"code": "upstream", "detail": "The assistant couldn't be reached. Try again."})
     log.info(

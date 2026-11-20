@@ -4,7 +4,7 @@ fixed data, so these run offline and never call (or bill) the Hosted API."""
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import date, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -168,21 +168,54 @@ def test_nan_becomes_null():
 # ---- limits ---------------------------------------------------------------------------
 
 
-def test_daily_limits(monkeypatch):
-    limits = assistant.DailyLimits()
+@pytest.fixture()
+def sessions(tmp_path):
+    """Sessions on a throwaway SQLite database with the app's tables."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from app.db import Base
+
+    eng = create_engine(f"sqlite:///{(tmp_path / 'limits.db').as_posix()}")
+    Base.metadata.create_all(eng)
+    yield sessionmaker(bind=eng, expire_on_commit=False)
+    eng.dispose()
+
+
+def test_daily_limits(sessions, monkeypatch):
+    limits = assistant.DailyLimits(sessions)
     limits.take("a", per_client=2, total=3)
     limits.take("a", per_client=2, total=3)
     with pytest.raises(assistant.AssistantUnavailable) as e:
         limits.take("a", per_client=2, total=3)
     assert e.value.code == "client_limit"
-    limits.take("b", per_client=2, total=3)
+    day = limits.take("b", per_client=2, total=3)
     with pytest.raises(assistant.AssistantUnavailable) as e:
         limits.take("c", per_client=2, total=3)
     assert e.value.code == "daily_limit"
-    limits.give_back("b")
+    limits.give_back("b", day)
     limits.take("c", per_client=2, total=3)  # a refunded question frees a slot
-    limits._day = date(2000, 1, 1)  # a new day resets everything
-    limits.take("a", per_client=2, total=3)
+    monkeypatch.setattr(assistant.DailyLimits, "today", staticmethod(lambda: day + timedelta(days=1)))
+    limits.take("a", per_client=2, total=3)  # a new day starts from zero
+    assert limits.used("a") == 1
+
+
+def test_daily_limits_survive_a_restart(sessions, monkeypatch):
+    from app.db import AssistantUsage
+
+    before = assistant.DailyLimits(sessions)
+    day = before.take("a", per_client=2, total=10)
+    before.take("a", per_client=2, total=10)
+    after = assistant.DailyLimits(sessions)  # a new API process, same database
+    assert after.used("a") == 2
+    with pytest.raises(assistant.AssistantUnavailable) as e:
+        after.take("a", per_client=2, total=10)
+    assert e.value.code == "client_limit"
+    # Counts older than a week are deleted on the first question of a day.
+    monkeypatch.setattr(assistant.DailyLimits, "today", staticmethod(lambda: day + timedelta(days=8)))
+    assistant.DailyLimits(sessions).take("b", per_client=2, total=10)
+    with sessions() as s:
+        assert [(r.client_id, r.day) for r in s.query(AssistantUsage)] == [("b", day + timedelta(days=8))]
 
 
 # ---- endpoint -------------------------------------------------------------------------
