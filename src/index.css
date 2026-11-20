@@ -920,6 +920,13 @@ body {
   }
 }
 
+/* The map's pixel-arrow location pin: no box behind it, and clicks pass through to the map. */
+.r-map .r-map-pointer {
+  border: 0;
+  background: none;
+  pointer-events: none;
+}
+
 /* Shown when one finger slides over the map on a touch screen. */
 @layer components {
   .r-map-hint {
