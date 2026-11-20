@@ -8,7 +8,7 @@ import { StartMenu } from './StartMenu'
 
 interface TaskbarProps {
   title: string
-  page: PageId
+  page: PageId | null
   minimized: boolean
   onToggleWindow: () => void
   highContrast: boolean

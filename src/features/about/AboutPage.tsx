@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { GroupBox, PixelWeatherIcon, TextSkeleton } from '../../components/retro'
+import { DitherPicture, GroupBox, TextSkeleton } from '../../components/retro'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { getModels, type ModelMetrics } from '../../lib/api/weatherai'
@@ -50,9 +50,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
     <div className="flex min-w-0 flex-col gap-3">
       <section className="r-group" aria-labelledby="about-title">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div className="r-sunken flex shrink-0 items-center justify-center self-start p-3" style={{ background: 'var(--desk)' }}>
-            <PixelWeatherIcon code={2} size={64} />
-          </div>
+          <DitherPicture caption="sky.png" className="shrink-0 self-start" />
           <div className="min-w-0 max-w-[68ch]">
             <h2 id="about-title" className="m-0 font-pixel text-[32px] leading-none font-normal">
               WeatherAI

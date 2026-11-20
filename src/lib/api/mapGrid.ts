@@ -212,7 +212,7 @@ export function resetBudget(): void {
  */
 export async function getGridForecasts(
   points: GridPoint[],
-  options: { signal?: AbortSignal; fresh?: boolean; onWait?: (ms: number) => void } = {},
+  options: { signal?: AbortSignal; fresh?: boolean; onWait?: (ms: number) => void; onProgress?: (done: number, total: number) => void } = {},
 ): Promise<Map<string, PointForecast>> {
   const now = Date.now()
   const out = new Map<string, PointForecast>()
@@ -253,6 +253,7 @@ export async function getGridForecasts(
       pointCache.set(p.key, { expires: now + TTL_MS, forecast })
       out.set(p.key, forecast)
     })
+    options.onProgress?.(Math.min(i + CHUNK, missing.length), missing.length)
   }
   return out
 }

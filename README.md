@@ -47,6 +47,8 @@ backend/app/    FastAPI API: settings, database, model registry, live prediction
 backend/tests/  API tests (pytest)
 ml/weatherai_ml Training pipeline AND the shared preprocessing the API uses at inference
 ml/tests/       Pipeline, leakage and prediction tests (pytest)
+e2e/            Browser journeys, screenshots and accessibility (pytest + Playwright, recorded network)
+scripts/        check-bundle.mjs: bundle-size budget
 ml/artifacts/   Trained models: model.keras, preprocessor.json, metrics.json, evaluation.json
 deploy/, docker-compose.yml, backend/Dockerfile, Dockerfile.web   Container deployment
 ```
@@ -131,12 +133,22 @@ cd ml && ~/.venvs/weatherai/Scripts/python -m pytest tests          # pipeline, 
 cd backend && ~/.venvs/weatherai/Scripts/python -m pytest tests     # API (offline; uses SQLite and synthetic inputs)
 npm test                                                             # frontend unit tests (Vitest)
 npm run build && npm run lint                                        # frontend type-check, build, lint
+npm run size                                                         # bundle-size budget (after build)
+~/.venvs/weatherai/Scripts/python -m pytest e2e                     # browser journeys + accessibility (after build)
 ```
+
+The browser tests open the production build in Chromium with every network call answered from
+`e2e/fixtures/`, so they are offline and repeatable. They check key journeys (Dashboard, city search, Start
+menu by keyboard, Forecast days, units, map tools, "Not found"), compare screenshots with references in
+`e2e/screenshots/<platform>/`, and run axe-core (WCAG 2.2 A/AA) on every page in both themes. `E2E_RECORD=1`
+records responses not saved yet (needs internet and the API); `E2E_UPDATE=1` replaces the reference
+screenshots after an intended visual change.
 
 ### Continuous integration
 
 `.github/workflows/ci.yml` runs on every push and pull request once the repository is on GitHub: a
-frontend job (`npm ci`, lint, Vitest, type-check and build) and a Python job (ML pipeline and API tests on
+frontend job (`npm ci`, lint, Vitest, type-check, build and the bundle-size budget), a browser job (the
+`e2e` tests; the first Linux run saves its own reference screenshots as a download to commit) and a Python job (ML pipeline and API tests on
 Python 3.13 with CPU TensorFlow). It needs no secrets. After the first push, add a status badge to the top of
 this README with `![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)`, replacing OWNER/REPO.
 

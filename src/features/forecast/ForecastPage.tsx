@@ -28,17 +28,20 @@ function DayButton({ day, index, weekMin, weekMax }: { day: DayDetail; index: nu
   const hasRange = day.tempMin !== null && day.tempMax !== null
   const left = hasRange ? ((day.tempMin! - weekMin) / span) * 100 : 0
   const width = hasRange ? Math.max(4, ((day.tempMax! - day.tempMin!) / span) * 100) : 0
-  const label = `${dayName(day.date, index, 'long')} ${shortDate(day.date)}: ${
-    day.weatherCode === null ? '' : describeWeather(day.weatherCode)
-  }, high ${day.tempMax === null ? 'unknown' : fmt.t(day.tempMax)}, low ${day.tempMin === null ? 'unknown' : fmt.t(day.tempMin)}`
-
+  // The button's name is its visible text plus a few hidden words ("high", "low", the
+  // conditions), so what people see is what voice control and screen readers hear.
   return (
-    <RadixTabs.Trigger value={day.date} className="r-day shrink-0 snap-start md:w-auto" aria-label={label}>
+    <RadixTabs.Trigger value={day.date} className="r-day shrink-0 snap-start md:w-auto">
       <span className="r-day-name self-start">{dayName(day.date, index, 'short')}</span>
-      <span className="text-[0.92em]">{shortDate(day.date)}</span>
+      <span className="text-[0.92em]">
+        {shortDate(day.date)}
+        {day.weatherCode !== null && <span className="sr-only">, {describeWeather(day.weatherCode).toLowerCase()},</span>}
+      </span>
       {day.weatherCode !== null && <PixelWeatherIcon code={day.weatherCode} size={32} className="my-1" />}
       <span className="tabular-nums">
+        <span className="sr-only">high </span>
         <span className="font-pixel text-[20px] leading-none">{day.tempMax === null ? '–' : fmt.deg(day.tempMax)}</span>{' '}
+        <span className="sr-only">, low </span>
         <span className="text-[var(--text-muted)]">{day.tempMin === null ? '' : fmt.deg(day.tempMin)}</span>
       </span>
       {hasRange && (

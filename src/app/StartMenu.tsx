@@ -6,7 +6,7 @@ import { PAGES, type PageId } from './pages'
 import { UnitsDialog } from './UnitsDialog'
 
 interface StartMenuProps {
-  page: PageId
+  page: PageId | null
   highContrast: boolean
   onToggleContrast: () => void
   warningNotifications: boolean
@@ -14,6 +14,31 @@ interface StartMenuProps {
 }
 
 const preload = (id: PageId) => void loaders[id]().catch(() => undefined)
+
+/** Underlined shortcut letter for each item; press it while the menu is open. */
+const PAGE_KEYS: Record<PageId, string> = {
+  dashboard: 'd',
+  forecast: 'f',
+  map: 'm',
+  assistant: 'a',
+  analytics: 'n',
+  models: 'o',
+  locations: 'l',
+  about: 'b',
+}
+
+/** The label with its shortcut letter underlined, as in classic menus. */
+function KeyLabel({ text, letter }: { text: string; letter: string }) {
+  const i = text.toLowerCase().indexOf(letter)
+  if (i < 0) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, i)}
+      <u>{text[i]}</u>
+      {text.slice(i + 1)}
+    </>
+  )
+}
 
 /**
  * The taskbar's Start button and its menu: every page plus high contrast. On phones it
@@ -33,9 +58,27 @@ export function StartMenu({ page, highContrast, onToggleContrast, warningNotific
       if (!root.current?.contains(event.target as Node)) setOpen(false)
     }
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      setOpen(false)
-      button.current?.focus()
+      if (event.key === 'Escape') {
+        setOpen(false)
+        button.current?.focus()
+        return
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey) return
+      const items = [...(root.current?.querySelectorAll<HTMLElement>('.r-start-item') ?? [])]
+      // Arrow keys move through the items (wrapping round), Home and End jump to the ends.
+      const at = items.indexOf(document.activeElement as HTMLElement)
+      const move = { ArrowDown: at + 1, ArrowUp: at < 0 ? items.length - 1 : at - 1, Home: 0, End: items.length - 1 }[event.key]
+      if (move !== undefined) {
+        event.preventDefault()
+        items[(move + items.length) % items.length]?.focus()
+        return
+      }
+      // A shortcut letter opens its item.
+      const hit = items.find((item) => item.dataset.key === event.key.toLowerCase())
+      if (hit) {
+        event.preventDefault()
+        hit.click()
+      }
     }
     const onFocus = (event: FocusEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false)
@@ -84,11 +127,15 @@ export function StartMenu({ page, highContrast, onToggleContrast, warningNotific
                     <a
                       href={`#/${p.id}`}
                       className="r-start-item"
+                      data-key={PAGE_KEYS[p.id]}
+                      aria-keyshortcuts={PAGE_KEYS[p.id].toUpperCase()}
                       aria-current={page === p.id ? 'page' : undefined}
                       onClick={() => setOpen(false)}
                     >
                       <Icon size={16} aria-hidden="true" />
-                      {p.label}
+                      <span>
+                        <KeyLabel text={p.label} letter={PAGE_KEYS[p.id]} />
+                      </span>
                     </a>
                   </li>
                 )
@@ -100,37 +147,51 @@ export function StartMenu({ page, highContrast, onToggleContrast, warningNotific
             type="button"
             className="r-start-item w-full"
             aria-pressed={highContrast}
+            data-key="h"
+            aria-keyshortcuts="H"
             onClick={() => {
               onToggleContrast()
               setOpen(false)
             }}
           >
             <Contrast size={16} aria-hidden="true" />
-            High contrast{highContrast ? ': on' : ''}
+            <span>
+              <KeyLabel text="High contrast" letter="h" />
+              {highContrast ? ': on' : ''}
+            </span>
           </button>
           <button
             type="button"
             className="r-start-item w-full"
             aria-haspopup="dialog"
+            data-key="u"
+            aria-keyshortcuts="U"
             onClick={() => {
               setOpen(false)
               setUnitsOpen(true)
             }}
           >
             <Ruler size={16} aria-hidden="true" />
-            Units…
+            <span>
+              <KeyLabel text="Units…" letter="u" />
+            </span>
           </button>
           <button
             type="button"
             className="r-start-item w-full"
             aria-pressed={warningNotifications}
+            data-key="w"
+            aria-keyshortcuts="W"
             onClick={() => {
               onToggleNotifications()
               setOpen(false)
             }}
           >
             <Bell size={16} aria-hidden="true" />
-            Warning notifications{warningNotifications ? ': on' : ''}
+            <span>
+              <KeyLabel text="Warning notifications" letter="w" />
+              {warningNotifications ? ': on' : ''}
+            </span>
           </button>
         </div>
       </div>

@@ -1,0 +1,6 @@
+{
+ "url": "http://127.0.0.1:4173/api/coverage",
+ "status": 200,
+ "content_type": "application/json",
+ "body": "[{\"id\":\"delhi\",\"name\":\"Delhi\",\"latitude\":28.6139,\"longitude\":77.209},{\"id\":\"jaipur\",\"name\":\"Jaipur\",\"latitude\":26.9124,\"longitude\":75.7873},{\"id\":\"lucknow\",\"name\":\"Lucknow\",\"latitude\":26.8467,\"longitude\":80.9462},{\"id\":\"chandigarh\",\"name\":\"Chandigarh\",\"latitude\":30.7333,\"longitude\":76.7794},{\"id\":\"agra\",\"name\":\"Agra\",\"latitude\":27.1767,\"longitude\":78.0081},{\"id\":\"dehradun\",\"name\":\"Dehradun\",\"latitude\":30.3165,\"longitude\":78.0322},{\"id\":\"kanpur\",\"name\":\"Kanpur\",\"latitude\":26.4499,\"longitude\":80.3319},{\"id\":\"amritsar\",\"name\":\"Amritsar\",\"latitude\":31.634,\"longitude\":74.8723},{\"id\":\"bikaner\",\"name\":\"Bikaner\",\"latitude\":28.0229,\"longitude\":73.3119},{\"id\":\"varanasi\",\"name\":\"Varanasi\",\"latitude\":25.3176,\"longitude\":82.9739}]"
+}
