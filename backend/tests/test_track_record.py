@@ -79,6 +79,10 @@ def test_issue_then_score(client, monkeypatch):
     assert set(body["city_days"]) == {"delhi"} and body["city_days"]["delhi"] in (1, 2)  # 24 h: one or two UTC days
     assert body["min_days_per_city"] == 14
     assert body["pending_points"] == len(names) * 24 * 3  # the second cycle's forecasts
+    chance = body["rain_chance"]
+    if "ensemble" in names and get_registry().get("ensemble").rain_chance is not None:
+        assert chance["n"] == 24 and 0 <= chance["brier"] <= 1 and 0 <= chance["usual_brier"] <= 1
+        assert sum(r["n"] for r in chance["reliability"]) == 24
 
 
 def test_observations_are_settled_and_never_overwritten(client):
@@ -193,3 +197,29 @@ def test_older_model_sets_stay_out_of_the_record(client):
     body = client.get("/api/track-record", params={"days": 30}).json()
     assert body["model_set"] == "india"
     assert [t["mae"] for t in body["totals"]] == [1.0]
+
+
+@pytest.mark.skipif(
+    "ensemble" not in get_registry().names or get_registry().get("ensemble").rain_chance is None,
+    reason="no chance-of-rain table",
+)
+def test_chance_of_rain_is_scored(client):
+    usual = get_registry().get("ensemble").rain_chance["validation_rain_share"]
+    with db.new_session() as s:
+        run = db.PredictionRun(model="ensemble", city_id="delhi", issued_at=at(T0), model_set="india")
+        for lead, (chance, observed, yesterday) in enumerate([(0.8, 1.2, 0.0), (0.2, 0.0, 0.0), (0.95, 0.4, 2.0), (None, 3.0, 0.0)], start=1):
+            run.points.append(
+                db.PredictionPoint(
+                    valid_at=at(T0 + timedelta(hours=lead)), lead_hours=lead, target="precipitation", value=0.1,
+                    lower=0, upper=1, rain_chance=chance, observed=observed, persistence=yesterday, scored_at=at(T0),
+                )
+            )
+        s.add(run)
+        s.commit()
+    rc = client.get("/api/track-record", params={"days": 30}).json()["rain_chance"]
+    assert rc["n"] == 3  # the point without a stored chance is left out
+    assert rc["brier"] == pytest.approx((0.2**2 + 0.2**2 + 0.05**2) / 3, abs=1e-5)
+    assert rc["usual_brier"] == pytest.approx(((1 - usual) ** 2 * 2 + usual**2) / 3, abs=1e-5)
+    assert rc["yesterday_brier"] == pytest.approx(1 / 3, abs=1e-5)  # yesterday dry, dry, wet; today wet, dry, wet: one miss
+    assert rc["rain_share"] == pytest.approx(2 / 3, abs=1e-4)
+    assert [r["band"] for r in rc["reliability"]] == ["10-30%", "70-90%", "90-100%"]

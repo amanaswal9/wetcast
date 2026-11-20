@@ -130,6 +130,7 @@ def store_run(session: Session, model: str, city: City, prediction: Prediction, 
     if exists:
         return False
     run = PredictionRun(model=model, city_id=city.id, issued_at=issued, model_set=model_set)
+    chance = prediction.rain_chance
     for lead, valid in enumerate(prediction.times, start=1):
         for k, target in enumerate(TARGETS):
             run.points.append(
@@ -140,6 +141,7 @@ def store_run(session: Session, model: str, city: City, prediction: Prediction, 
                     value=float(prediction.values[lead - 1, k]),
                     lower=float(prediction.lower[lead - 1, k]),
                     upper=float(prediction.upper[lead - 1, k]),
+                    rain_chance=float(chance[lead - 1]) if chance is not None and target == "precipitation" else None,
                 )
             )
     session.add(run)
