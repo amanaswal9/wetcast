@@ -5,7 +5,7 @@ import { Button, ChartSkeleton, GroupBox, MessageBox } from '../../components/re
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
-import { getPredictions, TARGET_LABELS, type Predictions, type Target } from '../../lib/api/weatherai'
+import { getPredictions, TARGET_LABELS, type PredictionCoverage, type Predictions, type Target } from '../../lib/api/weatherai'
 import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
 import { coordKey, round, utcToLocal } from '../../lib/format'
 import { useFormat, type Format } from '../../lib/units'
@@ -165,6 +165,29 @@ function PredictionChart({
   )
 }
 
+/** What kind of place this is for the models, and the average error measured for that kind of place. */
+function CoverageNote({ coverage, modelName }: { coverage: PredictionCoverage; modelName: string }) {
+  const fmt = useFormat()
+  const { mae, basis, temperature_range: range } = coverage.expected_error
+  const t = (c: number) => `${fmt.tempDelta(c).toFixed(1)} ${fmt.tempUnit}`
+  const parts = [
+    mae.temperature !== null && `${t(mae.temperature)} for temperature`,
+    mae.humidity !== null && `${mae.humidity.toFixed(1)}% for humidity`,
+    mae.precipitation !== null && `${mae.precipitation.toFixed(2)} mm for rain`,
+  ].filter(Boolean)
+  return (
+    <p className="m-0" data-coverage={coverage.kind}>
+      <b>{coverage.label}.</b> {coverage.detail}{' '}
+      {parts.length > 0 && (
+        <>
+          Average error to expect from the {modelName}: {parts.join(', ')}, {basis}
+          {range && ` (temperature ${t(range[0])} to ${t(range[1])} across them)`}.
+        </>
+      )}
+    </p>
+  )
+}
+
 interface ModelPredictionPanelProps {
   place: Place
   week: WeekForecast
@@ -173,7 +196,11 @@ interface ModelPredictionPanelProps {
 }
 
 export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: ModelPredictionPanelProps) {
-  const result = useResource(`pred:${coordKey(place)}`, ({ signal }) => getPredictions(place.latitude, place.longitude, signal), 15 * 60_000)
+  const result = useResource(
+    `pred:${coordKey(place)}:${place.countryCode ?? ''}`,
+    ({ signal }) => getPredictions(place.latitude, place.longitude, signal, false, place.countryCode),
+    15 * 60_000,
+  )
   const [model, setModel] = useState<string | null>(null)
   const [target, setTarget] = useState<Target>('temperature')
   const fmt = useFormat()
@@ -192,14 +219,15 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
     body = (
       <MessageBox kind="info" title={`WeatherAI's models don't cover ${place.name}`}>
         <p className="m-0">
-          They were trained on ten North India cities and only make predictions there. Open one of them to compare its model
-          predictions with the forecast:
+          {result.data.detail} Open one of the nearest to compare its model predictions with the forecast:
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {result.data.supported.map((c) => (
+          {result.data.supported.slice(0, 6).map((c) => (
             <Button
               key={c.id}
-              onClick={() => onSelectPlace({ id: `weatherai-${c.id}`, name: c.name, country: 'India', latitude: c.latitude, longitude: c.longitude })}
+              onClick={() =>
+                onSelectPlace({ id: `weatherai-${c.id}`, name: c.name, country: 'India', countryCode: 'IN', latitude: c.latitude, longitude: c.longitude })
+              }
             >
               {c.name}
             </Button>
@@ -213,6 +241,12 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
     const issuedLocal = utcToLocal(data.issued_at, week.utcOffsetSeconds)
     body = (
       <div className="flex min-w-0 flex-col gap-2">
+        {data.coverage && (
+          <CoverageNote
+            coverage={data.coverage}
+            modelName={data.models.find((m) => m.model === data.coverage.model)?.display_name ?? data.coverage.model}
+          />
+        )}
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Measure">
           {TARGETS.map((t) => (
             <Button key={t} aria-pressed={target === t} onClick={() => setTarget(t)}>
@@ -242,7 +276,7 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
           ))}
         </RadixTabs.Root>
         <p className="m-0 text-[0.92em] text-[var(--text-muted)]">
-          Issued from data up to {fmt.time(issuedLocal)} local time for {data.city.name}. {data.note} {data.source}{' '}
+          Issued from data up to {fmt.time(issuedLocal)} local time for {data.coverage?.kind === 'untrained' ? `${place.name} (computed at ${data.city.name})` : data.city.name}. {data.note} {data.source}{' '}
           <a href="#/models" className="text-[inherit]">
             See how each model was tested
           </a>

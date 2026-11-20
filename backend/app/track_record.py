@@ -28,13 +28,13 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from weatherai_ml.config import CITIES, TARGETS, City
+from weatherai_ml.config import TARGETS, City
 from weatherai_ml.features import build_frames
 from weatherai_ml.openmeteo import fetch_centre_recent, fetch_recent
 from weatherai_ml.predict import InsufficientHistoryError
 
 from .db import Observation, PredictionPoint, PredictionRun, new_session
-from .predictions import city_elevation, predict_models, store_run
+from .predictions import city_elevation, predict_models, store_run, tracked_cities
 from .registry import ModelRegistry, get_registry
 
 log = logging.getLogger("weatherai.track_record")
@@ -187,17 +187,17 @@ def issue_forecasts(session: Session, registry: ModelRegistry, city: City, featu
     except InsufficientHistoryError as exc:
         log.warning("%s: forecasts skipped (%s)", city.id, exc)
         return 0
-    return sum(int(store_run(session, name, city, prediction)) for name, prediction in forecasts.items())
+    return sum(int(store_run(session, name, city, prediction, registry.region_id)) for name, prediction in forecasts.items())
 
 
 def run_city(session: Session, registry: ModelRegistry, city: City, now: datetime, summary: CycleSummary) -> None:
     with httpx.Client(timeout=30) as client:
-        long_df, _ = fetch_inputs(client, city, past_hours=FETCH_HOURS)
+        long_df, elevation = fetch_inputs(client, city, past_hours=FETCH_HOURS)
         backfill = needs_backfill(session, city, now)
         older = fetch_centre(client, city, past_hours=backfill) if backfill else None
 
     if registry.names:
-        features, _ = build_frames(long_df, city, city_elevation(registry, city))
+        features, _ = build_frames(long_df, city, city_elevation(registry, city, elevation))
         summary.runs_stored += issue_forecasts(session, registry, city, features)
 
     centre = long_df[long_df["point"] == "c"]
@@ -212,7 +212,7 @@ def run_cycle(registry: ModelRegistry | None = None, now: datetime | None = None
     now = now or datetime.now(timezone.utc)
     summary = CycleSummary()
     started = time.perf_counter()
-    for city in cities or list(CITIES):
+    for city in cities or tracked_cities(registry.region_id):
         with new_session() as session:
             try:
                 run_city(session, registry, city, now, summary)

@@ -164,8 +164,10 @@ export function TrackRecordPanel({ models, target, theme }: { models: ModelMetri
   const every = r.interval_hours > 0 ? `Every ${r.interval_hours} hours the server` : 'The server'
   const intro = (
     <p className="m-0 mb-2 max-w-[75ch]">
-      {every} issues a 24-hour forecast from each model for all {models[0]?.data.cities.length ?? 10} trained cities, and keeps the forecasts
-      people open on the Forecast page too. Once an hour is {r.settle_hours} hours in the past, every forecast for it is scored. {r.source}
+      {every} issues a 24-hour forecast from each model for all {models[0]?.data.cities.length ?? 10} of the models&apos; cities (the ones they
+      trained on and the ones held out), and keeps the forecasts people open for those cities on the Forecast page too.
+      {r.model_set === 'india' &&
+        ' The all-India models have served since 20 November 2026, so their record starts then; the older North India models’ record is kept but not shown.'} Once an hour is {r.settle_hours} hours in the past, every forecast for it is scored. {r.source}
     </p>
   )
 

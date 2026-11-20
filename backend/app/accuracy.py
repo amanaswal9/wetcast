@@ -68,7 +68,9 @@ def _row(r) -> dict:
 
 def track_record_summary(session: Session, registry: ModelRegistry, days: int, city: str | None) -> dict:
     since = datetime.now(timezone.utc) - timedelta(days=days)
-    scored = [PredictionPoint.scored_at.is_not(None), PredictionPoint.valid_at >= since]
+    # Only the served model set: older sets reuse the same model names.
+    current = PredictionRun.model_set == registry.region_id
+    scored = [PredictionPoint.scored_at.is_not(None), PredictionPoint.valid_at >= since, current]
     if city is not None:
         scored.append(PredictionRun.city_id == city)
 
@@ -107,7 +109,7 @@ def track_record_summary(session: Session, registry: ModelRegistry, days: int, c
         .join(PredictionRun)
         .where(*scored)
     ).one()
-    pending_filters = [PredictionPoint.scored_at.is_(None), PredictionRun.issued_at >= since]
+    pending_filters = [PredictionPoint.scored_at.is_(None), PredictionRun.issued_at >= since, current]
     if city is not None:
         pending_filters.append(PredictionRun.city_id == city)
     pending = session.scalar(select(func.count()).select_from(PredictionPoint).join(PredictionRun).where(*pending_filters))
@@ -116,6 +118,7 @@ def track_record_summary(session: Session, registry: ModelRegistry, days: int, c
     return {
         "days": days,
         "city": city,
+        "model_set": registry.region_id,
         "first_valid_at": _iso(span[0]),
         "last_valid_at": _iso(span[1]),
         "runs": int(span[2]),

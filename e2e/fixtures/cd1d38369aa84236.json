@@ -2,5 +2,5 @@
  "url": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=26.92&longitude=75.79&current=european_aqi%2Cpm2_5%2Cpm10&timezone=auto",
  "status": 200,
  "content_type": "application/json; charset=utf-8",
- "body": "{\"latitude\":26.900002,\"longitude\":75.8,\"generationtime_ms\":0.20706653594970703,\"utc_offset_seconds\":19800,\"timezone\":\"Asia/Kolkata\",\"timezone_abbreviation\":\"GMT+5:30\",\"elevation\":438.0,\"current_units\":{\"time\":\"iso8601\",\"interval\":\"seconds\",\"european_aqi\":\"EAQI\",\"pm2_5\":\"μg/m³\",\"pm10\":\"μg/m³\"},\"current\":{\"time\":\"2026-11-20T12:30\",\"interval\":3600,\"european_aqi\":94,\"pm2_5\":47.0,\"pm10\":48.9}}"
+ "body": "{\"latitude\":26.900002,\"longitude\":75.8,\"generationtime_ms\":0.14257431030273438,\"utc_offset_seconds\":19800,\"timezone\":\"Asia/Kolkata\",\"timezone_abbreviation\":\"GMT+5:30\",\"elevation\":438.0,\"current_units\":{\"time\":\"iso8601\",\"interval\":\"seconds\",\"european_aqi\":\"EAQI\",\"pm2_5\":\"μg/m³\",\"pm10\":\"μg/m³\"},\"current\":{\"time\":\"2026-11-20T19:30\",\"interval\":3600,\"european_aqi\":71,\"pm2_5\":71.9,\"pm10\":73.3}}"
 }

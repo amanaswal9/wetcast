@@ -12,6 +12,25 @@ export interface CoveredCity {
   name: string
   latitude: number
   longitude: number
+  /** 'train': the models trained on it; 'holdout': kept out of training to test them on new places. */
+  role?: 'train' | 'holdout' | null
+}
+
+/** What kind of place a forecast is for, and the accuracy measured for that kind of place. */
+export interface PredictionCoverage {
+  kind: 'trained' | 'held_out' | 'untrained'
+  label: string
+  detail: string
+  nearest_city: CoveredCity
+  nearest_km: number
+  /** The model whose measured accuracy is given (the ensemble when it is served). */
+  model: string
+  expected_error: {
+    mae: Record<Target, number | null>
+    basis: string
+    /** Lowest and highest temperature error among the held-out cities (untrained places only). */
+    temperature_range: [number, number] | null
+  }
 }
 
 export interface ModelPoint {
@@ -40,6 +59,7 @@ export interface Predictions {
   interval_level: number
   source: string
   note: string
+  coverage: PredictionCoverage
   models: ModelPrediction[]
 }
 
@@ -65,6 +85,9 @@ export interface ModelMetrics {
   display_name: string
   test: Record<Target, MetricSummary>
   persistence_baseline: Record<Target, MetricSummary>
+  /** Same test period, at the held-out cities the models never trained on (all-India models only). */
+  test_unseen?: Record<Target, MetricSummary>
+  persistence_baseline_unseen?: Record<Target, MetricSummary>
   interval: {
     level: number
     method: string
@@ -187,11 +210,18 @@ function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> 
  * change their forecast once an hour), and simultaneous requests for the same point,
  * such as a background prefetch and the Forecast page, share one network request.
  */
-export function getPredictions(latitude: number, longitude: number, signal?: AbortSignal, fresh = false): Promise<PredictionsResult> {
-  const key = `${latitude.toFixed(3)},${longitude.toFixed(3)}`
+export function getPredictions(
+  latitude: number,
+  longitude: number,
+  signal?: AbortSignal,
+  fresh = false,
+  /** Two-letter country code when the place came from search; the server decides from the map otherwise. */
+  country?: string,
+): Promise<PredictionsResult> {
+  const key = `${latitude.toFixed(3)},${longitude.toFixed(3)}:${country ?? ''}`
   let hit = predictionsCache.get(key)
   if (fresh || !hit || hit.expires < Date.now()) {
-    const entry = { expires: Date.now() + PREDICTIONS_TTL_MS, promise: fetchPredictions(latitude, longitude) }
+    const entry = { expires: Date.now() + PREDICTIONS_TTL_MS, promise: fetchPredictions(latitude, longitude, country) }
     entry.promise.catch(() => {
       if (predictionsCache.get(key) === entry) predictionsCache.delete(key) // never keep a failure
     })
@@ -201,8 +231,9 @@ export function getPredictions(latitude: number, longitude: number, signal?: Abo
   return untilAborted(hit.promise, signal)
 }
 
-async function fetchPredictions(latitude: number, longitude: number): Promise<PredictionsResult> {
+async function fetchPredictions(latitude: number, longitude: number, country?: string): Promise<PredictionsResult> {
   const params = new URLSearchParams({ latitude: latitude.toFixed(4), longitude: longitude.toFixed(4) })
+  if (country && /^[A-Za-z]{2}$/.test(country)) params.set('country', country.toUpperCase())
   const { status, body } = await getJson(`/api/predictions?${params}`)
   if (status === 404 && body && typeof body === 'object' && 'code' in body && body.code === 'unsupported_location') {
     const b = body as unknown as { supported: CoveredCity[]; detail: string }
@@ -238,6 +269,8 @@ export interface TrackStats {
 export interface TrackRecord {
   days: number
   city: string | null
+  /** Which model set the record is for ("india", "north_india"); older sets aren't mixed in. */
+  model_set?: string
   first_valid_at: string | null
   last_valid_at: string | null
   runs: number
@@ -354,7 +387,7 @@ export async function askAssistant(
   throw new AssistantError(code, detailOf(body, `The assistant returned an error (${status}).`), status)
 }
 
-/** Cities WeatherAI's models were trained on (they only predict there). */
+/** The cities behind WeatherAI's models: those they trained on and those held out to test them. */
 export async function getCoverage(signal?: AbortSignal): Promise<CoveredCity[]> {
   const { status, body } = await getJson('/api/coverage', signal)
   if (status !== 200) throw new ApiError('http', detailOf(body, `The prediction service returned an error (${status}).`), status)

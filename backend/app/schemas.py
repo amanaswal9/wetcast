@@ -14,6 +14,26 @@ class CityOut(BaseModel):
     name: str
     latitude: float
     longitude: float
+    # "train": the models trained on it; "holdout": kept out to measure accuracy at new places.
+    role: Literal["train", "holdout"] | None = None
+
+
+class ExpectedErrorOut(BaseModel):
+    mae: dict[str, float | None] = Field(description="Mean absolute error per target, in its unit")
+    basis: str
+    temperature_range: list[float] | None = Field(
+        default=None, description="Lowest and highest temperature error among the held-out cities"
+    )
+
+
+class CoverageOut(BaseModel):
+    kind: Literal["trained", "held_out", "untrained"]
+    label: str
+    detail: str
+    nearest_city: CityOut
+    nearest_km: float
+    model: str = Field(description="The model whose measured accuracy is given (the ensemble when served)")
+    expected_error: ExpectedErrorOut
 
 
 class PredictionPointOut(BaseModel):
@@ -42,6 +62,7 @@ class PredictionsOut(BaseModel):
     interval_level: float
     source: str
     note: str
+    coverage: CoverageOut
     models: list[ModelPredictionOut]
 
 

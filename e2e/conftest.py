@@ -34,8 +34,8 @@ API = "http://127.0.0.1:8000"
 RECORD = os.environ.get("E2E_RECORD") == "1"
 UPDATE = os.environ.get("E2E_UPDATE") == "1"
 
-# The moment every test runs at (12:30 in India), matching when the fixtures were recorded.
-FIXED_TIME = "2026-11-20T07:00:00Z"
+# The moment every test runs at (20:30 in India), matching when the fixtures were recorded.
+FIXED_TIME = "2026-11-20T15:00:00Z"
 DELHI = {"id": "1273294", "name": "New Delhi", "admin1": "Delhi", "country": "India", "countryCode": "IN", "latitude": 28.63576, "longitude": 77.22445}
 
 DESKTOP = {"viewport": {"width": 1280, "height": 800}}
@@ -240,7 +240,11 @@ AXE = (ROOT / "node_modules" / "axe-core" / "axe.min.js").read_text(encoding="ut
 
 
 def axe_violations(page: Page, impacts=("serious", "critical")) -> list[dict]:
-    """WCAG 2.2 A/AA checks by axe-core on the current page; returns the serious ones."""
+    """WCAG 2.2 A/AA checks by axe-core on the current page; returns the serious ones.
+
+    Off-screen group boxes skip layout (content-visibility: auto) until scrolled near, which would
+    make axe measure their contents against the wrong background, so everything is laid out first."""
+    page.add_style_tag(content=".r-group { content-visibility: visible !important; }")
     page.add_script_tag(content=AXE)
     result = page.evaluate(
         """async () => (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] } })).violations

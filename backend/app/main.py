@@ -19,7 +19,7 @@ from sqlalchemy import delete, select, text, update
 from sqlalchemy.orm import Session
 
 from weatherai_ml.config import TARGETS
-from weatherai_ml.predict import InsufficientHistoryError, nearest_city
+from weatherai_ml.predict import InsufficientHistoryError, haversine_km
 from weatherai_ml.preprocess import FeatureOrderError
 
 from .config import get_settings
@@ -28,7 +28,8 @@ from .migrations import migrate
 from . import alerts as official_alerts
 from . import assistant as weather_assistant
 from .accuracy import track_record_summary
-from .predictions import UpstreamError, predict_models, recent_features, store_run, supported_cities
+from . import coverage as model_coverage
+from .predictions import UpstreamError, predict_models, recent_features, store_run, tracked_cities
 from .registry import ModelRegistry, get_registry
 from .track_record import scheduler
 from .schemas import (
@@ -36,6 +37,7 @@ from .schemas import (
     AssistantOut,
     AssistantStatus,
     CityOut,
+    CoverageOut,
     HealthOut,
     ModelPredictionOut,
     PlaceIn,
@@ -109,7 +111,8 @@ ClientDep = Annotated[str, Depends(client_id)]
 
 
 def city_out(city) -> CityOut:
-    return CityOut(id=city.id, name=city.name, latitude=city.latitude, longitude=city.longitude)
+    role = city.role if city.role in ("train", "holdout") and not city.id.startswith("pt") else None
+    return CityOut(id=city.id, name=city.name, latitude=city.latitude, longitude=city.longitude, role=role)
 
 
 # ---- health and models --------------------------------------------------------------
@@ -127,9 +130,10 @@ def health(session: SessionDep, registry: RegistryDep) -> HealthOut:
 
 
 @app.get("/api/coverage", response_model=list[CityOut])
-def coverage() -> list[CityOut]:
-    """Cities WeatherAI's models were trained on. Predictions are only offered here."""
-    return [city_out(c) for c in supported_cities()]
+def coverage(registry: RegistryDep) -> list[CityOut]:
+    """The cities behind WeatherAI's models: those they trained on and those held out to test them.
+    Predictions are offered at these and, for the all-India models, anywhere in India near them."""
+    return [city_out(c) for c in model_coverage.cities(registry.region_id)]
 
 
 @app.get("/api/models")
@@ -177,14 +181,17 @@ def predictions(
     latitude: Annotated[float, Query(ge=-90, le=90)],
     longitude: Annotated[float, Query(ge=-180, le=180)],
     models: Annotated[list[str] | None, Query()] = None,
+    country: Annotated[str | None, Query(min_length=2, max_length=2, pattern="^[A-Za-z]{2}$")] = None,
 ):
-    city = nearest_city(latitude, longitude)
-    if city is None:
-        body = UnsupportedLocation(
-            detail="WeatherAI's models only cover the North India cities they were trained on.",
-            supported=[city_out(c) for c in supported_cities()],
+    region = registry.region_id
+    located = model_coverage.locate(region, latitude, longitude, country)
+    if located is None:
+        nearby = sorted(
+            model_coverage.training_cities(region), key=lambda c: haversine_km(latitude, longitude, c.latitude, c.longitude)
         )
+        body = UnsupportedLocation(detail=model_coverage.unsupported_detail(region), supported=[city_out(c) for c in nearby])
         return JSONResponse(status_code=404, content=body.model_dump())
+    city = located.city
 
     names = models or registry.names
     unknown = [n for n in names if registry.get(n) is None]
@@ -212,7 +219,9 @@ def predictions(
         pred = forecasts[name]
         issued = pred.issued_at
         try:
-            store_run(session, name, city, pred)
+            # Only named cities build a track record; other points are forecast but not kept.
+            if located.kind != "untrained":
+                store_run(session, name, city, pred, region)
         except Exception as exc:  # noqa: BLE001 - storing history must not block a forecast
             session.rollback()
             log.warning("couldn't store prediction run: %s", exc)
@@ -227,17 +236,29 @@ def predictions(
         results.append(ModelPredictionOut(model=name, display_name=registry.display_name(name), points=points))
 
     level = registry.metrics(names[0])["interval"]["level"]
+    basis_model = "ensemble" if "ensemble" in names else names[0]
+    label, detail = model_coverage.describe(region, located)
+    where = CoverageOut(
+        kind=located.kind,
+        label=label,
+        detail=detail,
+        nearest_city=city_out(located.nearest),
+        nearest_km=round(located.nearest_km, 1),
+        model=basis_model,
+        expected_error=model_coverage.expected_error(registry, basis_model, located),
+    )
     return PredictionsOut(
         city=city_out(city),
         issued_at=issued.to_pydatetime(),
         interval_level=level,
-        source="Inputs: last 48 hours of Open-Meteo data for the city and four points ~55 km around it.",
+        source="Inputs: last 48 hours of Open-Meteo data for the place and four points ~55 km around it.",
         note=(
             f"Model predictions, not certainties. Ranges are sized to hold {round(level * 100)}% of past errors; "
             "on the 2026 test period they held between "
             f"{round(min(min(registry.metrics(n)['interval']['test_coverage'].values()) for n in names) * 100)}% and "
             f"{round(max(max(registry.metrics(n)['interval']['test_coverage'].values()) for n in names) * 100)}%."
         ),
+        coverage=where,
         models=results,
     )
 
@@ -253,7 +274,7 @@ def track_record(
     city: Annotated[str | None, Query(max_length=32)] = None,
 ) -> dict:
     """How stored forecasts did once the weather they predicted had happened."""
-    if city is not None and city not in {c.id for c in supported_cities()}:
+    if city is not None and city not in {c.id for c in tracked_cities(registry.region_id)}:
         raise HTTPException(status_code=404, detail=f"No trained city called {city!r}.")
     return track_record_summary(session, registry, days=days, city=city)
 

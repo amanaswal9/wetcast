@@ -48,7 +48,7 @@ How to answer:
 Tools:
 - The app tells you the place the person is looking at. To answer about a different place, use find_place first.
 - get_weather: current conditions and forecast from Open-Meteo, for anywhere.
-- get_weatherai_prediction: WeatherAI's own 24-hour forecast with ranges, only for the cities its models were trained on.
+- get_weatherai_prediction: WeatherAI's own 24-hour forecast with ranges, for places in India; it says how accurate to expect it there.
 - get_official_alerts: official warnings (India and the United States only).
 - get_model_accuracy: how accurate WeatherAI's models were on unseen data."""
 
@@ -82,9 +82,9 @@ TOOLS = [
     ),
     _tool(
         "get_weatherai_prediction",
-        "WeatherAI's own machine-learning forecast for the next 24 hours, with 80% error ranges. Only available for the North India cities its models were trained on; elsewhere it says so.",
-        LAT_LON,
-        ["latitude", "longitude"],
+        "WeatherAI's own machine-learning forecast for the next 24 hours, with 80% error ranges, and how accurate it has been at this kind of place. Available in India (near the cities its models were trained on); elsewhere it says so.",
+        {**LAT_LON, "country_code": {"type": "string", "description": "Two-letter country code, e.g. IN; empty string if unknown"}},
+        ["latitude", "longitude", "country_code"],
     ),
     _tool(
         "get_official_alerts",
@@ -212,7 +212,7 @@ def run_tool(name: str, args: dict, session: Session, registry: ModelRegistry) -
     if name == "get_weather":
         return data.weather(lat, lon)
     if name == "get_weatherai_prediction":
-        return data.weatherai_prediction(registry, lat, lon)
+        return data.weatherai_prediction(registry, lat, lon, (args.get("country_code") or "").strip() or None)
     if name == "get_official_alerts":
         return data.official_alerts_at(session, lat, lon, (args.get("country_code") or "").strip() or None)
     raise ValueError(f"unknown tool {name!r}")

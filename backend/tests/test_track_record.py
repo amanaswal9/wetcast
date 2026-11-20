@@ -96,7 +96,7 @@ def test_observations_are_settled_and_never_overwritten(client):
 def test_old_unscored_points_are_backfilled(client, monkeypatch):
     issued = T0 - pd.Timedelta(days=5)
     with db.new_session() as s:
-        run = db.PredictionRun(model="lstm", city_id="delhi", issued_at=at(issued))
+        run = db.PredictionRun(model="lstm", city_id="delhi", issued_at=at(issued), model_set="india")
         run.points.append(
             db.PredictionPoint(valid_at=at(issued + pd.Timedelta(hours=1)), lead_hours=1, target="temperature", value=20, lower=18, upper=22)
         )
@@ -164,7 +164,7 @@ def test_bad_days_value_is_rejected(client):
 def test_window_excludes_old_points(client, monkeypatch):
     with db.new_session() as s:
         old = T0 - pd.Timedelta(days=40)
-        run = db.PredictionRun(model="lstm", city_id="delhi", issued_at=at(old))
+        run = db.PredictionRun(model="lstm", city_id="delhi", issued_at=at(old), model_set="india")
         run.points.append(
             db.PredictionPoint(
                 valid_at=at(old + timedelta(hours=1)), lead_hours=1, target="temperature",
@@ -175,3 +175,21 @@ def test_window_excludes_old_points(client, monkeypatch):
         s.commit()
     assert client.get("/api/track-record", params={"days": 30}).json()["totals"] == []
     assert client.get("/api/track-record", params={"days": 60}).json()["totals"][0]["mae"] == 1.0
+
+
+def test_older_model_sets_stay_out_of_the_record(client):
+    """The North India and all-India sets share model names; only the served set is summarised."""
+    with db.new_session() as s:
+        for model_set, observed in (("north_india", 25.0), ("india", 21.0)):
+            run = db.PredictionRun(model="lstm", city_id="delhi", issued_at=at(T0), model_set=model_set)
+            run.points.append(
+                db.PredictionPoint(
+                    valid_at=at(T0 + timedelta(hours=1)), lead_hours=1, target="temperature",
+                    value=20, lower=18, upper=22, observed=observed, persistence=19, scored_at=at(T0),
+                )
+            )
+            s.add(run)
+        s.commit()
+    body = client.get("/api/track-record", params={"days": 30}).json()
+    assert body["model_set"] == "india"
+    assert [t["mae"] for t in body["totals"]] == [1.0]
