@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 import { CHART_FONT } from '../../lib/chartTheme'
 import { isNum, linearPath, monotonePath, nearestIndex, niceScale, segments, type Num } from './chartMath'
 
@@ -82,12 +82,12 @@ export function Chart<R>({
   const [active, setActive] = useState<number | null>(null)
   const id = useId().replace(/:/g, '')
 
-  useLayoutEffect(() => {
+  // The width comes from a ResizeObserver, which reports it after the browser's own layout.
+  // (Reading getBoundingClientRect here forced an extra full-page layout for every chart.)
+  useEffect(() => {
     const el = box.current
     if (!el) return
-    const measure = () => setWidth(Math.floor(el.getBoundingClientRect().width))
-    measure()
-    const observer = new ResizeObserver(measure)
+    const observer = new ResizeObserver(([entry]) => setWidth(Math.floor(entry.contentRect.width)))
     observer.observe(el)
     return () => observer.disconnect()
   }, [])

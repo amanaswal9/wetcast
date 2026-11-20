@@ -8,7 +8,7 @@ import type { Theme } from '../../hooks/useTheme'
 import { isAbort, toApiError } from '../../lib/api/http'
 import { clearGridCache, getGridForecasts, gridFor, nearestPoint, uncachedPoints, type Bounds, type Grid, type GridPoint, type PointForecast, type ViewSize } from '../../lib/api/mapGrid'
 import { getCoverage } from '../../lib/api/weatherai'
-import { compass, latLonLabel } from '../../lib/format'
+import { compass, dateFormatter, latLonLabel } from '../../lib/format'
 import { BANDS, bandFor, bandLabel, blowingTowards, LAYER_INFO, type MapLayer } from '../../lib/mapScales'
 import { useFormat } from '../../lib/units'
 import { pointerIcon } from './pointerPin'
@@ -37,7 +37,7 @@ function toBounds(b: L.LatLngBounds): Bounds {
 }
 
 function hourLabel(time: number, hour12: boolean): string {
-  return new Date(time).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12 })
+  return dateFormatter(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12 }).format(new Date(time))
 }
 
 function valueAt(f: PointForecast, layer: MapLayer, hour: number): number | null {
