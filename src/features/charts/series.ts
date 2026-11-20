@@ -7,13 +7,27 @@ export interface ChartPoint {
   windSpeed: number | null
 }
 
+import type { Format } from '../../lib/units'
+
 export type Mode = 'temperature' | 'rain' | 'wind'
 
-export const MODES: { id: Mode; label: string; unit: string; pick: (h: ChartPoint) => number | null }[] = [
-  { id: 'temperature', label: 'Temperature', unit: '°C', pick: (h) => h.temperature },
-  { id: 'rain', label: 'Rain', unit: '%', pick: (h) => h.precipitationProbability },
-  { id: 'wind', label: 'Wind', unit: 'km/h', pick: (h) => h.windSpeed },
+export const MODES: { id: Mode; label: string }[] = [
+  { id: 'temperature', label: 'Temperature' },
+  { id: 'rain', label: 'Rain' },
+  { id: 'wind', label: 'Wind' },
 ]
+
+/** The unit shown for a mode, in the viewer's chosen units. */
+export function modeUnit(mode: Mode, fmt: Format): string {
+  return mode === 'temperature' ? fmt.tempUnit : mode === 'wind' ? fmt.speedUnit : '%'
+}
+
+/** A point's value for a mode, converted to the viewer's chosen units. */
+function pickFor(mode: Mode, fmt: Format): (h: ChartPoint) => number | null {
+  if (mode === 'temperature') return (h) => (h.temperature === null ? null : fmt.temp(h.temperature))
+  if (mode === 'wind') return (h) => (h.windSpeed === null ? null : fmt.speed(h.windSpeed))
+  return (h) => h.precipitationProbability
+}
 
 export interface Row {
   time: string
@@ -23,8 +37,8 @@ export interface Row {
   forecast: number | null
 }
 
-export function buildRows(points: ChartPoint[], mode: Mode, nowTime: string | null): Row[] {
-  const pick = MODES.find((m) => m.id === mode)!.pick
+export function buildRows(points: ChartPoint[], mode: Mode, nowTime: string | null, fmt: Format): Row[] {
+  const pick = pickFor(mode, fmt)
   const joinLines = mode !== 'rain'
   return points.map((h) => {
     const value = pick(h)

@@ -95,41 +95,54 @@ body {
   color: var(--select-text);
 }
 
+/*
+ * Pixel-exact bevels: --px is the CSS length of a whole number of screen pixels closest to
+ * 1px (0.8px at 125% scaling, 1.333px at 150%). index.html sets it before first paint and
+ * when the zoom or screen changes. Bevels and dither tiles use these, so they stay sharp.
+ */
+:root {
+  --px: 1px;
+  --p1: var(--px);
+  --n1: calc(-1 * var(--px));
+  --p2: calc(2 * var(--px));
+  --n2: calc(-2 * var(--px));
+}
+
 @layer components {
   /* Bevels: the four-line 3D edge used by every classic control. */
   .r-raised {
     background: var(--face);
     box-shadow:
-      inset -1px -1px var(--dark),
-      inset 1px 1px var(--hilite),
-      inset -2px -2px var(--shadow),
-      inset 2px 2px var(--light);
+      inset var(--n1) var(--n1) var(--dark),
+      inset var(--p1) var(--p1) var(--hilite),
+      inset var(--n2) var(--n2) var(--shadow),
+      inset var(--p2) var(--p2) var(--light);
   }
 
   .r-sunken {
     background: var(--field);
     color: var(--field-text);
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--shadow),
-      inset -2px -2px var(--light),
-      inset 2px 2px var(--dark);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--dark);
   }
 
   .r-shallow {
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--shadow);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow);
   }
 
   .r-window {
     background: var(--face);
     padding: 3px;
     box-shadow:
-      inset -1px -1px var(--dark),
-      inset 1px 1px var(--light),
-      inset -2px -2px var(--shadow),
-      inset 2px 2px var(--hilite);
+      inset var(--n1) var(--n1) var(--dark),
+      inset var(--p1) var(--p1) var(--light),
+      inset var(--n2) var(--n2) var(--shadow),
+      inset var(--p2) var(--p2) var(--hilite);
   }
 
   .r-title {
@@ -164,19 +177,19 @@ body {
     cursor: pointer;
     white-space: nowrap;
     box-shadow:
-      inset -1px -1px var(--dark),
-      inset 1px 1px var(--hilite),
-      inset -2px -2px var(--shadow),
-      inset 2px 2px var(--light);
+      inset var(--n1) var(--n1) var(--dark),
+      inset var(--p1) var(--p1) var(--hilite),
+      inset var(--n2) var(--n2) var(--shadow),
+      inset var(--p2) var(--p2) var(--light);
   }
 
   .r-btn:active:not(:disabled),
   .r-btn[aria-pressed='true'] {
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--dark),
-      inset -2px -2px var(--light),
-      inset 2px 2px var(--shadow);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--dark),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--shadow);
   }
 
   .r-btn:active:not(:disabled) > * {
@@ -222,10 +235,10 @@ body {
     background: var(--field);
     color: var(--field-text);
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--shadow),
-      inset -2px -2px var(--light),
-      inset 2px 2px var(--dark);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--dark);
   }
 
   .r-input:focus-visible {
@@ -245,8 +258,8 @@ body {
     padding: 14px 10px 10px;
     border: 1px solid var(--shadow);
     box-shadow:
-      1px 1px 0 var(--hilite),
-      inset 1px 1px 0 var(--hilite);
+      var(--p1) var(--p1) 0 var(--hilite),
+      inset var(--p1) var(--p1) 0 var(--hilite);
   }
 
   .r-group-title {
@@ -311,10 +324,10 @@ body {
     font: inherit;
     cursor: pointer;
     box-shadow:
-      inset 1px 1px var(--hilite),
-      inset 2px 2px var(--light),
-      inset -1px 0 var(--dark),
-      inset -2px 0 var(--shadow);
+      inset var(--p1) var(--p1) var(--hilite),
+      inset var(--p2) var(--p2) var(--light),
+      inset var(--n1) 0 var(--dark),
+      inset var(--n2) 0 var(--shadow);
   }
 
   .r-tab[data-state='active'] {
@@ -327,10 +340,10 @@ body {
     padding: 10px;
     background: var(--face);
     box-shadow:
-      inset -1px -1px var(--dark),
-      inset 1px 1px var(--hilite),
-      inset -2px -2px var(--shadow),
-      inset 2px 2px var(--light);
+      inset var(--n1) var(--n1) var(--dark),
+      inset var(--p1) var(--p1) var(--hilite),
+      inset var(--n2) var(--n2) var(--shadow),
+      inset var(--p2) var(--p2) var(--light);
   }
 
   /* Segmented progress bar. */
@@ -339,10 +352,10 @@ body {
     padding: 3px;
     background: var(--field);
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--shadow),
-      inset -2px -2px var(--light),
-      inset 2px 2px var(--dark);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--dark);
   }
 
   .r-progress-fill {
@@ -366,13 +379,13 @@ body {
     white-space: nowrap;
     text-overflow: ellipsis;
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--shadow);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow);
   }
 
   /* Loading placeholder: a 50% dither, the way 16-colour screens drew grey. */
   .r-skeleton {
-    background: repeating-conic-gradient(var(--shadow) 0 25%, var(--face) 0 50%) 0 0 / 2px 2px;
+    background: repeating-conic-gradient(var(--shadow) 0 25%, var(--face) 0 50%) 0 0 / var(--p2) var(--p2);
     cursor: progress;
   }
 
@@ -410,8 +423,8 @@ body {
     background: var(--face);
     color: var(--text);
     box-shadow:
-      inset -1px -1px var(--dark),
-      inset 1px 1px var(--hilite);
+      inset var(--n1) var(--n1) var(--dark),
+      inset var(--p1) var(--p1) var(--hilite);
   }
 
   .r-table td {
@@ -448,18 +461,18 @@ body {
     text-align: left;
     cursor: pointer;
     box-shadow:
-      inset -1px -1px var(--dark),
-      inset 1px 1px var(--hilite),
-      inset -2px -2px var(--shadow),
-      inset 2px 2px var(--light);
+      inset var(--n1) var(--n1) var(--dark),
+      inset var(--p1) var(--p1) var(--hilite),
+      inset var(--n2) var(--n2) var(--shadow),
+      inset var(--p2) var(--p2) var(--light);
   }
 
   .r-day[data-state='active'] {
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--dark),
-      inset -2px -2px var(--light),
-      inset 2px 2px var(--shadow);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--dark),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--shadow);
   }
 
   .r-day[data-state='active'] .r-day-name {
@@ -482,8 +495,8 @@ body {
     height: 8px;
     background: var(--field);
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--shadow);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow);
   }
 
   .r-range > span {
@@ -504,10 +517,10 @@ body {
     background: var(--field);
     cursor: pointer;
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--shadow),
-      inset -2px -2px var(--light),
-      inset 2px 2px var(--dark);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--dark);
   }
 
   .r-check:checked::after {
@@ -532,10 +545,10 @@ body {
     background: var(--field);
     color: var(--field-text);
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--shadow),
-      inset -2px -2px var(--light),
-      inset 2px 2px var(--dark);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--dark);
     padding: 2px;
   }
 
@@ -583,10 +596,10 @@ body {
     height: 4px;
     background: var(--field);
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--shadow),
-      inset -2px -2px var(--light),
-      inset 2px 2px var(--dark);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--dark);
   }
 
   .r-slider::-moz-range-track {
@@ -603,10 +616,10 @@ body {
     background: var(--face);
     border: 0;
     box-shadow:
-      inset -1px -1px var(--dark),
-      inset 1px 1px var(--hilite),
-      inset -2px -2px var(--shadow),
-      inset 2px 2px var(--light);
+      inset var(--n1) var(--n1) var(--dark),
+      inset var(--p1) var(--p1) var(--hilite),
+      inset var(--n2) var(--n2) var(--shadow),
+      inset var(--p2) var(--p2) var(--light);
   }
 
   .r-slider::-moz-range-thumb {
@@ -616,10 +629,10 @@ body {
     border-radius: 0;
     background: var(--face);
     box-shadow:
-      inset -1px -1px var(--dark),
-      inset 1px 1px var(--hilite),
-      inset -2px -2px var(--shadow),
-      inset 2px 2px var(--light);
+      inset var(--n1) var(--n1) var(--dark),
+      inset var(--p1) var(--p1) var(--hilite),
+      inset var(--n2) var(--n2) var(--shadow),
+      inset var(--p2) var(--p2) var(--light);
   }
 
   .r-slider:focus-visible {
@@ -668,10 +681,10 @@ body {
     color: var(--text);
     font: 700 16px var(--font-ui);
     box-shadow:
-      inset -1px -1px var(--dark),
-      inset 1px 1px var(--hilite),
-      inset -2px -2px var(--shadow),
-      inset 2px 2px var(--light);
+      inset var(--n1) var(--n1) var(--dark),
+      inset var(--p1) var(--p1) var(--hilite),
+      inset var(--n2) var(--n2) var(--shadow),
+      inset var(--p2) var(--p2) var(--light);
   }
 
   .r-map .leaflet-bar a + a {
@@ -680,8 +693,8 @@ body {
 
   .r-map .leaflet-bar a:active {
     box-shadow:
-      inset 1px 1px var(--dark),
-      inset -1px -1px var(--hilite);
+      inset var(--p1) var(--p1) var(--dark),
+      inset var(--n1) var(--n1) var(--hilite);
   }
 
   .r-map .leaflet-bar a.leaflet-disabled {
@@ -773,10 +786,10 @@ body {
   .r-start-btn[aria-expanded='true'],
   .r-quick[aria-current='page'] {
     box-shadow:
-      inset -1px -1px var(--hilite),
-      inset 1px 1px var(--dark),
-      inset -2px -2px var(--light),
-      inset 2px 2px var(--shadow);
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--dark),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--shadow);
   }
 
   .r-quick {
@@ -788,7 +801,7 @@ body {
   /* A dotted checkerboard marks the current page's quick-launch button, as NT did for latched buttons. */
   .r-quick[aria-current='page'] {
     background-image: conic-gradient(var(--hilite) 25%, transparent 0 50%, var(--hilite) 0 75%, transparent 0);
-    background-size: 2px 2px;
+    background-size: var(--p2) var(--p2);
   }
 
   .r-start-menu {
@@ -860,7 +873,7 @@ body {
 /* The 7-day strip scrolls sideways on narrow screens: size the days so the next one always
    peeks in at the edge, which shows there is more to swipe to. */
 @media (max-width: 767.98px) {
-  .r-day-strip > .r-day {
+  .r-day-strip > * {
     width: calc((100% - 12px) / 3.4);
     min-width: 88px;
   }
@@ -921,5 +934,155 @@ body {
     color: var(--tip-text);
     white-space: nowrap;
     pointer-events: none;
+  }
+}
+
+/* Units dialog: an NT "Properties" box with etched groups and round radio buttons. */
+@layer components {
+  .r-dialog {
+    width: min(360px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+    margin: auto; /* centred; the CSS reset removes the browser's default */
+    padding: 0;
+    border: 0;
+    color: var(--text);
+    overflow: auto;
+  }
+
+  .r-dialog::backdrop {
+    background: transparent;
+  }
+
+  .r-fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 4px 10px 8px;
+    border: 1px solid var(--shadow);
+    box-shadow:
+      var(--p1) var(--p1) 0 var(--hilite),
+      inset var(--p1) var(--p1) 0 var(--hilite);
+  }
+
+  .r-fieldset legend {
+    padding: 0 4px;
+  }
+
+  .r-radio {
+    appearance: none;
+    flex: none;
+    display: inline-grid;
+    place-content: center;
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    border-radius: 50%;
+    background: var(--field);
+    cursor: pointer;
+    box-shadow:
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow),
+      0 0 0 var(--p1) var(--light);
+  }
+
+  .r-radio:checked::after {
+    content: '';
+    width: 4px;
+    height: 4px;
+    background: var(--field-text);
+  }
+
+  .r-radio:focus-visible {
+    outline: 1px dotted var(--text);
+    outline-offset: 2px;
+  }
+
+  @media (pointer: coarse) {
+    .r-fieldset label {
+      min-height: 36px;
+    }
+  }
+}
+
+/* Chart-shaped loading placeholder: axis-label column, plot with dotted gridlines, label row. */
+@layer components {
+  .r-chart-skeleton {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 14px;
+    gap: 4px;
+    cursor: progress;
+  }
+
+  .r-chart-skeleton-plot {
+    border-left: 1px solid var(--shadow);
+    border-bottom: 1px solid var(--shadow);
+    background: repeating-linear-gradient(to bottom, transparent 0 calc(25% - 1px), var(--light) calc(25% - 1px) 25%);
+  }
+}
+
+/*
+ * Feedback that answers what the person did, in NT's own vocabulary: menus slide open from
+ * where they were opened, controls press in, and the pointer shows an hourglass while weather
+ * is loading. No hover animations or entrance effects. The slides are off with reduced motion;
+ * pressing in is not motion, so it stays.
+ */
+@keyframes r-slide-up {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes r-slide-down {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+/* The Start menu grows up out of the taskbar; dropdown lists grow down from their field. */
+.r-start-menu:not([hidden]) {
+  animation: r-slide-up 120ms steps(6, end);
+}
+
+.r-listbox:not(.hidden):not(.sr-only) {
+  animation: r-slide-down 100ms steps(5, end);
+}
+
+@layer components {
+  /* Day cards, tabs and menu-bar items press in while held, like buttons do. */
+  .r-day:active:not([data-state='active']) {
+    box-shadow:
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--dark),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--shadow);
+  }
+
+  .r-day:active > *,
+  .r-tab:active > * {
+    transform: translate(1px, 1px);
+  }
+
+  .r-menu-item:active {
+    background: var(--select);
+    color: var(--select-text);
+  }
+}
+
+/* NT's "working in background" pointer (arrow and hourglass) while the weather loads or refreshes. */
+html[data-busy],
+html[data-busy] * {
+  cursor: progress;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .r-start-menu:not([hidden]),
+  .r-listbox:not(.hidden):not(.sr-only) {
+    animation: none;
   }
 }

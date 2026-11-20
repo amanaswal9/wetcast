@@ -1,16 +1,18 @@
 import { Chart, type Series } from '../../components/chart/Chart'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import type { ChartColors } from '../../lib/chartTheme'
-import { hhmm, round } from '../../lib/format'
+import { round } from '../../lib/format'
+import { useFormat } from '../../lib/units'
 
 import type { Mode, Row } from './series'
 
 function ChartTooltip({ row, unit }: { row: Row; unit: string }) {
+  const fmt = useFormat()
   if (row.value === null) return null
   return (
     <div className="r-tooltip tabular-nums">
       <div>
-        {hhmm(row.time)}, {row.isPast ? 'past hour (model estimate)' : 'Open-Meteo forecast'}
+        {fmt.time(row.time)}, {row.isPast ? 'past hour (model estimate)' : 'Open-Meteo forecast'}
       </div>
       <div className="font-bold">
         {round(row.value)} {unit}
@@ -58,8 +60,9 @@ interface HourlyChartProps {
 
 export function HourlyChart({ rows, mode, unit, colors, nowTime }: HourlyChartProps) {
   const wide = useMediaQuery('(min-width: 640px)')
+  const fmt = useFormat()
   const step = wide ? 3 : 6
-  const xTicks = rows.flatMap((r, i) => (Number(r.time.slice(11, 13)) % step === 0 ? [{ at: i, label: hhmm(r.time) }] : []))
+  const xTicks = rows.flatMap((r, i) => (Number(r.time.slice(11, 13)) % step === 0 ? [{ at: i, label: fmt.hourTick(r.time) }] : []))
   const nowIndex = nowTime ? rows.findIndex((r) => r.time === nowTime) : -1
   const series: Series<Row>[] =
     mode === 'rain'

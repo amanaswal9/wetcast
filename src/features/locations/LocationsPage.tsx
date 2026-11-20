@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Button, GroupBox, MessageBox, PixelWeatherIcon, Skeleton } from '../../components/retro'
+import { Button, ChartSkeleton, GroupBox, MessageBox, PixelWeatherIcon, Skeleton, TableSkeleton } from '../../components/retro'
 import { useForecasts, type PlaceForecast } from '../../hooks/useForecasts'
 import { MAX_SAVED, samePlace, type SavedPlaces } from '../../hooks/useSavedPlaces'
 import type { Theme } from '../../hooks/useTheme'
-import { compass, hhmm, round } from '../../lib/format'
+import { compass, round } from '../../lib/format'
+import { useFormat, type Format } from '../../lib/units'
 import { describeWeather } from '../../lib/weatherCodes'
 import type { Forecast, Place } from '../../types/weather'
 import { CitySearch } from '../search/CitySearch'
@@ -20,16 +21,16 @@ function rainNext12(forecast: Forecast): number | null {
   return chances.length > 0 ? Math.max(...chances) : null
 }
 
-const METRICS: { label: string; value: (f: Forecast) => string }[] = [
-  { label: 'Local time', value: (f) => hhmm(f.current.time) },
-  { label: 'Temperature', value: (f) => `${round(f.current.temperature)}°C` },
+const METRICS: { label: string; value: (f: Forecast, fmt: Format) => string }[] = [
+  { label: 'Local time', value: (f, fmt) => fmt.time(f.current.time) },
+  { label: 'Temperature', value: (f, fmt) => fmt.t(f.current.temperature) },
   { label: 'Conditions', value: (f) => describeWeather(f.current.weatherCode, f.current.isDay) },
-  { label: 'Feels like', value: (f) => `${round(f.current.apparentTemperature)}°C` },
+  { label: 'Feels like', value: (f, fmt) => fmt.t(f.current.apparentTemperature) },
   {
     label: 'Today',
-    value: (f) => {
+    value: (f, fmt) => {
       const d = f.daily[0]
-      return d && d.tempMax !== null && d.tempMin !== null ? `${round(d.tempMax)}° / ${round(d.tempMin)}°` : 'n/a'
+      return d && d.tempMax !== null && d.tempMin !== null ? `${fmt.deg(d.tempMax)} / ${fmt.deg(d.tempMin)}` : 'n/a'
     },
   },
   {
@@ -40,12 +41,13 @@ const METRICS: { label: string; value: (f: Forecast) => string }[] = [
       return p === 0 ? '0%' : `up to ${p}%`
     },
   },
-  { label: 'Wind', value: (f) => `${round(f.current.windSpeed)} km/h ${compass(f.current.windDirection)}` },
+  { label: 'Wind', value: (f, fmt) => `${fmt.s(f.current.windSpeed)} ${compass(f.current.windDirection)}` },
   { label: 'Humidity', value: (f) => `${round(f.current.humidity)}%` },
   { label: 'Pressure', value: (f) => `${round(f.current.pressure)} hPa` },
 ]
 
 function CurrentCell({ entry, loading }: { entry: PlaceForecast | undefined; loading: boolean }) {
+  const fmt = useFormat()
   if (!entry) return loading ? <Skeleton height={16} className="w-28" /> : <span>n/a</span>
   if (!entry.forecast) return <span className="text-[var(--danger)]">Couldn&apos;t load</span>
   const c = entry.forecast.current
@@ -53,7 +55,7 @@ function CurrentCell({ entry, loading }: { entry: PlaceForecast | undefined; loa
     <span className="flex items-center gap-2 tabular-nums">
       <PixelWeatherIcon code={c.weatherCode} isDay={c.isDay} size={24} />
       <span>
-        <b>{round(c.temperature)}°C</b> {describeWeather(c.weatherCode, c.isDay).toLowerCase()}
+        <b>{fmt.t(c.temperature)}</b> {describeWeather(c.weatherCode, c.isDay).toLowerCase()}
       </span>
     </span>
   )
@@ -68,6 +70,7 @@ interface LocationsPageProps {
 }
 
 export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: LocationsPageProps) {
+  const fmt = useFormat()
   const forecasts = useForecasts(saved.places)
   const { reload } = forecasts
   const [message, setMessage] = useState<string | null>(null)
@@ -216,7 +219,10 @@ export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: Loc
           ) : compareIds.length < 2 ? (
             <p className="m-0">Tick at least two saved places to compare them.</p>
           ) : !forecasts.data ? (
-            <Skeleton height={260} />
+            <div className="flex min-w-0 flex-col gap-3">
+              <ChartSkeleton height={260} />
+              <TableSkeleton rows={4} columns={Math.min(compareIds.length, 4) + 1} />
+            </div>
           ) : (
             <div className="flex min-w-0 flex-col gap-3">
               {compared.length >= 2 && <CompareChart series={compared} theme={theme} />}
@@ -241,7 +247,7 @@ export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: Loc
                         <th scope="row">{metric.label}</th>
                         {compareIds.map((id) => {
                           const f = byId.get(id)?.forecast
-                          return <td key={id}>{f ? metric.value(f) : 'Unavailable'}</td>
+                          return <td key={id}>{f ? metric.value(f, fmt) : 'Unavailable'}</td>
                         })}
                       </tr>
                     ))}

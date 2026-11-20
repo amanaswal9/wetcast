@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { GroupBox, ProgressBar, Skeleton } from '../../components/retro'
 import type { ResourceState } from '../../hooks/useResource'
 import { aqiCategory, compass, round, uvCategory } from '../../lib/format'
+import { useFormat } from '../../lib/units'
 import type { AirQuality, Forecast } from '../../types/weather'
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -40,6 +41,7 @@ interface ReadingsProps {
 }
 
 export function Readings({ forecast, air }: ReadingsProps) {
+  const fmt = useFormat()
   const { current, hourly } = forecast
   const nextHour = hourly.find((h) => !h.isPast)
   const rainChance = nextHour?.precipitationProbability ?? null
@@ -59,8 +61,8 @@ export function Readings({ forecast, air }: ReadingsProps) {
         <Row label="Humidity">{round(current.humidity)}%</Row>
         <Row label="Wind">
           <WindArrow degrees={current.windDirection} />
-          {round(current.windSpeed)} km/h from {compass(current.windDirection)}
-          {current.windGusts !== null && `, gusts ${round(current.windGusts)}`}
+          {fmt.s(current.windSpeed)} from {compass(current.windDirection)}
+          {current.windGusts !== null && `, gusts ${round(fmt.speed(current.windGusts))}`}
         </Row>
         <Row label="Pressure">{round(current.pressure)} hPa at sea level</Row>
         <Row label="Cloud cover">{round(current.cloudCover)}%</Row>

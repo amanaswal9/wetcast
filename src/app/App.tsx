@@ -12,7 +12,8 @@ import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useTheme } from '../hooks/useTheme'
 import { getAirQuality, getForecast } from '../lib/api/openMeteo'
 import { getHealth } from '../lib/api/weatherai'
-import { localClock, placeShortLabel } from '../lib/format'
+import { placeShortLabel } from '../lib/format'
+import { useFormat } from '../lib/units'
 import { prefetchPlace } from '../lib/prefetch'
 import type { Place } from '../types/weather'
 import { ErrorBoundary } from './ErrorBoundary'
@@ -61,7 +62,8 @@ export default function App() {
   const placeKey = `${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`
   const forecast = useResource(placeKey, ({ signal, fresh }) => getForecast(place, { signal, fresh }), 10 * MINUTE)
   const air = useResource(placeKey, ({ signal, fresh }) => getAirQuality(place, { signal, fresh }), 30 * MINUTE)
-  const summary = forecast.data ? buildSummary(place, forecast.data) : null
+  const fmt = useFormat()
+  const summary = forecast.data ? buildSummary(place, forecast.data, fmt) : null
   const health = useResource('health', ({ signal }) => getHealth(signal), 5 * MINUTE)
   const modelStatus = health.data
     ? health.data.models.length > 0
@@ -80,6 +82,12 @@ export default function App() {
   useEffect(() => {
     preloadPages()
   }, [])
+
+  // Hourglass pointer while the weather is loading or refreshing (see html[data-busy] in index.css).
+  const busy = forecast.status === 'loading' || forecast.refreshing || locating
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-busy', busy)
+  }, [busy])
 
   // Once the Dashboard's weather is in, quietly fetch what the Forecast page needs for this place.
   const dashboardReady = forecast.data !== undefined
@@ -280,7 +288,7 @@ export default function App() {
               </div>
               <div className="r-status-field hidden sm:block">Source: Open-Meteo</div>
               <div className="r-status-field hidden tabular-nums sm:block">
-                {forecast.data ? `Updated ${localClock(new Date(forecast.data.fetchedAt))}` : 'Not updated yet'}
+                {forecast.data ? `Updated ${fmt.clock(new Date(forecast.data.fetchedAt))}` : 'Not updated yet'}
               </div>
               <div className="r-status-field hidden md:block">{modelStatus}</div>
             </div>

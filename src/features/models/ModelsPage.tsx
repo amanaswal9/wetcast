@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Chart } from '../../components/chart/Chart'
-import { Button, GroupBox, Skeleton } from '../../components/retro'
+import { Button, ChartSkeleton, GroupBox, TableSkeleton } from '../../components/retro'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
@@ -172,7 +172,7 @@ export function ModelsPage({ theme }: { theme: Theme }) {
     ) : (
       <div className="flex flex-col gap-3" aria-busy="true">
         <GroupBox title="Test-set results">
-          <Skeleton height={220} />
+          <TableSkeleton rows={7} columns={4} />
         </GroupBox>
       </div>
     )
@@ -237,7 +237,7 @@ export function ModelsPage({ theme }: { theme: Theme }) {
         ) : evaluations.status === 'error' ? (
           <BackendNotice message={evaluations.error?.message} onRetry={evaluations.reload} />
         ) : (
-          <Skeleton height={240} />
+          <ChartSkeleton height={240} />
         )}
         <p className="m-0 mt-1 text-[0.92em] text-[var(--text-muted)]">Mean absolute error for each hour of the 24-hour forecast, {TARGET_LABELS[target].toLowerCase()} ({unit}).</p>
       </GroupBox>

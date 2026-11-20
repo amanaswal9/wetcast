@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Chart } from '../../components/chart/Chart'
-import { Button, Skeleton } from '../../components/retro'
+import { Button, TableSkeleton, TextSkeleton } from '../../components/retro'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { getTrackRecord, TARGET_LABELS, TARGET_UNITS, type ModelMetrics, type Target, type TrackRecord, type TrackStats } from '../../lib/api/weatherai'
 import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
+import { getUnits } from '../../lib/units'
 import { BackendNotice } from './BackendNotice'
 import { DASHES, fmt, improvement } from './format'
 import { Table } from './shared'
@@ -19,7 +20,7 @@ function dayLabel(iso: string): string {
 }
 
 function dateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: getUnits().clock === '12' })
 }
 
 /** Daily rows for the chart: one MAE per model plus persistence on the same hours (weighted by hours scored). */
@@ -117,7 +118,12 @@ export function TrackRecordPanel({ models, target, theme }: { models: ModelMetri
   )
 
   if (!record.data) {
-    return record.status === 'error' ? <BackendNotice message={record.error?.message} onRetry={record.reload} /> : <Skeleton height={240} />
+    return record.status === 'error' ? <BackendNotice message={record.error?.message} onRetry={record.reload} /> : (
+      <div className="flex flex-col gap-2">
+        <TextSkeleton lines={2} />
+        <TableSkeleton rows={6} columns={4} />
+      </div>
+    )
   }
   const r = record.data
   const every = r.interval_hours > 0 ? `Every ${r.interval_hours} hours the server` : 'The server'

@@ -1,4 +1,4 @@
-import { Button, GroupBox, MessageBox, Skeleton } from '../../components/retro'
+import { Button, ChartSkeleton, GroupBox, MessageBox, Skeleton } from '../../components/retro'
 import type { ResourceState } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import type { AirQuality, Forecast, Place } from '../../types/weather'
@@ -41,7 +41,7 @@ function DashboardSkeleton() {
           <Skeleton height={48} />
         </GroupBox>
         <GroupBox title="Hourly: past 12 hours and next 24">
-          <Skeleton height={260} />
+          <ChartSkeleton height={260} />
         </GroupBox>
       </div>
     </div>

@@ -1,8 +1,9 @@
-import { Contrast } from 'lucide-react'
+import { Contrast, Ruler } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { loaders } from './pageLoaders'
 import { PAGE_ICONS } from './pageIcons'
 import { PAGES, type PageId } from './pages'
+import { UnitsDialog } from './UnitsDialog'
 
 interface StartMenuProps {
   page: PageId
@@ -19,6 +20,7 @@ const preload = (id: PageId) => void loaders[id]().catch(() => undefined)
  */
 export function StartMenu({ page, highContrast, onToggleContrast }: StartMenuProps) {
   const [open, setOpen] = useState(false)
+  const [unitsOpen, setUnitsOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
   const panelId = useId()
@@ -104,8 +106,28 @@ export function StartMenu({ page, highContrast, onToggleContrast }: StartMenuPro
             <Contrast size={16} aria-hidden="true" />
             High contrast{highContrast ? ': on' : ''}
           </button>
+          <button
+            type="button"
+            className="r-start-item w-full"
+            aria-haspopup="dialog"
+            onClick={() => {
+              setOpen(false)
+              setUnitsOpen(true)
+            }}
+          >
+            <Ruler size={16} aria-hidden="true" />
+            Units…
+          </button>
         </div>
       </div>
+      {/* Outside the menu panel: the menu is hidden while the dialog is open. */}
+      <UnitsDialog
+        open={unitsOpen}
+        onClose={() => {
+          setUnitsOpen(false)
+          button.current?.focus()
+        }}
+      />
     </div>
   )
 }

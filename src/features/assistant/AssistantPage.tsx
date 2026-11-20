@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { Button, GroupBox, MessageBox, Skeleton } from '../../components/retro'
+import { Button, GroupBox, MessageBox, TextSkeleton } from '../../components/retro'
 import { getClientId } from '../../hooks/useSavedPlaces'
 import { useResource } from '../../hooks/useResource'
 import { isAbort, toApiError } from '../../lib/api/http'
@@ -94,7 +94,7 @@ export function AssistantPage({ place }: { place: Place }) {
           can still be wrong, so for anything dangerous, follow your national weather service.
         </p>
 
-        {status.status === 'loading' && <Skeleton height={60} />}
+        {status.status === 'loading' && <TextSkeleton lines={3} />}
         {status.status === 'error' && (
           <MessageBox kind="warning" title="The assistant isn't reachable">
             WeatherAI&apos;s server isn&apos;t responding, so questions can&apos;t be answered right now.

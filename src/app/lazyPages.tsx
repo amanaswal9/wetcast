@@ -1,5 +1,5 @@
 import { lazy } from 'react'
-import { GroupBox, Skeleton } from '../components/retro'
+import { ChartSkeleton, GroupBox, TextSkeleton } from '../components/retro'
 import { loaders } from './pageLoaders'
 
 export const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })))
@@ -19,7 +19,8 @@ export function PageLoading() {
         Loading page
       </p>
       <GroupBox title="Loading">
-        <Skeleton height={220} />
+        <TextSkeleton lines={2} className="mb-3" />
+        <ChartSkeleton height={220} />
       </GroupBox>
     </div>
   )

@@ -1,0 +1,205 @@
+<!doctype html>
+<!-- Source for public/og-image.png (link previews). Rebuild with: python docs/share/make_share_image.py
+     Shows no weather readings on purpose, so the image never goes out of date or looks like live data. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: 'Pixelify Sans';
+        src: url('../../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-400-normal.woff2') format('woff2');
+      }
+      :root {
+        --face: #c0c0c0;
+        --hilite: #fff;
+        --light: #dfdfdf;
+        --shadow: #808080;
+        --dark: #000;
+        --title: #000080;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        position: relative;
+        background: #008080;
+        font: 22px/1.35 Tahoma, Verdana, sans-serif;
+        color: #000;
+      }
+      .raised {
+        background: var(--face);
+        box-shadow:
+          inset -2px -2px var(--dark),
+          inset 2px 2px var(--hilite),
+          inset -4px -4px var(--shadow),
+          inset 4px 4px var(--light);
+      }
+      .sunken {
+        background: #fff;
+        box-shadow:
+          inset -2px -2px var(--hilite),
+          inset 2px 2px var(--shadow),
+          inset -4px -4px var(--light),
+          inset 4px 4px var(--dark);
+      }
+      .window {
+        position: absolute;
+        left: 72px;
+        top: 56px;
+        width: 1056px;
+        height: 448px;
+        padding: 6px;
+      }
+      .title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 44px;
+        padding: 0 8px;
+        background: var(--title);
+        color: #fff;
+        font-weight: 700;
+        font-size: 24px;
+      }
+      .title img {
+        width: 32px;
+        height: 32px;
+        image-rendering: pixelated;
+      }
+      .tb {
+        margin-left: auto;
+        display: flex;
+        gap: 4px;
+      }
+      .tb span {
+        position: relative;
+        width: 32px;
+        height: 28px;
+      }
+      .tb span::after {
+        content: '';
+        position: absolute;
+      }
+      /* Minimise: a bar at the bottom. Maximise: a box with a thick top edge. */
+      .tb span:first-child::after {
+        left: 9px;
+        top: 17px;
+        width: 12px;
+        height: 4px;
+        background: #000;
+      }
+      .tb span:last-child::after {
+        left: 8px;
+        top: 6px;
+        width: 16px;
+        height: 14px;
+        border: 2px solid #000;
+        border-top-width: 4px;
+      }
+      .body {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 40px;
+        align-items: center;
+        padding: 40px 44px 0;
+      }
+      .art {
+        width: 240px;
+        height: 240px;
+        display: grid;
+        place-items: center;
+      }
+      .art img {
+        width: 208px;
+        height: 208px;
+        image-rendering: pixelated;
+      }
+      h1 {
+        margin: 0;
+        font: 400 96px/1 'Pixelify Sans', monospace;
+        letter-spacing: 1px;
+      }
+      p {
+        margin: 18px 0 0;
+        max-width: 30ch;
+        font-size: 30px;
+        line-height: 1.3;
+      }
+      .models {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 26px;
+      }
+      .models span {
+        padding: 8px 14px 9px;
+        font-size: 19px;
+      }
+      .taskbar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+      }
+      .taskbar .btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 48px;
+        padding: 0 18px 0 12px;
+        font-weight: 700;
+        font-size: 22px;
+      }
+      .taskbar .btn img {
+        width: 28px;
+        height: 28px;
+        image-rendering: pixelated;
+      }
+      .taskbar .task {
+        width: 420px;
+        box-shadow:
+          inset -2px -2px var(--hilite),
+          inset 2px 2px var(--dark),
+          inset -4px -4px var(--light),
+          inset 4px 4px var(--shadow);
+        background-image: conic-gradient(#fff 25%, transparent 0 50%, #fff 0 75%, transparent 0);
+        background-size: 4px 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="window raised">
+      <div class="title">
+        <img src="../../public/favicon.svg" alt="" />
+        WeatherAI
+        <div class="tb"><span class="raised"></span><span class="raised"></span></div>
+      </div>
+      <div class="body">
+        <div class="art sunken"><img src="../../public/favicon.svg" alt="" /></div>
+        <div>
+          <h1>WeatherAI</h1>
+          <p>Live weather next to its own trained forecasting models, scored against what really happened.</p>
+          <div class="models">
+            <span class="raised">LSTM</span><span class="raised">GRU</span><span class="raised">CNN-LSTM</span><span class="raised">Transformer</span><span class="raised">LightGBM</span><span class="raised">Ensemble</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer class="taskbar raised">
+      <span class="btn raised"><img src="../../public/favicon.svg" alt="" />Start</span>
+      <span class="btn task"><img src="../../public/favicon.svg" alt="" />WeatherAI</span>
+    </footer>
+  </body>
+</html>

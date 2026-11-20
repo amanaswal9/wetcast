@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { Chart } from '../../components/chart/Chart'
-import { Button, GroupBox, MessageBox, Skeleton } from '../../components/retro'
+import { Button, ChartSkeleton, GroupBox, MessageBox, TextSkeleton } from '../../components/retro'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
@@ -8,6 +8,7 @@ import { getDailyHistory } from '../../lib/api/openMeteo'
 import { getEvaluation, getModels, TARGET_LABELS, TARGET_UNITS, type Target } from '../../lib/api/weatherai'
 import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
 import { coordKey, placeShortLabel, round, shortDate } from '../../lib/format'
+import { useFormat } from '../../lib/units'
 import type { Place } from '../../types/weather'
 import { BackendNotice } from '../models/BackendNotice'
 
@@ -55,7 +56,7 @@ function ActualVsPredicted({ theme }: { theme: Theme }) {
   const wide = useMediaQuery('(min-width: 640px)')
 
   if (!models.data) {
-    return models.status === 'error' ? <BackendNotice message={models.error?.message} onRetry={models.reload} /> : <Skeleton height={300} />
+    return models.status === 'error' ? <BackendNotice message={models.error?.message} onRetry={models.reload} /> : <ChartSkeleton height={300} />
   }
   if (models.data.length === 0) {
     return <p className="m-0">No trained models are available on the server yet, so there are no predictions to compare.</p>
@@ -106,7 +107,7 @@ function ActualVsPredicted({ theme }: { theme: Theme }) {
       {evaluation.status === 'error' && !evaluation.data ? (
         <BackendNotice message={evaluation.error?.message} onRetry={evaluation.reload} />
       ) : !sample ? (
-        <Skeleton height={260} />
+        <ChartSkeleton height={260} />
       ) : (
         <>
           <div className="r-sunken p-1">
@@ -189,11 +190,13 @@ function HistoricalTrends({ place, theme }: { place: Place; theme: Theme }) {
   const history = useResource(`hist:${coordKey(place)}:${days}`, ({ signal }) => getDailyHistory(place, days, { signal }))
   const colors = CHART_COLORS[theme]
   const wide = useMediaQuery('(min-width: 640px)')
+  const fmt = useFormat()
 
+  // Weather history follows the viewer's units (the model scores above stay metric, as measured).
   const rows = (history.data ?? []).map((d) => ({
     date: d.date,
-    range: d.tempMin !== null && d.tempMax !== null ? [d.tempMin, d.tempMax] : null,
-    mean: d.tempMean,
+    range: d.tempMin !== null && d.tempMax !== null ? [fmt.temp(d.tempMin), fmt.temp(d.tempMax)] : null,
+    mean: d.tempMean === null ? null : fmt.temp(d.tempMean),
     rain: d.precipitationSum,
   }))
   const step = Math.max(1, Math.round(rows.length / (wide ? 8 : 4)))
@@ -209,12 +212,15 @@ function HistoricalTrends({ place, theme }: { place: Place; theme: Theme }) {
           {history.error?.message}
         </MessageBox>
       ) : !history.data ? (
-        <Skeleton height={300} />
+        <>
+          <TextSkeleton lines={1} />
+          <ChartSkeleton height={wide ? 240 : 200} />
+        </>
       ) : (
         <>
           <p className="m-0 tabular-nums">
             {placeShortLabel(place)}, {shortDate(rows[0]?.date ?? '')} to {shortDate(rows[rows.length - 1]?.date ?? '')}: average{' '}
-            {means.length ? `${(means.reduce((a, b) => a + b, 0) / means.length).toFixed(1)}°C` : 'n/a'}, total rain {totalRain.toFixed(0)} mm.
+            {means.length ? `${(means.reduce((a, b) => a + b, 0) / means.length).toFixed(1)}${fmt.tempUnit}` : 'n/a'}, total rain {totalRain.toFixed(0)} mm.
           </p>
           <div className="r-sunken p-1">
             <Chart
@@ -231,7 +237,7 @@ function HistoricalTrends({ place, theme }: { place: Place; theme: Theme }) {
               tooltip={(r) => (
                 <div className="r-tooltip tabular-nums">
                   <div>{shortDate(r.date)}</div>
-                  <div>Mean {r.mean === null ? 'n/a' : `${r.mean.toFixed(1)}°C`}</div>
+                  <div>Mean {r.mean === null ? 'n/a' : `${r.mean.toFixed(1)}${fmt.tempUnit}`}</div>
                   {r.range && (
                     <div>
                       Low {round(r.range[0])}°, high {round(r.range[1])}°

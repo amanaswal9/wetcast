@@ -29,11 +29,17 @@ export default defineConfig({
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
           { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        // Long-press (or right-click) the installed app's icon to jump straight to a page.
+        shortcuts: [
+          { name: 'Forecast', short_name: 'Forecast', url: '/#/forecast', icons: [{ src: '/icons/shortcut-forecast.png', sizes: '96x96', type: 'image/png' }] },
+          { name: 'Weather map', short_name: 'Map', url: '/#/map', icons: [{ src: '/icons/shortcut-map.png', sizes: '96x96', type: 'image/png' }] },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Fonts for alphabets the app doesn't show load on demand instead of being pre-cached.
-        globIgnores: ['**/*-cyrillic-*', '**/*-vietnamese-*', '**/*-greek-*'],
+        // The link-preview image is for other sites' crawlers, not the offline app.
+        globIgnores: ['**/*-cyrillic-*', '**/*-vietnamese-*', '**/*-greek-*', 'og-image.png'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
