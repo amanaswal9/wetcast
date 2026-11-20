@@ -1,25 +1,576 @@
 {
+  "kind": "ensemble",
+  "members": [
+    "lstm",
+    "gru",
+    "cnn_lstm",
+    "lightgbm",
+    "transformer"
+  ],
+  "method": "equal-weight mean of member predictions; rain amounts corrected to the expected amount (rain_amount.py)",
+  "member_selection": {
+    "rule": "lowest mean of validation MAE / persistence MAE over the three targets",
+    "candidates": [
+      {
+        "members": [
+          "lstm",
+          "gru",
+          "cnn_lstm"
+        ],
+        "validation_score": 0.7677,
+        "validation_mae": {
+          "temperature": 0.8703,
+          "humidity": 5.2916,
+          "precipitation": 0.1762
+        }
+      },
+      {
+        "members": [
+          "lstm",
+          "gru",
+          "cnn_lstm",
+          "lightgbm"
+        ],
+        "validation_score": 0.7566,
+        "validation_mae": {
+          "temperature": 0.8471,
+          "humidity": 5.1419,
+          "precipitation": 0.1793
+        }
+      },
+      {
+        "members": [
+          "lstm",
+          "gru",
+          "cnn_lstm",
+          "transformer"
+        ],
+        "validation_score": 0.755,
+        "validation_mae": {
+          "temperature": 0.8504,
+          "humidity": 5.1807,
+          "precipitation": 0.1757
+        }
+      },
+      {
+        "members": [
+          "lstm",
+          "gru",
+          "cnn_lstm",
+          "lightgbm",
+          "transformer"
+        ],
+        "validation_score": 0.7493,
+        "validation_mae": {
+          "temperature": 0.8368,
+          "humidity": 5.0897,
+          "precipitation": 0.1782
+        }
+      }
+    ]
+  },
+  "trained_at": "2026-11-20T12:46:39+00:00",
+  "pipeline_version": "1.0.0",
+  "framework": {
+    "tensorflow": "2.21.0",
+    "keras": "3.15.1"
+  },
+  "parameters": 367699,
+  "config": {
+    "lookback_hours": 48,
+    "target_mode": "residual24",
+    "loss": "huber",
+    "train_stride_hours": 4
+  },
+  "training": {
+    "epochs_run": null,
+    "best_epoch": null,
+    "best_val_loss": null,
+    "seconds": 2707.7,
+    "note": "no training of its own; averages the members"
+  },
+  "data": {
+    "source": "Open-Meteo Historical Forecast API (best_match), hourly",
+    "region": "India",
+    "region_id": "india",
+    "cities": [
+      {
+        "id": "delhi",
+        "name": "Delhi",
+        "state": "Delhi",
+        "role": "train",
+        "latitude": 28.6139,
+        "longitude": 77.209,
+        "elevation_m": 214.0
+      },
+      {
+        "id": "jaipur",
+        "name": "Jaipur",
+        "state": "Rajasthan",
+        "role": "train",
+        "latitude": 26.9124,
+        "longitude": 75.7873,
+        "elevation_m": 431.0
+      },
+      {
+        "id": "lucknow",
+        "name": "Lucknow",
+        "state": "Uttar Pradesh",
+        "role": "train",
+        "latitude": 26.8467,
+        "longitude": 80.9462,
+        "elevation_m": 117.0
+      },
+      {
+        "id": "chandigarh",
+        "name": "Chandigarh",
+        "state": "Chandigarh",
+        "role": "train",
+        "latitude": 30.7333,
+        "longitude": 76.7794,
+        "elevation_m": 343.0
+      },
+      {
+        "id": "agra",
+        "name": "Agra",
+        "state": "Uttar Pradesh",
+        "role": "train",
+        "latitude": 27.1767,
+        "longitude": 78.0081,
+        "elevation_m": 170.0
+      },
+      {
+        "id": "dehradun",
+        "name": "Dehradun",
+        "state": "Uttarakhand",
+        "role": "train",
+        "latitude": 30.3165,
+        "longitude": 78.0322,
+        "elevation_m": 652.0
+      },
+      {
+        "id": "kanpur",
+        "name": "Kanpur",
+        "state": "Uttar Pradesh",
+        "role": "train",
+        "latitude": 26.4499,
+        "longitude": 80.3319,
+        "elevation_m": 133.0
+      },
+      {
+        "id": "amritsar",
+        "name": "Amritsar",
+        "state": "Punjab",
+        "role": "train",
+        "latitude": 31.634,
+        "longitude": 74.8723,
+        "elevation_m": 234.0
+      },
+      {
+        "id": "bikaner",
+        "name": "Bikaner",
+        "state": "Rajasthan",
+        "role": "train",
+        "latitude": 28.0229,
+        "longitude": 73.3119,
+        "elevation_m": 227.0
+      },
+      {
+        "id": "varanasi",
+        "name": "Varanasi",
+        "state": "Uttar Pradesh",
+        "role": "train",
+        "latitude": 25.3176,
+        "longitude": 82.9739,
+        "elevation_m": 81.0
+      },
+      {
+        "id": "vijayawada",
+        "name": "Vijayawada",
+        "state": "Andhra Pradesh",
+        "role": "train",
+        "latitude": 16.5074,
+        "longitude": 80.6466,
+        "elevation_m": 28.0
+      },
+      {
+        "id": "itanagar",
+        "name": "Itanagar",
+        "state": "Arunachal Pradesh",
+        "role": "train",
+        "latitude": 27.0869,
+        "longitude": 93.6099,
+        "elevation_m": 317.0
+      },
+      {
+        "id": "guwahati",
+        "name": "Guwahati",
+        "state": "Assam",
+        "role": "train",
+        "latitude": 26.1844,
+        "longitude": 91.7458,
+        "elevation_m": 60.0
+      },
+      {
+        "id": "patna",
+        "name": "Patna",
+        "state": "Bihar",
+        "role": "train",
+        "latitude": 25.5941,
+        "longitude": 85.1356,
+        "elevation_m": 51.0
+      },
+      {
+        "id": "raipur",
+        "name": "Raipur",
+        "state": "Chhattisgarh",
+        "role": "train",
+        "latitude": 21.2333,
+        "longitude": 81.6333,
+        "elevation_m": 294.0
+      },
+      {
+        "id": "panaji",
+        "name": "Panaji",
+        "state": "Goa",
+        "role": "train",
+        "latitude": 15.4957,
+        "longitude": 73.8262,
+        "elevation_m": 12.0
+      },
+      {
+        "id": "ahmedabad",
+        "name": "Ahmedabad",
+        "state": "Gujarat",
+        "role": "train",
+        "latitude": 23.0258,
+        "longitude": 72.5873,
+        "elevation_m": 53.0
+      },
+      {
+        "id": "hisar",
+        "name": "Hisar",
+        "state": "Haryana",
+        "role": "train",
+        "latitude": 29.1539,
+        "longitude": 75.7229,
+        "elevation_m": 217.0
+      },
+      {
+        "id": "shimla",
+        "name": "Shimla",
+        "state": "Himachal Pradesh",
+        "role": "train",
+        "latitude": 31.1044,
+        "longitude": 77.1666,
+        "elevation_m": 2122.0
+      },
+      {
+        "id": "ranchi",
+        "name": "Ranchi",
+        "state": "Jharkhand",
+        "role": "train",
+        "latitude": 23.3432,
+        "longitude": 85.3094,
+        "elevation_m": 643.0
+      },
+      {
+        "id": "bengaluru",
+        "name": "Bengaluru",
+        "state": "Karnataka",
+        "role": "train",
+        "latitude": 12.9719,
+        "longitude": 77.5937,
+        "elevation_m": 918.0
+      },
+      {
+        "id": "thiruvananthapuram",
+        "name": "Thiruvananthapuram",
+        "state": "Kerala",
+        "role": "train",
+        "latitude": 8.4855,
+        "longitude": 76.9492,
+        "elevation_m": 12.0
+      },
+      {
+        "id": "bhopal",
+        "name": "Bhopal",
+        "state": "Madhya Pradesh",
+        "role": "train",
+        "latitude": 23.2547,
+        "longitude": 77.4029,
+        "elevation_m": 525.0
+      },
+      {
+        "id": "mumbai",
+        "name": "Mumbai",
+        "state": "Maharashtra",
+        "role": "train",
+        "latitude": 19.0728,
+        "longitude": 72.8826,
+        "elevation_m": 8.0
+      },
+      {
+        "id": "imphal",
+        "name": "Imphal",
+        "state": "Manipur",
+        "role": "train",
+        "latitude": 24.8081,
+        "longitude": 93.9442,
+        "elevation_m": 781.0
+      },
+      {
+        "id": "shillong",
+        "name": "Shillong",
+        "state": "Meghalaya",
+        "role": "train",
+        "latitude": 25.5689,
+        "longitude": 91.8831,
+        "elevation_m": 1495.0
+      },
+      {
+        "id": "aizawl",
+        "name": "Aizawl",
+        "state": "Mizoram",
+        "role": "train",
+        "latitude": 23.7289,
+        "longitude": 92.7179,
+        "elevation_m": 1082.0
+      },
+      {
+        "id": "kohima",
+        "name": "Kohima",
+        "state": "Nagaland",
+        "role": "train",
+        "latitude": 25.6747,
+        "longitude": 94.111,
+        "elevation_m": 1461.0
+      },
+      {
+        "id": "bhubaneswar",
+        "name": "Bhubaneswar",
+        "state": "Odisha",
+        "role": "train",
+        "latitude": 20.2724,
+        "longitude": 85.8338,
+        "elevation_m": 59.0
+      },
+      {
+        "id": "gangtok",
+        "name": "Gangtok",
+        "state": "Sikkim",
+        "role": "train",
+        "latitude": 27.3257,
+        "longitude": 88.6122,
+        "elevation_m": 1636.0
+      },
+      {
+        "id": "chennai",
+        "name": "Chennai",
+        "state": "Tamil Nadu",
+        "role": "train",
+        "latitude": 13.0878,
+        "longitude": 80.2785,
+        "elevation_m": 15.0
+      },
+      {
+        "id": "hyderabad",
+        "name": "Hyderabad",
+        "state": "Telangana",
+        "role": "train",
+        "latitude": 17.384,
+        "longitude": 78.4564,
+        "elevation_m": 515.0
+      },
+      {
+        "id": "agartala",
+        "name": "Agartala",
+        "state": "Tripura",
+        "role": "train",
+        "latitude": 23.8361,
+        "longitude": 91.2794,
+        "elevation_m": 13.0
+      },
+      {
+        "id": "kolkata",
+        "name": "Kolkata",
+        "state": "West Bengal",
+        "role": "train",
+        "latitude": 22.5626,
+        "longitude": 88.363,
+        "elevation_m": 11.0
+      },
+      {
+        "id": "port_blair",
+        "name": "Port Blair",
+        "state": "Andaman and Nicobar",
+        "role": "train",
+        "latitude": 11.6661,
+        "longitude": 92.7464,
+        "elevation_m": 38.0
+      },
+      {
+        "id": "daman",
+        "name": "Daman",
+        "state": "Dadra and Nagar Haveli and Daman and Diu",
+        "role": "train",
+        "latitude": 20.4143,
+        "longitude": 72.8324,
+        "elevation_m": 12.0
+      },
+      {
+        "id": "srinagar",
+        "name": "Srinagar",
+        "state": "Jammu and Kashmir",
+        "role": "train",
+        "latitude": 34.0857,
+        "longitude": 74.8055,
+        "elevation_m": 1592.0
+      },
+      {
+        "id": "leh",
+        "name": "Leh",
+        "state": "Ladakh",
+        "role": "train",
+        "latitude": 34.165,
+        "longitude": 77.584,
+        "elevation_m": 3507.0
+      },
+      {
+        "id": "kavaratti",
+        "name": "Kavaratti",
+        "state": "Lakshadweep",
+        "role": "train",
+        "latitude": 10.5669,
+        "longitude": 72.642,
+        "elevation_m": 14.0
+      },
+      {
+        "id": "puducherry",
+        "name": "Puducherry",
+        "state": "Puducherry",
+        "role": "train",
+        "latitude": 11.9338,
+        "longitude": 79.8298,
+        "elevation_m": 8.0
+      },
+      {
+        "id": "aurangabad",
+        "name": "Aurangabad",
+        "state": "Maharashtra",
+        "role": "holdout",
+        "latitude": 19.8776,
+        "longitude": 75.3423,
+        "elevation_m": 587.0
+      },
+      {
+        "id": "nagpur",
+        "name": "Nagpur",
+        "state": "Maharashtra",
+        "role": "holdout",
+        "latitude": 21.1463,
+        "longitude": 79.0849,
+        "elevation_m": 315.0
+      },
+      {
+        "id": "coimbatore",
+        "name": "Coimbatore",
+        "state": "Tamil Nadu",
+        "role": "holdout",
+        "latitude": 11.0055,
+        "longitude": 76.9661,
+        "elevation_m": 422.0
+      },
+      {
+        "id": "visakhapatnam",
+        "name": "Visakhapatnam",
+        "state": "Andhra Pradesh",
+        "role": "holdout",
+        "latitude": 17.6801,
+        "longitude": 83.2016,
+        "elevation_m": 21.0
+      },
+      {
+        "id": "jodhpur",
+        "name": "Jodhpur",
+        "state": "Rajasthan",
+        "role": "holdout",
+        "latitude": 26.2684,
+        "longitude": 73.0059,
+        "elevation_m": 240.0
+      },
+      {
+        "id": "indore",
+        "name": "Indore",
+        "state": "Madhya Pradesh",
+        "role": "holdout",
+        "latitude": 22.7179,
+        "longitude": 75.8333,
+        "elevation_m": 554.0
+      },
+      {
+        "id": "gorakhpur",
+        "name": "Gorakhpur",
+        "state": "Uttar Pradesh",
+        "role": "holdout",
+        "latitude": 26.7663,
+        "longitude": 83.3689,
+        "elevation_m": 82.0
+      },
+      {
+        "id": "mangaluru",
+        "name": "Mangaluru",
+        "state": "Karnataka",
+        "role": "holdout",
+        "latitude": 12.9172,
+        "longitude": 74.856,
+        "elevation_m": 22.0
+      }
+    ],
+    "splits": {
+      "train": [
+        "2023-01-01T00:00",
+        "2024-12-31T23:00"
+      ],
+      "val": [
+        "2025-01-01T00:00",
+        "2025-12-31T23:00"
+      ],
+      "test": [
+        "2026-01-01T00:00",
+        "2026-10-31T23:00"
+      ]
+    },
+    "lookback_hours": 48,
+    "horizon_hours": 24,
+    "n_features": 42,
+    "targets": [
+      "temperature",
+      "humidity",
+      "precipitation"
+    ]
+  },
   "model": "ensemble",
   "display_name": "Ensemble",
   "test": {
     "temperature": {
-      "mae": 0.9036873878711255,
-      "rmse": 1.282481552069584,
-      "r2": 0.9725173822553171,
+      "mae": 0.9036873878969767,
+      "rmse": 1.2824815521238673,
+      "r2": 0.9725173822529907,
       "n": 6936000,
       "unit": "\u00b0C"
     },
     "humidity": {
-      "mae": 5.4662180056428875,
-      "rmse": 7.654179800988805,
-      "r2": 0.8818398626191838,
+      "mae": 5.46621800569727,
+      "rmse": 7.6541798012860065,
+      "r2": 0.8818398626100078,
       "n": 6936000,
       "unit": "%"
     },
     "precipitation": {
-      "mae": 0.17708662412341494,
-      "rmse": 0.7552372404335207,
-      "r2": 0.11439201802426502,
+      "mae": 0.20994491041674346,
+      "rmse": 0.7269830630874118,
+      "r2": 0.1794154897470045,
       "n": 6936000,
       "unit": "mm"
     }
@@ -49,23 +600,23 @@
   },
   "validation": {
     "temperature": {
-      "mae": 0.8368288202771034,
-      "rmse": 1.1860338569996294,
-      "r2": 0.9775680222595352,
+      "mae": 0.8368288202030062,
+      "rmse": 1.18603385694885,
+      "r2": 0.977568022261456,
       "n": 8341440,
       "unit": "\u00b0C"
     },
     "humidity": {
-      "mae": 5.089656354879688,
-      "rmse": 7.1460279164962754,
-      "r2": 0.9015815739007172,
+      "mae": 5.089656355115379,
+      "rmse": 7.146027916831021,
+      "r2": 0.9015815738914966,
       "n": 8341440,
       "unit": "%"
     },
     "precipitation": {
-      "mae": 0.1782421347274379,
-      "rmse": 0.8017005273593214,
-      "r2": 0.09107467202773512,
+      "mae": 0.22709197822119573,
+      "rmse": 0.7832520236760999,
+      "r2": 0.13242522098626708,
       "n": 8341440,
       "unit": "mm"
     }
@@ -127,30 +678,30 @@
         9.094
       ],
       "precipitation": [
-        0.0915,
-        0.1003,
-        0.1048,
-        0.106,
-        0.106,
-        0.1102,
-        0.1112,
-        0.111,
-        0.1122,
-        0.1147,
-        0.1154,
-        0.1142,
-        0.1136,
-        0.116,
-        0.1149,
-        0.1156,
-        0.1135,
-        0.1164,
-        0.1156,
-        0.1137,
-        0.114,
-        0.1162,
-        0.1148,
-        0.1137
+        0.1788,
+        0.2071,
+        0.2169,
+        0.2214,
+        0.224,
+        0.2309,
+        0.2334,
+        0.2325,
+        0.2339,
+        0.2375,
+        0.237,
+        0.2365,
+        0.236,
+        0.2415,
+        0.2396,
+        0.24,
+        0.2377,
+        0.2408,
+        0.2411,
+        0.2387,
+        0.2369,
+        0.2424,
+        0.2382,
+        0.2377
       ]
     },
     "halfwidth_by_month": {
@@ -264,7 +815,7 @@
           1.211,
           1.3198,
           1.4073,
-          1.4766,
+          1.4765,
           1.5111,
           1.5617,
           1.6054,
@@ -294,7 +845,7 @@
           1.3662,
           1.4059,
           1.4326,
-          1.4468,
+          1.4467,
           1.4612,
           1.4849,
           1.4945,
@@ -675,7 +1226,7 @@
           7.0393,
           7.09,
           7.1201,
-          7.1825
+          7.1826
         ],
         [
           4.0494,
@@ -784,330 +1335,329 @@
       ],
       "precipitation": [
         [
-          0.0103,
-          0.0121,
-          0.0113,
-          0.0129,
-          0.0126,
-          0.0129,
-          0.0135,
-          0.0148,
-          0.0162,
-          0.0161,
-          0.0155,
-          0.0162,
-          0.0164,
-          0.0193,
-          0.0186,
-          0.0193,
-          0.0182,
-          0.019,
-          0.0186,
-          0.0168,
-          0.0178,
-          0.0177,
-          0.0173,
-          0.0174
-        ],
-        [
-          0.0121,
-          0.0138,
-          0.0135,
-          0.0145,
-          0.0145,
-          0.0153,
-          0.0156,
-          0.0169,
-          0.0182,
-          0.019,
-          0.0184,
-          0.0185,
-          0.0183,
-          0.0214,
-          0.0205,
-          0.0208,
-          0.0199,
-          0.0209,
-          0.0203,
-          0.0182,
-          0.0199,
-          0.0199,
-          0.0192,
-          0.0188
-        ],
-        [
-          0.0138,
-          0.0166,
-          0.017,
-          0.0176,
-          0.0171,
-          0.0183,
-          0.019,
-          0.0197,
-          0.0213,
-          0.0224,
-          0.0225,
-          0.0223,
-          0.0214,
-          0.0242,
-          0.0235,
-          0.0242,
-          0.0228,
-          0.0236,
-          0.0237,
-          0.0216,
-          0.0226,
-          0.0232,
-          0.0223,
-          0.0225
-        ],
-        [
-          0.0248,
-          0.0308,
-          0.0333,
-          0.0339,
-          0.0334,
-          0.0368,
-          0.0378,
-          0.0378,
-          0.0392,
-          0.0419,
-          0.0433,
-          0.0425,
-          0.0417,
-          0.0452,
-          0.0446,
-          0.0458,
-          0.0433,
-          0.0448,
-          0.0455,
-          0.0424,
-          0.0426,
-          0.0445,
-          0.0432,
-          0.043
-        ],
-        [
-          0.0948,
-          0.1065,
-          0.1163,
-          0.1179,
-          0.1186,
-          0.1246,
-          0.1281,
-          0.1276,
-          0.1288,
-          0.1329,
-          0.135,
-          0.1342,
-          0.1329,
-          0.1343,
-          0.1336,
-          0.1354,
-          0.1314,
-          0.135,
-          0.1341,
-          0.132,
-          0.1328,
-          0.134,
-          0.1328,
-          0.132
-        ],
-        [
-          0.1909,
-          0.2092,
-          0.2184,
-          0.2224,
-          0.2234,
-          0.2318,
-          0.2339,
-          0.2329,
-          0.2316,
-          0.2369,
-          0.2395,
-          0.2373,
-          0.2358,
-          0.2383,
-          0.2365,
-          0.237,
-          0.2336,
-          0.2387,
-          0.2372,
-          0.2365,
-          0.2356,
-          0.2394,
-          0.2374,
-          0.2354
-        ],
-        [
-          0.2618,
-          0.2768,
-          0.2853,
-          0.2862,
-          0.2863,
-          0.2973,
-          0.2976,
-          0.2965,
-          0.301,
-          0.3055,
-          0.3065,
-          0.3022,
-          0.3015,
-          0.3035,
-          0.2992,
-          0.298,
-          0.2954,
-          0.3048,
-          0.3013,
-          0.2978,
-          0.2981,
-          0.3024,
-          0.299,
-          0.2937
-        ],
-        [
-          0.2352,
-          0.249,
-          0.257,
-          0.2585,
-          0.2575,
-          0.2634,
-          0.2633,
-          0.2626,
-          0.2621,
-          0.2658,
-          0.2671,
-          0.2638,
-          0.2633,
-          0.2668,
-          0.2642,
-          0.265,
-          0.2638,
-          0.2687,
-          0.2679,
-          0.2662,
-          0.2657,
-          0.2734,
-          0.2713,
-          0.27
-        ],
-        [
-          0.1502,
-          0.1669,
-          0.175,
-          0.1727,
-          0.1726,
-          0.1775,
-          0.1787,
-          0.1762,
-          0.1776,
-          0.1822,
-          0.1832,
-          0.1804,
-          0.1795,
-          0.1802,
-          0.1802,
-          0.182,
-          0.1796,
-          0.1821,
-          0.1818,
-          0.1798,
-          0.1789,
-          0.1823,
-          0.1799,
-          0.1771
-        ],
-        [
-          0.0859,
-          0.0983,
-          0.1069,
-          0.1099,
-          0.1094,
-          0.1154,
-          0.117,
-          0.1151,
-          0.1157,
-          0.1191,
-          0.1203,
-          0.1186,
-          0.1183,
-          0.1188,
-          0.1188,
-          0.1202,
-          0.1168,
-          0.1191,
-          0.1176,
-          0.116,
-          0.115,
-          0.1182,
-          0.1161,
-          0.1149
-        ],
-        [
-          0.0103,
-          0.0145,
-          0.0153,
-          0.0167,
-          0.0179,
-          0.019,
-          0.0198,
-          0.0207,
-          0.0218,
-          0.022,
-          0.0218,
-          0.0217,
-          0.0218,
-          0.0244,
-          0.024,
-          0.0243,
-          0.0227,
-          0.024,
-          0.024,
-          0.0233,
-          0.0242,
-          0.0248,
-          0.024,
-          0.025
-        ],
-        [
-          0.0075,
-          0.0089,
-          0.0081,
-          0.0089,
-          0.0091,
-          0.0096,
-          0.01,
-          0.0111,
-          0.0124,
-          0.0125,
-          0.0117,
-          0.0124,
-          0.0126,
-          0.0156,
-          0.0153,
-          0.0155,
-          0.0143,
-          0.016,
-          0.0153,
-          0.0137,
-          0.0149,
-          0.015,
+          0.0039,
+          0.0073,
+          0.0093,
+          0.0119,
           0.0147,
-          0.0149
+          0.015,
+          0.0153,
+          0.0163,
+          0.018,
+          0.0168,
+          0.0161,
+          0.0169,
+          0.0173,
+          0.0201,
+          0.0193,
+          0.02,
+          0.0195,
+          0.0205,
+          0.0206,
+          0.0197,
+          0.0202,
+          0.0204,
+          0.0195,
+          0.02
+        ],
+        [
+          0.0142,
+          0.0229,
+          0.0258,
+          0.0336,
+          0.0375,
+          0.0374,
+          0.0395,
+          0.041,
+          0.0421,
+          0.0425,
+          0.0423,
+          0.0437,
+          0.0436,
+          0.0459,
+          0.0456,
+          0.0461,
+          0.0472,
+          0.0467,
+          0.0474,
+          0.0481,
+          0.049,
+          0.0498,
+          0.0496,
+          0.0492
+        ],
+        [
+          0.0191,
+          0.0303,
+          0.0343,
+          0.0407,
+          0.045,
+          0.0453,
+          0.0472,
+          0.0483,
+          0.0489,
+          0.0502,
+          0.0508,
+          0.0517,
+          0.0505,
+          0.0523,
+          0.0519,
+          0.0521,
+          0.0531,
+          0.0526,
+          0.0537,
+          0.0544,
+          0.0548,
+          0.0556,
+          0.0548,
+          0.0548
+        ],
+        [
+          0.0357,
+          0.0557,
+          0.062,
+          0.0687,
+          0.0712,
+          0.0745,
+          0.076,
+          0.0761,
+          0.0785,
+          0.083,
+          0.0834,
+          0.0844,
+          0.0846,
+          0.0908,
+          0.0882,
+          0.09,
+          0.0868,
+          0.0892,
+          0.0898,
+          0.0873,
+          0.0877,
+          0.0924,
+          0.0901,
+          0.0912
+        ],
+        [
+          0.1901,
+          0.2399,
+          0.2572,
+          0.2629,
+          0.2707,
+          0.2835,
+          0.2889,
+          0.2884,
+          0.2901,
+          0.295,
+          0.2921,
+          0.2898,
+          0.2878,
+          0.2974,
+          0.2954,
+          0.2968,
+          0.2933,
+          0.2978,
+          0.2966,
+          0.2905,
+          0.2868,
+          0.2908,
+          0.2864,
+          0.284
+        ],
+        [
+          0.3854,
+          0.4337,
+          0.4517,
+          0.4514,
+          0.4538,
+          0.4729,
+          0.4736,
+          0.4704,
+          0.4708,
+          0.4821,
+          0.4784,
+          0.4726,
+          0.4696,
+          0.4764,
+          0.4718,
+          0.4734,
+          0.4672,
+          0.4717,
+          0.4717,
+          0.4676,
+          0.4609,
+          0.471,
+          0.4644,
+          0.4621
+        ],
+        [
+          0.5544,
+          0.5998,
+          0.6176,
+          0.6177,
+          0.6114,
+          0.6261,
+          0.6316,
+          0.627,
+          0.6294,
+          0.6373,
+          0.6349,
+          0.6303,
+          0.6331,
+          0.6411,
+          0.6409,
+          0.6388,
+          0.6309,
+          0.6377,
+          0.6337,
+          0.6296,
+          0.6238,
+          0.6325,
+          0.6239,
+          0.6213
+        ],
+        [
+          0.4877,
+          0.5294,
+          0.5398,
+          0.5401,
+          0.5367,
+          0.544,
+          0.5476,
+          0.5421,
+          0.5438,
+          0.5525,
+          0.555,
+          0.5548,
+          0.5505,
+          0.5583,
+          0.5557,
+          0.5505,
+          0.546,
+          0.551,
+          0.5472,
+          0.5412,
+          0.5391,
+          0.5562,
+          0.545,
+          0.5429
+        ],
+        [
+          0.2916,
+          0.3493,
+          0.3629,
+          0.3676,
+          0.3715,
+          0.3841,
+          0.3891,
+          0.3873,
+          0.3897,
+          0.3939,
+          0.3946,
+          0.3945,
+          0.3925,
+          0.4014,
+          0.3971,
+          0.3989,
+          0.3948,
+          0.3988,
+          0.4076,
+          0.4038,
+          0.4006,
+          0.4088,
+          0.3978,
+          0.3969
+        ],
+        [
+          0.1537,
+          0.1959,
+          0.2171,
+          0.2301,
+          0.2378,
+          0.2465,
+          0.2496,
+          0.2483,
+          0.2489,
+          0.2492,
+          0.2493,
+          0.2518,
+          0.2538,
+          0.2602,
+          0.2568,
+          0.2603,
+          0.2616,
+          0.2678,
+          0.2704,
+          0.2667,
+          0.264,
+          0.2716,
+          0.2665,
+          0.2667
+        ],
+        [
+          0.0072,
+          0.0157,
+          0.0192,
+          0.0233,
+          0.0269,
+          0.0302,
+          0.0309,
+          0.0321,
+          0.0333,
+          0.0326,
+          0.0324,
+          0.0328,
+          0.0338,
+          0.0357,
+          0.0351,
+          0.0353,
+          0.0344,
+          0.0362,
+          0.0355,
+          0.0361,
+          0.0361,
+          0.039,
+          0.0391,
+          0.041
+        ],
+        [
+          0.0022,
+          0.0052,
+          0.0064,
+          0.0087,
+          0.0104,
+          0.0114,
+          0.0121,
+          0.0128,
+          0.0139,
+          0.0143,
+          0.0145,
+          0.0152,
+          0.0153,
+          0.0178,
+          0.0176,
+          0.018,
+          0.0177,
+          0.019,
+          0.0195,
+          0.0196,
+          0.0201,
+          0.0204,
+          0.0216,
+          0.022
         ]
       ]
     },
     "test_coverage": {
       "temperature": 0.7876,
       "humidity": 0.7784,
-      "precipitation": 0.8067
+      "precipitation": 0.8225
     },
     "test_coverage_unseen": {
       "temperature": 0.8127,
       "humidity": 0.7981,
-      "precipitation": 0.8774
-    },
-    "recalibrated_at": "2026-11-20T17:46:14+00:00"
+      "precipitation": 0.891
+    }
   },
   "inference": {
     "single_ms_median": 667.0308000029763,
@@ -1122,23 +1672,23 @@
   },
   "test_unseen": {
     "temperature": {
-      "mae": 0.8442301120632884,
-      "rmse": 1.1935061662240092,
-      "r2": 0.9472792254163765,
+      "mae": 0.8442301121371291,
+      "rmse": 1.1935061657701702,
+      "r2": 0.9472792254564715,
       "n": 1387200,
       "unit": "\u00b0C"
     },
     "humidity": {
-      "mae": 5.142940174417636,
-      "rmse": 7.185932928920477,
-      "r2": 0.9156939822631068,
+      "mae": 5.1429401734533196,
+      "rmse": 7.185932928964292,
+      "r2": 0.9156939822620787,
       "n": 1387200,
       "unit": "%"
     },
     "precipitation": {
-      "mae": 0.14371922753665392,
-      "rmse": 0.6065792364692313,
-      "r2": 0.15540133319004712,
+      "mae": 0.1685201072697687,
+      "rmse": 0.5808112882984078,
+      "r2": 0.22563554752844261,
       "n": 1387200,
       "unit": "mm"
     }
@@ -3334,555 +3884,31 @@
       }
     }
   },
-  "kind": "ensemble",
-  "members": [
-    "lstm",
-    "gru",
-    "cnn_lstm",
-    "lightgbm",
-    "transformer"
-  ],
-  "method": "equal-weight mean of member predictions",
-  "member_selection": {
-    "rule": "lowest mean of validation MAE / persistence MAE over the three targets",
-    "candidates": [
-      {
-        "members": [
-          "lstm",
-          "gru",
-          "cnn_lstm"
-        ],
-        "validation_score": 0.7677,
-        "validation_mae": {
-          "temperature": 0.8703,
-          "humidity": 5.2916,
-          "precipitation": 0.1762
-        }
-      },
-      {
-        "members": [
-          "lstm",
-          "gru",
-          "cnn_lstm",
-          "lightgbm"
-        ],
-        "validation_score": 0.7566,
-        "validation_mae": {
-          "temperature": 0.8471,
-          "humidity": 5.1419,
-          "precipitation": 0.1793
-        }
-      },
-      {
-        "members": [
-          "lstm",
-          "gru",
-          "cnn_lstm",
-          "transformer"
-        ],
-        "validation_score": 0.755,
-        "validation_mae": {
-          "temperature": 0.8504,
-          "humidity": 5.1807,
-          "precipitation": 0.1757
-        }
-      },
-      {
-        "members": [
-          "lstm",
-          "gru",
-          "cnn_lstm",
-          "lightgbm",
-          "transformer"
-        ],
-        "validation_score": 0.7493,
-        "validation_mae": {
-          "temperature": 0.8368,
-          "humidity": 5.0897,
-          "precipitation": 0.1782
-        }
-      }
-    ]
-  },
-  "trained_at": "2026-11-20T12:46:39+00:00",
-  "pipeline_version": "1.0.0",
-  "framework": {
-    "tensorflow": "2.21.0",
-    "keras": "3.15.1"
-  },
-  "parameters": 367699,
-  "config": {
-    "lookback_hours": 48,
-    "target_mode": "residual24",
-    "loss": "huber",
-    "train_stride_hours": 4
-  },
-  "training": {
-    "epochs_run": null,
-    "best_epoch": null,
-    "best_val_loss": null,
-    "seconds": 2707.7,
-    "note": "no training of its own; averages the members"
-  },
-  "data": {
-    "source": "Open-Meteo Historical Forecast API (best_match), hourly",
-    "region": "India",
-    "region_id": "india",
-    "cities": [
-      {
-        "id": "delhi",
-        "name": "Delhi",
-        "state": "Delhi",
-        "role": "train",
-        "latitude": 28.6139,
-        "longitude": 77.209,
-        "elevation_m": 214.0
-      },
-      {
-        "id": "jaipur",
-        "name": "Jaipur",
-        "state": "Rajasthan",
-        "role": "train",
-        "latitude": 26.9124,
-        "longitude": 75.7873,
-        "elevation_m": 431.0
-      },
-      {
-        "id": "lucknow",
-        "name": "Lucknow",
-        "state": "Uttar Pradesh",
-        "role": "train",
-        "latitude": 26.8467,
-        "longitude": 80.9462,
-        "elevation_m": 117.0
-      },
-      {
-        "id": "chandigarh",
-        "name": "Chandigarh",
-        "state": "Chandigarh",
-        "role": "train",
-        "latitude": 30.7333,
-        "longitude": 76.7794,
-        "elevation_m": 343.0
-      },
-      {
-        "id": "agra",
-        "name": "Agra",
-        "state": "Uttar Pradesh",
-        "role": "train",
-        "latitude": 27.1767,
-        "longitude": 78.0081,
-        "elevation_m": 170.0
-      },
-      {
-        "id": "dehradun",
-        "name": "Dehradun",
-        "state": "Uttarakhand",
-        "role": "train",
-        "latitude": 30.3165,
-        "longitude": 78.0322,
-        "elevation_m": 652.0
-      },
-      {
-        "id": "kanpur",
-        "name": "Kanpur",
-        "state": "Uttar Pradesh",
-        "role": "train",
-        "latitude": 26.4499,
-        "longitude": 80.3319,
-        "elevation_m": 133.0
-      },
-      {
-        "id": "amritsar",
-        "name": "Amritsar",
-        "state": "Punjab",
-        "role": "train",
-        "latitude": 31.634,
-        "longitude": 74.8723,
-        "elevation_m": 234.0
-      },
-      {
-        "id": "bikaner",
-        "name": "Bikaner",
-        "state": "Rajasthan",
-        "role": "train",
-        "latitude": 28.0229,
-        "longitude": 73.3119,
-        "elevation_m": 227.0
-      },
-      {
-        "id": "varanasi",
-        "name": "Varanasi",
-        "state": "Uttar Pradesh",
-        "role": "train",
-        "latitude": 25.3176,
-        "longitude": 82.9739,
-        "elevation_m": 81.0
-      },
-      {
-        "id": "vijayawada",
-        "name": "Vijayawada",
-        "state": "Andhra Pradesh",
-        "role": "train",
-        "latitude": 16.5074,
-        "longitude": 80.6466,
-        "elevation_m": 28.0
-      },
-      {
-        "id": "itanagar",
-        "name": "Itanagar",
-        "state": "Arunachal Pradesh",
-        "role": "train",
-        "latitude": 27.0869,
-        "longitude": 93.6099,
-        "elevation_m": 317.0
-      },
-      {
-        "id": "guwahati",
-        "name": "Guwahati",
-        "state": "Assam",
-        "role": "train",
-        "latitude": 26.1844,
-        "longitude": 91.7458,
-        "elevation_m": 60.0
-      },
-      {
-        "id": "patna",
-        "name": "Patna",
-        "state": "Bihar",
-        "role": "train",
-        "latitude": 25.5941,
-        "longitude": 85.1356,
-        "elevation_m": 51.0
-      },
-      {
-        "id": "raipur",
-        "name": "Raipur",
-        "state": "Chhattisgarh",
-        "role": "train",
-        "latitude": 21.2333,
-        "longitude": 81.6333,
-        "elevation_m": 294.0
-      },
-      {
-        "id": "panaji",
-        "name": "Panaji",
-        "state": "Goa",
-        "role": "train",
-        "latitude": 15.4957,
-        "longitude": 73.8262,
-        "elevation_m": 12.0
-      },
-      {
-        "id": "ahmedabad",
-        "name": "Ahmedabad",
-        "state": "Gujarat",
-        "role": "train",
-        "latitude": 23.0258,
-        "longitude": 72.5873,
-        "elevation_m": 53.0
-      },
-      {
-        "id": "hisar",
-        "name": "Hisar",
-        "state": "Haryana",
-        "role": "train",
-        "latitude": 29.1539,
-        "longitude": 75.7229,
-        "elevation_m": 217.0
-      },
-      {
-        "id": "shimla",
-        "name": "Shimla",
-        "state": "Himachal Pradesh",
-        "role": "train",
-        "latitude": 31.1044,
-        "longitude": 77.1666,
-        "elevation_m": 2122.0
-      },
-      {
-        "id": "ranchi",
-        "name": "Ranchi",
-        "state": "Jharkhand",
-        "role": "train",
-        "latitude": 23.3432,
-        "longitude": 85.3094,
-        "elevation_m": 643.0
-      },
-      {
-        "id": "bengaluru",
-        "name": "Bengaluru",
-        "state": "Karnataka",
-        "role": "train",
-        "latitude": 12.9719,
-        "longitude": 77.5937,
-        "elevation_m": 918.0
-      },
-      {
-        "id": "thiruvananthapuram",
-        "name": "Thiruvananthapuram",
-        "state": "Kerala",
-        "role": "train",
-        "latitude": 8.4855,
-        "longitude": 76.9492,
-        "elevation_m": 12.0
-      },
-      {
-        "id": "bhopal",
-        "name": "Bhopal",
-        "state": "Madhya Pradesh",
-        "role": "train",
-        "latitude": 23.2547,
-        "longitude": 77.4029,
-        "elevation_m": 525.0
-      },
-      {
-        "id": "mumbai",
-        "name": "Mumbai",
-        "state": "Maharashtra",
-        "role": "train",
-        "latitude": 19.0728,
-        "longitude": 72.8826,
-        "elevation_m": 8.0
-      },
-      {
-        "id": "imphal",
-        "name": "Imphal",
-        "state": "Manipur",
-        "role": "train",
-        "latitude": 24.8081,
-        "longitude": 93.9442,
-        "elevation_m": 781.0
-      },
-      {
-        "id": "shillong",
-        "name": "Shillong",
-        "state": "Meghalaya",
-        "role": "train",
-        "latitude": 25.5689,
-        "longitude": 91.8831,
-        "elevation_m": 1495.0
-      },
-      {
-        "id": "aizawl",
-        "name": "Aizawl",
-        "state": "Mizoram",
-        "role": "train",
-        "latitude": 23.7289,
-        "longitude": 92.7179,
-        "elevation_m": 1082.0
-      },
-      {
-        "id": "kohima",
-        "name": "Kohima",
-        "state": "Nagaland",
-        "role": "train",
-        "latitude": 25.6747,
-        "longitude": 94.111,
-        "elevation_m": 1461.0
-      },
-      {
-        "id": "bhubaneswar",
-        "name": "Bhubaneswar",
-        "state": "Odisha",
-        "role": "train",
-        "latitude": 20.2724,
-        "longitude": 85.8338,
-        "elevation_m": 59.0
-      },
-      {
-        "id": "gangtok",
-        "name": "Gangtok",
-        "state": "Sikkim",
-        "role": "train",
-        "latitude": 27.3257,
-        "longitude": 88.6122,
-        "elevation_m": 1636.0
-      },
-      {
-        "id": "chennai",
-        "name": "Chennai",
-        "state": "Tamil Nadu",
-        "role": "train",
-        "latitude": 13.0878,
-        "longitude": 80.2785,
-        "elevation_m": 15.0
-      },
-      {
-        "id": "hyderabad",
-        "name": "Hyderabad",
-        "state": "Telangana",
-        "role": "train",
-        "latitude": 17.384,
-        "longitude": 78.4564,
-        "elevation_m": 515.0
-      },
-      {
-        "id": "agartala",
-        "name": "Agartala",
-        "state": "Tripura",
-        "role": "train",
-        "latitude": 23.8361,
-        "longitude": 91.2794,
-        "elevation_m": 13.0
-      },
-      {
-        "id": "kolkata",
-        "name": "Kolkata",
-        "state": "West Bengal",
-        "role": "train",
-        "latitude": 22.5626,
-        "longitude": 88.363,
-        "elevation_m": 11.0
-      },
-      {
-        "id": "port_blair",
-        "name": "Port Blair",
-        "state": "Andaman and Nicobar",
-        "role": "train",
-        "latitude": 11.6661,
-        "longitude": 92.7464,
-        "elevation_m": 38.0
-      },
-      {
-        "id": "daman",
-        "name": "Daman",
-        "state": "Dadra and Nagar Haveli and Daman and Diu",
-        "role": "train",
-        "latitude": 20.4143,
-        "longitude": 72.8324,
-        "elevation_m": 12.0
-      },
-      {
-        "id": "srinagar",
-        "name": "Srinagar",
-        "state": "Jammu and Kashmir",
-        "role": "train",
-        "latitude": 34.0857,
-        "longitude": 74.8055,
-        "elevation_m": 1592.0
-      },
-      {
-        "id": "leh",
-        "name": "Leh",
-        "state": "Ladakh",
-        "role": "train",
-        "latitude": 34.165,
-        "longitude": 77.584,
-        "elevation_m": 3507.0
-      },
-      {
-        "id": "kavaratti",
-        "name": "Kavaratti",
-        "state": "Lakshadweep",
-        "role": "train",
-        "latitude": 10.5669,
-        "longitude": 72.642,
-        "elevation_m": 14.0
-      },
-      {
-        "id": "puducherry",
-        "name": "Puducherry",
-        "state": "Puducherry",
-        "role": "train",
-        "latitude": 11.9338,
-        "longitude": 79.8298,
-        "elevation_m": 8.0
-      },
-      {
-        "id": "aurangabad",
-        "name": "Aurangabad",
-        "state": "Maharashtra",
-        "role": "holdout",
-        "latitude": 19.8776,
-        "longitude": 75.3423,
-        "elevation_m": 587.0
-      },
-      {
-        "id": "nagpur",
-        "name": "Nagpur",
-        "state": "Maharashtra",
-        "role": "holdout",
-        "latitude": 21.1463,
-        "longitude": 79.0849,
-        "elevation_m": 315.0
-      },
-      {
-        "id": "coimbatore",
-        "name": "Coimbatore",
-        "state": "Tamil Nadu",
-        "role": "holdout",
-        "latitude": 11.0055,
-        "longitude": 76.9661,
-        "elevation_m": 422.0
-      },
-      {
-        "id": "visakhapatnam",
-        "name": "Visakhapatnam",
-        "state": "Andhra Pradesh",
-        "role": "holdout",
-        "latitude": 17.6801,
-        "longitude": 83.2016,
-        "elevation_m": 21.0
-      },
-      {
-        "id": "jodhpur",
-        "name": "Jodhpur",
-        "state": "Rajasthan",
-        "role": "holdout",
-        "latitude": 26.2684,
-        "longitude": 73.0059,
-        "elevation_m": 240.0
-      },
-      {
-        "id": "indore",
-        "name": "Indore",
-        "state": "Madhya Pradesh",
-        "role": "holdout",
-        "latitude": 22.7179,
-        "longitude": 75.8333,
-        "elevation_m": 554.0
-      },
-      {
-        "id": "gorakhpur",
-        "name": "Gorakhpur",
-        "state": "Uttar Pradesh",
-        "role": "holdout",
-        "latitude": 26.7663,
-        "longitude": 83.3689,
-        "elevation_m": 82.0
-      },
-      {
-        "id": "mangaluru",
-        "name": "Mangaluru",
-        "state": "Karnataka",
-        "role": "holdout",
-        "latitude": 12.9172,
-        "longitude": 74.856,
-        "elevation_m": 22.0
-      }
+  "rain_amount": {
+    "method": "LightGBM Tweedie correction of the members' rain (expected amount), fitted on the validation year",
+    "trees": 170,
+    "members": [
+      "lstm",
+      "gru",
+      "cnn_lstm",
+      "lightgbm",
+      "transformer"
     ],
-    "splits": {
-      "train": [
-        "2023-01-01T00:00",
-        "2024-12-31T23:00"
-      ],
-      "val": [
-        "2025-01-01T00:00",
-        "2025-12-31T23:00"
-      ],
-      "test": [
-        "2026-01-01T00:00",
-        "2026-10-31T23:00"
-      ]
+    "recent_hours": 24,
+    "fitted_at": "2026-11-20T20:07:45+00:00",
+    "test_before": {
+      "mae": 0.17708662412341494,
+      "rmse": 0.7552372404335207,
+      "r2": 0.11439201802426502,
+      "n": 6936000,
+      "unit": "mm"
     },
-    "lookback_hours": 48,
-    "horizon_hours": 24,
-    "n_features": 42,
-    "targets": [
-      "temperature",
-      "humidity",
-      "precipitation"
-    ]
+    "test_unseen_before": {
+      "mae": 0.14371922753665392,
+      "rmse": 0.6065792364692313,
+      "r2": 0.15540133319004712,
+      "n": 1387200,
+      "unit": "mm"
+    }
   }
 }

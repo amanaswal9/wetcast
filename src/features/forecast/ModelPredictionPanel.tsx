@@ -170,10 +170,15 @@ function PredictionChart({
       </ul>
       {likeliest && likeliest.chance !== null && (
         <p className="m-0 mt-2" data-rain-chance>
-          <b>Chance of rain (Ensemble):</b> highest {Math.round(likeliest.chance * 100)}% in the hour to {fmt.time(likeliest.time)}.{' '}
+          <b>Chance of rain (Ensemble):</b>{' '}
+          {Math.round(likeliest.chance * 100) < 1
+            ? 'under 1% in every hour.'
+            : `highest ${Math.round(likeliest.chance * 100)}% in the hour to ${fmt.time(likeliest.time)}.`}{' '}
           <span className="text-[var(--text-muted)]">
-            That is the chance of at least 0.1 mm falling in that one hour. The amounts on the chart run low, so judge rain by this chance rather than
-            by the line.
+            That is the chance of at least 0.1 mm falling in that one hour.{' '}
+            {model === 'ensemble'
+              ? 'The line is the expected amount: an average over how the hour could turn out, so a small amount can still come with a fair chance of a shower.'
+              : 'This model’s amounts run low; the Ensemble’s are corrected to the expected amount.'}
           </span>
         </p>
       )}

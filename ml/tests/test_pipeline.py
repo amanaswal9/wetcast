@@ -217,6 +217,27 @@ def test_rain_chance_is_calibrated_and_never_decreasing():
     assert chance(leads, np.array([0.0, 0.0])).shape == (2,)
 
 
+def test_rain_amount_design_and_saved_correction():
+    import json
+
+    from weatherai_ml.config import ARTIFACTS_DIR
+    from weatherai_ml.rain_amount import RECENT_HOURS, RainAmount, design
+
+    leads = [{"x": [0.0, 1.0], "p": [0.1, 0.9]} for _ in range(24)]
+    X = design(np.zeros((3, 24)), np.zeros((3, 24, 5)), np.array([1, 6, 12]), np.array([0, 6, 23]), np.zeros((3, RECENT_HOURS)), leads)
+    assert X.shape == (3 * 24, 1 + 5 + 1 + 1 + 4 + 3) and np.isfinite(X).all()
+
+    folder = ARTIFACTS_DIR / "india" / "ensemble"
+    if not (folder / "rain_amount.txt").exists():
+        pytest.skip("no saved rain correction")
+    model = RainAmount(folder, json.loads((folder / "rain_chance.json").read_text())["leads"])
+    dry = {m: np.zeros(24) for m in model.members}
+    wet = {m: np.full(24, 2.0) for m in model.members}
+    t = pd.Timestamp("2026-07-15T06:00", tz="UTC")
+    a, b = model.predict(dry, t, np.zeros(RECENT_HOURS)), model.predict(wet, t, np.full(RECENT_HOURS, 3.0))
+    assert a.shape == (24,) and (a >= 0).all() and b.mean() > 5 * a.mean()  # a wet monsoon morning beats a dry one
+
+
 def test_metrics_summary():
     y = np.array([1.0, 2.0, 3.0, 4.0])
     assert summary(y, y)["mae"] == 0
