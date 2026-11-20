@@ -26,7 +26,17 @@ class Settings(BaseSettings):
     hosted_api_key: SecretStr | None = Field(
         default=None, validation_alias=AliasChoices("WEATHERAI_HOSTED_API_KEY", "HOSTED_API_KEY")
     )
+    # Who answers on the Ask page. "auto": Hosted when an Hosted key is set, otherwise the free
+    # local model when Ollama is running with it installed, otherwise the assistant is off.
+    assistant_provider: Literal["auto", "hosted", "local", "off"] = "auto"
     assistant_model: str = "hosted-opus-5-5"
+    ollama_url: str = "http://127.0.0.1:11434"
+    # The Instruct edition answers directly; the plain "qwen3:4b" tag is the thinking edition, which
+    # reasons at length before every answer (far too slow on a small graphics card).
+    ollama_model: str = "qwen3:4b-instruct"
+    # Context window in tokens. 4096 holds the instructions, tools and a couple of lookups, and keeps
+    # the model small enough to sit (mostly) on a 4 GB graphics card; 8192 spilled onto the CPU.
+    ollama_context: int = 4096
     assistant_effort: Literal["low", "medium", "high", "xhigh", "max"] = "low"
     assistant_daily_limit_per_client: int = 20
     assistant_daily_limit_total: int = 200

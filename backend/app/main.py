@@ -307,27 +307,32 @@ def alerts(
     return body
 
 
-# ---- assistant (Hosted) ----------------------------------------------------------------
+# ---- assistant (Hosted or a free local model) ------------------------------------------
 
 
 @app.get("/api/assistant/status", response_model=AssistantStatus)
 def assistant_status() -> AssistantStatus:
+    which = weather_assistant.provider()
     return AssistantStatus(
-        configured=weather_assistant.is_configured(),
-        model=settings.assistant_model,
+        configured=which is not None,
+        provider=which,
+        model=weather_assistant.model_name(which),
         daily_limit_per_visitor=settings.assistant_daily_limit_per_client,
     )
 
 
-@app.post("/api/assistant", response_model=AssistantOut, responses={429: {}, 502: {}, 503: {}})
+@app.post("/api/assistant", response_model=AssistantOut, responses={429: {}, 502: {}, 503: {}, 504: {}})
 def ask_assistant(body: AssistantIn, session: SessionDep, registry: RegistryDep, client: ClientDep):
-    """Answer a weather question with Hosted, using only data looked up through read-only tools."""
+    """Answer a weather question (Hosted or the local model), using only data looked up through read-only tools."""
     if body.messages[-1].role != "user":
         raise HTTPException(status_code=422, detail="The last message must be the question.")
     if not weather_assistant.is_configured():
         return JSONResponse(
             status_code=503,
-            content={"code": "assistant_not_configured", "detail": "The assistant isn't set up on this server (no Hosted API key)."},
+            content={
+                "code": "assistant_not_configured",
+                "detail": "The assistant isn't set up on this server (no Hosted API key, and no local model running).",
+            },
         )
     try:
         weather_assistant.LIMITS.take(client, settings.assistant_daily_limit_per_client, settings.assistant_daily_limit_total)
@@ -337,6 +342,10 @@ def ask_assistant(body: AssistantIn, session: SessionDep, registry: RegistryDep,
         reply = weather_assistant.answer(
             [m.model_dump() for m in body.messages], body.place.model_dump(), session, registry
         )
+    except weather_assistant.AssistantUnavailable as exc:
+        weather_assistant.LIMITS.give_back(client)
+        log.warning("assistant unavailable: %s", exc)
+        return JSONResponse(status_code=exc.status, content={"code": exc.code, "detail": str(exc)})
     except hosted_errors.RateLimitError as exc:
         weather_assistant.LIMITS.give_back(client)
         log.warning("assistant rate limited: %s", exc)

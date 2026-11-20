@@ -11,7 +11,7 @@ Only the title card, captions and pointer are drawn on top. Re-record it with `d
 - **Dashboard**: current conditions, readings, air quality, sun, hourly chart and table, read-aloud summary.
 - **Official warnings** (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
   (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
-- **Ask** (optional, off until you add an Hosted API key): a weather assistant that answers questions using
+- **Ask** (optional: a free local model through Ollama, or Hosted with an Hosted API key): a weather assistant that answers questions using
   only data it looks up (Open-Meteo, WeatherAI's models, official warnings), with its sources under each answer.
 - **Map**: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
   points, with the cities WeatherAI's own models cover marked.
@@ -349,12 +349,19 @@ arrows pointing where the wind blows. Values between points are not interpolated
 
 ## Weather assistant (optional)
 
-The **Ask** page answers weather questions with Hosted (Hosted). It is **off by default** and costs nothing
-until you switch it on; then every answer is a paid API call.
+The **Ask** page answers weather questions with one of two models, chosen by `WEATHERAI_ASSISTANT_PROVIDER`
+(default `auto`: Hosted if an Hosted key is set, otherwise the local model if Ollama is running with it
+installed, otherwise off):
+
+- **Free, local:** a small open model (default `qwen3:4b-instruct`, about 2.5 GB) run by [Ollama](https://ollama.com/) on
+  the same computer as the API (`backend/app/assistant_local.py`). Nothing is billed and questions don't leave
+  the machine (only the tools' own lookups do). It is slower and makes more mistakes than Hosted, and the Ask
+  page says so.
+- **Hosted (Hosted), paid:** every answer is an API call.
 
 How it answers (`backend/app/assistant.py`, data tools in `backend/app/assistant_data.py`):
 
-- Hosted gets five read-only tools: `find_place`, `get_weather` (Open-Meteo: now, next 48 hours, 7 days),
+- Both models get the same five read-only tools: `find_place`, `get_weather` (Open-Meteo: now, next 48 hours, 7 days),
   `get_weatherai_prediction` (WeatherAI's ensemble with 80% ranges, covered cities only), `get_official_alerts`
   (NDMA Sachet / US NWS) and `get_model_accuracy` (test results and the live track record). Tool schemas are
   strict, and the tools only read data.
@@ -366,7 +373,15 @@ How it answers (`backend/app/assistant.py`, data tools in `backend/app/assistant
 - The page sends the last 10 turns with each question; the server keeps no chat history. Questions go to
   WeatherAI's server and to Hosted.
 
-Switch it on:
+Switch on the free local model:
+
+1. Install Ollama: `winget install Ollama.Ollama` (it starts with Windows and listens on `127.0.0.1:11434`).
+2. Download the model once: `ollama pull qwen3:4b-instruct`.
+3. That's all: `GET /api/assistant/status` reports `configured: true, provider: "local"` within 30 seconds.
+   A small model is told firmly to look data up first; if it gives numbers without any lookup, it is sent back
+   once to do so.
+
+Or switch on Hosted:
 
 1. Create an Hosted account, add credits, and set a monthly spend limit in the Hosted Console.
 2. Put the key in `backend/.env` (never in the frontend): `WEATHERAI_HOSTED_API_KEY=...`
@@ -377,6 +392,10 @@ Settings (all optional, in `backend/.env`):
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
+| `WEATHERAI_ASSISTANT_PROVIDER` | `auto` | `auto`, `local`, `hosted` or `off` |
+| `WEATHERAI_OLLAMA_URL` | `http://127.0.0.1:11434` | Where Ollama listens |
+| `WEATHERAI_OLLAMA_MODEL` | `qwen3:4b-instruct` | Any installed Ollama model that supports tool calling (use an instruct, non-thinking edition) |
+| `WEATHERAI_OLLAMA_CONTEXT` | `4096` | Context window in tokens; larger needs more graphics memory |
 | `WEATHERAI_ASSISTANT_MODEL` | `hosted-opus-5-5` | `hosted-haiku-5-5` is about 40× cheaper per answer; `hosted-sonnet-5-5` is in between |
 | `WEATHERAI_ASSISTANT_EFFORT` | `low` | Hosted's effort level (`low` to `max`); higher costs more |
 | `WEATHERAI_ASSISTANT_DAILY_LIMIT_PER_CLIENT` | `20` | Questions per visitor (anonymous browser id) per UTC day |
@@ -387,7 +406,8 @@ Rough cost per answer (about 6,000 tokens in and 800 out, before caching), at Ho
 worst case at 200 answers a day. The counters live in memory and reset when the API restarts, so the Console
 spend limit is the backstop.
 
-Tests (`backend/tests/test_assistant.py`) replace Hosted with a scripted fake client and never call the API.
+Tests (`backend/tests/test_assistant.py`, `test_assistant_local.py`) replace Hosted and Ollama with scripted
+fakes and never call either.
 
 ## Official warnings
 

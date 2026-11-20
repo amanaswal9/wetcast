@@ -86,8 +86,8 @@ def weather(latitude: float, longitude: float) -> dict:
         "latitude": round(latitude, 3),
         "longitude": round(longitude, 3),
         "current": "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
-        "hourly": "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m",
-        "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max",
+        "hourly": "temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m",
+        "daily": "weather_code,temperature_2m_max,temperature_2m_min,relative_humidity_2m_min,relative_humidity_2m_max,precipitation_probability_max,precipitation_sum,wind_speed_10m_max",
         "timezone": "auto",
         "forecast_days": 7,
     }
@@ -105,6 +105,7 @@ def weather(latitude: float, longitude: float) -> dict:
             {
                 "time": t,
                 "temperature_c": _r(hourly["temperature_2m"][i]),
+                "humidity_pct": hourly["relative_humidity_2m"][i],
                 "chance_of_rain_pct": hourly["precipitation_probability"][i],
                 "rain_mm": _r(hourly["precipitation"][i]),
                 "sky": WEATHER_CODES.get(hourly["weather_code"][i], "unknown"),
@@ -118,6 +119,8 @@ def weather(latitude: float, longitude: float) -> dict:
             "sky": WEATHER_CODES.get(daily["weather_code"][i], "unknown"),
             "high_c": _r(daily["temperature_2m_max"][i]),
             "low_c": _r(daily["temperature_2m_min"][i]),
+            "humidity_low_pct": (daily.get("relative_humidity_2m_min") or [None] * (i + 1))[i],
+            "humidity_high_pct": (daily.get("relative_humidity_2m_max") or [None] * (i + 1))[i],
             "chance_of_rain_pct": daily["precipitation_probability_max"][i],
             "rain_mm": _r(daily["precipitation_sum"][i]),
             "max_wind_kmh": _r(daily["wind_speed_10m_max"][i], 0),
@@ -222,16 +225,35 @@ def model_accuracy(session: Session, registry: ModelRegistry) -> dict:
         models[registry.display_name(name)] = {t: round(m["test"][t]["mae"], 3) for t in TARGETS}
         baseline = {t: round(m["persistence_baseline"][t]["mae"], 3) for t in TARGETS}
     record = track_record_summary(session, registry, days=30, city=None)
-    totals = [t for t in record["totals"] if t["target"] == "temperature"]
+    # Sorted best first, with display names, and the winners stated outright: a small model should
+    # not have to work out which number is lowest.
+    totals = sorted((t for t in record["totals"] if t["target"] == "temperature"), key=lambda t: t["mae"])
+    live = [
+        {"model": registry.display_name(t["model"]), "mae_c": t["mae"], "persistence_mae_c": t["persistence_mae"], "hours_scored": t["n"]}
+        for t in totals
+    ]
+    best_on_test = {
+        t: {"model": name, "mean_absolute_error": scores[t], "units": TARGET_UNITS[t]}
+        for t in TARGETS
+        for name, scores in [min(models.items(), key=lambda kv: kv[1][t])]
+    }
+    days_live = 0.0
+    if record["first_valid_at"] and record["last_valid_at"]:
+        days_live = (datetime.fromisoformat(record["last_valid_at"]) - datetime.fromisoformat(record["first_valid_at"])).total_seconds() / 86400
     return {
         "source": "WeatherAI's evaluation (test period Jan-Oct 2026, never used in training) and its live track record",
+        "most_accurate_on_test_period": best_on_test,
         "test_mean_absolute_error": {"units": {t: TARGET_UNITS[t] for t in TARGETS}, **models},
         "persistence_baseline": baseline,
         "persistence_means": "predicting the same hour as the day before; a useful model should beat it",
-        "live_track_record_last_30_days_temperature": [
-            {"model": t["model"], "mae_c": t["mae"], "persistence_mae_c": t["persistence_mae"], "hours_scored": t["n"]} for t in totals
-        ]
-        or "Nothing scored yet.",
+        "live_track_record_last_30_days_temperature_best_first": live or "Nothing scored yet.",
+        "most_accurate_live": live[0]["model"] if live else None,
+        "live_record_days": round(days_live, 1),
+        "live_record_note": (
+            "Under two weeks of live scores: too early to judge; say so and rely on the test period."
+            if days_live < 14
+            else "Several weeks of live scores."
+        ),
     }
 
 

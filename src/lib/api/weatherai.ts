@@ -303,6 +303,8 @@ export async function getAlerts(latitude: number, longitude: number, country: st
 
 export interface AssistantStatus {
   configured: boolean
+  /** "hosted" (Hosted, paid), "local" (a free model on the server's computer) or null when off. */
+  provider: 'hosted' | 'local' | null
   model: string
   daily_limit_per_visitor: number
 }
