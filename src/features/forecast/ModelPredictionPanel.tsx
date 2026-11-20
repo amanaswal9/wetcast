@@ -118,6 +118,15 @@ function PredictionChart({
           ]}
           tooltip={(row) => <PredictionTooltip row={row} target={target} modelName={modelName} />}
           label={`${modelName} ${TARGET_LABELS[target].toLowerCase()} prediction`}
+          summary={
+            rows.length > 0
+              ? `${modelName} predicts ${TARGET_LABELS[target].toLowerCase()} from ${format(Math.min(...rows.map((r) => r.model)), target, fmt)} to ${format(
+                  Math.max(...rows.map((r) => r.model)),
+                  target,
+                  fmt,
+                )} over the next ${rows.length} hours.`
+              : undefined
+          }
         />
       </div>
       <ul className="m-0 mt-2 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[0.92em]">

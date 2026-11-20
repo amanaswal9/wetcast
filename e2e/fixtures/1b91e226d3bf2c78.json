@@ -1,0 +1,6 @@
+{
+ "url": "http://127.0.0.1:4173/api/alerts?latitude=26.9196&longitude=75.7878&country=IN",
+ "status": 200,
+ "content_type": "application/json",
+ "body": "{\"coverage\":\"india\",\"checked_at\":\"2026-11-20T07:05:52.211270+00:00\",\"alerts\":[],\"stale\":false,\"source\":{\"name\":\"NDMA Sachet (IMD and state authorities)\",\"url\":\"https://sachet.ndma.gov.in/\"},\"note\":\"Official alerts for India from NDMA's Sachet portal, which carries warnings from the India Meteorological Department and state disaster management authorities. Only alerts whose mapped area includes this point are shown. The feed is not a complete archive, so no alert here does not rule out a local warning: check IMD (mausam.imd.gov.in) or your state authority when the weather looks dangerous.\",\"feed_checked_at\":\"2026-11-20T06:58:52.215588+00:00\"}"
+}

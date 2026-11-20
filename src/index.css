@@ -213,10 +213,11 @@ body {
     cursor: default;
   }
 
+  /* 22 x 20 with 4 px between buttons: each target's 24 px circle stays clear of the next (WCAG 2.5.8). */
   .r-title-btn {
     min-height: 0;
-    width: 20px;
-    height: 18px;
+    width: 22px;
+    height: 20px;
     padding: 0;
   }
 

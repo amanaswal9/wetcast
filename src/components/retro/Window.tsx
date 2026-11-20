@@ -22,7 +22,7 @@ export function Window({ title, icon, controls, inactive, headingLevel = 2, clas
           </span>
         )}
         <Heading className="m-0 min-w-0 flex-1 truncate text-[inherit] font-bold">{title}</Heading>
-        {controls && <div className="flex shrink-0 gap-0.5">{controls}</div>}
+        {controls && <div className="flex shrink-0 gap-1">{controls}</div>}
       </div>
       {children}
     </section>

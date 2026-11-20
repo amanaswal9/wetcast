@@ -1,0 +1,6 @@
+{
+ "url": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=28.64&longitude=77.22&current=european_aqi%2Cpm2_5%2Cpm10&timezone=auto",
+ "status": 200,
+ "content_type": "application/json; charset=utf-8",
+ "body": "{\"latitude\":28.599998,\"longitude\":77.20001,\"generationtime_ms\":0.27763843536376953,\"utc_offset_seconds\":19800,\"timezone\":\"Asia/Kolkata\",\"timezone_abbreviation\":\"GMT+5:30\",\"elevation\":216.0,\"current_units\":{\"time\":\"iso8601\",\"interval\":\"seconds\",\"european_aqi\":\"EAQI\",\"pm2_5\":\"μg/m³\",\"pm10\":\"μg/m³\"},\"current\":{\"time\":\"2026-11-20T12:30\",\"interval\":3600,\"european_aqi\":111,\"pm2_5\":81.3,\"pm10\":82.4}}"
+}

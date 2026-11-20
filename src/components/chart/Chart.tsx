@@ -50,6 +50,8 @@ export interface ChartProps<R> {
   tooltip?: (row: R, index: number) => ReactNode
   /** Label used for keyboard users when the chart has a tooltip. */
   label?: string
+  /** A sentence or two saying what the chart shows (e.g. lowest and highest), read out by screen readers. */
+  summary?: string
   yWidth?: number
   top?: number
   /** Gap between bars as a share of the slot (bars only). */
@@ -70,6 +72,7 @@ export function Chart<R>({
   markers = [],
   tooltip,
   label,
+  summary,
   yWidth = 44,
   top = 14,
   barGap = 0.2,
@@ -212,7 +215,13 @@ export function Chart<R>({
       tabIndex={tooltip ? 0 : undefined}
       role={tooltip ? 'group' : undefined}
       aria-label={tooltip ? `${label ?? 'Chart'}. Use the left and right arrow keys to read values.` : undefined}
+      aria-describedby={summary ? `${id}-summary` : undefined}
     >
+      {summary && (
+        <p id={`${id}-summary`} className="sr-only">
+          {summary}
+        </p>
+      )}
       {width > 0 && (
         <svg width={width} height={height} className="r-chart-svg block" aria-hidden="true">
           <defs>

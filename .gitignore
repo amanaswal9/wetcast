@@ -38,3 +38,6 @@ backend/.secrets.local
 # Training data is re-downloadable; model artifacts are committed except bulky predictions
 ml/data/
 ml/artifacts/*/test_predictions.npz
+
+# Browser tests: images from a failed screenshot comparison
+e2e/screenshots/**/*.actual.png

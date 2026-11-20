@@ -1,0 +1,6 @@
+{
+ "url": "http://127.0.0.1:4173/api/assistant/status",
+ "status": 200,
+ "content_type": "application/json",
+ "body": "{\"configured\":false,\"model\":\"hosted-opus-5-5\",\"daily_limit_per_visitor\":20}"
+}
