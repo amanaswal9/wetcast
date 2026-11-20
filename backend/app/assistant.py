@@ -1,9 +1,12 @@
-"""The WeatherAI assistant: answers weather questions with Hosted, using only
-data it looks up through the read-only tools in assistant_data.py.
+"""The WeatherAI assistant: answers weather questions using only data it looks up
+through the read-only tools in assistant_data.py.
 
-Off until an Hosted API key is set (WEATHERAI_HOSTED_API_KEY or
-HOSTED_API_KEY in backend/.env). Every answer costs money, so there are
-per-visitor and daily limits, and each answer may use at most MAX_ROUNDS
+Two providers (WEATHERAI_ASSISTANT_PROVIDER, default "auto"):
+- Hosted, when an Hosted API key is set (WEATHERAI_HOSTED_API_KEY or HOSTED_API_KEY).
+  Every answer costs money.
+- A free local model run by Ollama on this computer (assistant_local.py), used when there is no
+  key and Ollama is running with the model installed.
+Either way there are per-visitor and daily limits, and each answer may use at most MAX_ROUNDS
 model calls.
 """
 
@@ -134,8 +137,27 @@ def api_key() -> str | None:
     return key.get_secret_value() if key else os.environ.get("HOSTED_API_KEY") or None
 
 
+def provider() -> str | None:
+    """"hosted", "local", or None when the assistant is off."""
+    choice = get_settings().assistant_provider
+    if choice == "off":
+        return None
+    if choice in ("auto", "hosted") and api_key():
+        return "hosted"
+    if choice in ("auto", "local"):
+        from . import assistant_local
+
+        return "local" if assistant_local.is_available() else None
+    return None
+
+
 def is_configured() -> bool:
-    return bool(api_key())
+    return provider() is not None
+
+
+def model_name(which: str | None) -> str:
+    settings = get_settings()
+    return settings.ollama_model if which == "local" else settings.assistant_model
 
 
 class DailyLimits:
@@ -208,6 +230,10 @@ def context_message(place: dict) -> str:
 def answer(conversation: list[dict], place: dict, session: Session, registry: ModelRegistry, client=None) -> Reply:
     """Answer the last user message. `conversation` is the visible chat so far
     (plain text turns, oldest first, ending with the user's question)."""
+    if client is None and provider() == "local":
+        from . import assistant_local
+
+        return assistant_local.answer(conversation, place, session, registry)
     settings = get_settings()
     model = settings.assistant_model
     client = client or make_client()

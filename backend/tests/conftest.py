@@ -9,6 +9,8 @@ TEST_DB = Path(__file__).parent / "test.db"
 os.environ["WEATHERAI_DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
 os.environ["WEATHERAI_TRACK_RECORD_INTERVAL_HOURS"] = "0"  # no background jobs in tests
 os.environ["WEATHERAI_ALERTS_POLL_MINUTES"] = "0"
+os.environ["WEATHERAI_OLLAMA_URL"] = "http://127.0.0.1:9"  # tests never reach a real local model
+os.environ.pop("HOSTED_API_KEY", None)  # nor the real Hosted API
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 

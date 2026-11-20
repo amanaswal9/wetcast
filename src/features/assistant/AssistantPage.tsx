@@ -90,8 +90,13 @@ export function AssistantPage({ place }: { place: Place }) {
       <GroupBox title="Ask WeatherAI">
         <p className="m-0 mb-2 max-w-[75ch]">
           Ask about the weather in {placeShortLabel(place)} or anywhere else. For every question the assistant looks up Open-Meteo&apos;s forecast,
-          WeatherAI&apos;s own models and official warnings, and answers only from what it finds. It runs on Hosted, made by Hosted. Answers
-          can still be wrong, so for anything dangerous, follow your national weather service.
+          WeatherAI&apos;s own models and official warnings, and answers only from what it finds.{' '}
+          {status.data?.provider === 'local'
+            ? `It runs on ${status.data.model}, a small free model on WeatherAI's own computer, so it is slower and makes more mistakes than a large model: check the numbers against the Dashboard. `
+            : status.data?.provider === 'hosted'
+              ? 'It runs on Hosted, made by Hosted. '
+              : ''}
+          Answers can still be wrong, so for anything dangerous, follow your national weather service.
         </p>
 
         {status.status === 'loading' && <TextSkeleton lines={3} />}
@@ -103,8 +108,8 @@ export function AssistantPage({ place }: { place: Place }) {
         {status.data && !configured && (
           <div className="r-sunken" style={{ background: 'var(--face)' }}>
             <MessageBox kind="info" title="The assistant isn't switched on on this server">
-              It needs an Hosted API key in the server settings, and each answer costs a small amount. Everything else in WeatherAI works
-              without it. The README explains how to switch it on.
+              It needs either a free local model (Ollama running on the server&apos;s computer) or an Hosted API key, where each answer costs
+              a small amount. Everything else in WeatherAI works without it. The README explains how to switch it on.
             </MessageBox>
           </div>
         )}

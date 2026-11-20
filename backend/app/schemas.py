@@ -104,5 +104,7 @@ class AssistantOut(BaseModel):
 
 class AssistantStatus(BaseModel):
     configured: bool
+    # "hosted" (Hosted, paid), "local" (free model on this computer) or None when off.
+    provider: str | None = None
     model: str
     daily_limit_per_visitor: int
