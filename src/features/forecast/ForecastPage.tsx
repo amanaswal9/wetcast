@@ -31,7 +31,7 @@ function DayButton({ day, index, weekMin, weekMax }: { day: DayDetail; index: nu
   }, high ${day.tempMax === null ? 'unknown' : round(day.tempMax)}, low ${day.tempMin === null ? 'unknown' : round(day.tempMin)}`
 
   return (
-    <RadixTabs.Trigger value={day.date} className="r-day w-[96px] shrink-0 snap-start md:w-auto" aria-label={label}>
+    <RadixTabs.Trigger value={day.date} className="r-day shrink-0 snap-start md:w-auto" aria-label={label}>
       <span className="r-day-name self-start">{dayName(day.date, index, 'short')}</span>
       <span className="text-[0.92em]">{shortDate(day.date)}</span>
       {day.weatherCode !== null && <PixelWeatherIcon code={day.weatherCode} size={32} className="my-1" />}
@@ -158,7 +158,7 @@ export function ForecastPage({ place, theme, refreshToken, onSelectPlace }: Fore
       )}
       <RadixTabs.Root value={activeDate} onValueChange={setSelected} className="flex min-w-0 flex-col gap-3">
         <GroupBox title={`Next 7 days in ${placeShortLabel(place)}`}>
-          <RadixTabs.List aria-label="Choose a day" className="flex snap-x gap-1 overflow-x-auto pb-1 md:grid md:grid-cols-7 md:overflow-visible">
+          <RadixTabs.List aria-label="Choose a day" className="r-day-strip flex snap-x gap-1 overflow-x-auto pb-1 md:grid md:grid-cols-7 md:overflow-visible">
             {days.map((day, i) => (
               <DayButton key={day.date} day={day} index={i} weekMin={weekMin} weekMax={weekMax} />
             ))}

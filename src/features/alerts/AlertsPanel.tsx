@@ -17,20 +17,32 @@ function clock(iso: string | null | undefined): string {
   return iso ? new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : 'never'
 }
 
+const fieldStyle = { whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' } as const
+
 /**
- * A short status in the same sunken style as the status bar. It keeps two lines'
- * height on phones (one on wider screens) whether it is still checking or done, so
- * the weather below doesn't jump when the answer arrives.
+ * A short status in the same sunken style as the status bar. On phones it is one line
+ * (`short`) that opens to the full text, so it doesn't push the weather down; wider
+ * screens show the full text. Either way it keeps the same height while checking and
+ * when done, so the weather below doesn't jump when the answer arrives.
  */
-function StatusLine({ children }: { children: ReactNode }) {
+function StatusLine({ short, children }: { short?: string; children: ReactNode }) {
+  if (!short) {
+    return (
+      <p className="r-status-field m-0 min-h-[1.6em] text-[0.92em]" style={fieldStyle} role="status">
+        {children}
+      </p>
+    )
+  }
   return (
-    <p
-      className="r-status-field m-0 min-h-[2.9em] text-[0.92em] sm:min-h-[1.6em]"
-      style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' }}
-      role="status"
-    >
-      {children}
-    </p>
+    <div role="status" className="text-[0.92em]">
+      <details className="r-status-field r-chip sm:hidden" style={fieldStyle}>
+        <summary>{short}</summary>
+        <p className="m-0 mt-1">{children}</p>
+      </details>
+      <p className="r-status-field m-0 hidden min-h-[1.6em] sm:block" style={fieldStyle}>
+        {children}
+      </p>
+    </div>
   )
 }
 
@@ -91,18 +103,21 @@ function Body({ result }: { result: AlertsResult }) {
     )
   }
   if (result.coverage === 'none') {
-    return <StatusLine>Official warnings aren't available for this country in WeatherAI yet. Check your national weather service.</StatusLine>
+    return <StatusLine short="Official warnings: not available here">Official warnings aren't available for this country in WeatherAI yet. Check your national weather service.</StatusLine>
   }
   if (result.stale) {
     return (
-      <StatusLine>
+      <StatusLine short="Official warnings: couldn't check recently">
         Official warnings: couldn't check {source?.name ?? 'the official feed'} recently (last checked {clock(result.feed_checked_at)}).{' '}
         {result.error ?? ''} Check your national or state weather service.
       </StatusLine>
     )
   }
   return (
-    <StatusLine>
+    <StatusLine short={
+        // The "not a complete record" caveat stays visible even when the line is closed.
+        result.coverage === 'india' ? 'No warnings found: not a complete record' : `No official warnings, checked ${clock(result.feed_checked_at)}`
+      }>
       No official warnings here from {result.coverage === 'india' ? 'NDMA Sachet (IMD)' : source?.name}, checked {clock(result.feed_checked_at)}.
       {result.coverage === 'india' && ' Not a complete record: check IMD if the weather looks dangerous.'}
     </StatusLine>
@@ -113,7 +128,7 @@ export function AlertsPanel({ place }: { place: Place }) {
   const key = `alerts:${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}:${place.countryCode ?? ''}`
   const result = useResource(key, ({ signal }) => getAlerts(place.latitude, place.longitude, place.countryCode, signal), REFRESH_MS)
   if (!result.data) {
-    if (result.status === 'error') return <StatusLine>Official warnings: unavailable right now (WeatherAI's server isn't reachable).</StatusLine>
+    if (result.status === 'error') return <StatusLine short="Official warnings: unavailable right now">Official warnings: unavailable right now (WeatherAI's server isn't reachable).</StatusLine>
     return <StatusLine>Official warnings: checking…</StatusLine>
   }
   return (
