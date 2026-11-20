@@ -46,15 +46,31 @@ def nearest_city(latitude: float, longitude: float, max_km: float = 30.0) -> Cit
     return best if haversine_km(latitude, longitude, best.latitude, best.longitude) <= max_km else None
 
 
+class Ranges:
+    """A model's 80% error-range half-widths: per calendar month when the metrics have them
+    (see train.interval_block), otherwise one set for the whole year (older artifacts)."""
+
+    def __init__(self, interval: dict):
+        self.flat = np.array([interval["halfwidth_by_horizon"][t] for t in TARGETS], dtype=float).T  # (horizon, targets)
+        monthly = interval.get("halfwidth_by_month")
+        # (12, horizon, targets), or None
+        self.monthly = np.stack([np.asarray(monthly[t], dtype=float) for t in TARGETS], axis=-1) if monthly else None
+
+    def at(self, issued) -> np.ndarray:
+        """(horizon, targets) half-widths for a forecast issued at `issued` (its UTC month)."""
+        if self.monthly is None:
+            return self.flat
+        ts = pd.Timestamp(issued)
+        return self.monthly[(ts.tz_convert("UTC") if ts.tzinfo else ts).month - 1]
+
+
 class Predictor:
     def __init__(self, model_dir: Path):
         self.model_dir = model_dir
         self.name = model_dir.name
         self.preprocessor = Preprocessor.load(model_dir / "preprocessor.json")
         self.metrics = json.loads((model_dir / "metrics.json").read_text())
-        self.halfwidth = np.array(
-            [self.metrics["interval"]["halfwidth_by_horizon"][t] for t in TARGETS], dtype=float
-        ).T  # (horizon, n_targets)
+        self.ranges = Ranges(self.metrics["interval"])
         self._model = None
 
     @property
@@ -104,12 +120,8 @@ class Predictor:
         x = self.input_window(features)
         scaled = np.asarray(self.model(x, training=False))[0]
         values = self.preprocessor.inverse_targets(scaled, self.yesterday(features))
-        lower = values - self.halfwidth
-        upper = values + self.halfwidth
-        p, h = TARGETS.index("precipitation"), TARGETS.index("humidity")
-        lower[:, p] = np.clip(lower[:, p], 0, None)
-        lower[:, h], upper[:, h] = np.clip(lower[:, h], 0, 100), np.clip(upper[:, h], 0, 100)
         issued = self.usable(features).index[-1]
+        lower, upper = apply_ranges(values, self.ranges.at(issued))
         times = [issued + pd.Timedelta(hours=i) for i in range(1, self.preprocessor.horizon + 1)]
         return Prediction(issued_at=issued, times=times, values=values, lower=lower, upper=upper)
 
@@ -132,8 +144,8 @@ class GBMPredictor:
         self.name = model_dir.name
         self.forecaster = GBMForecaster(model_dir)
         self.metrics = json.loads((model_dir / "metrics.json").read_text())
-        self.halfwidth = np.array([self.metrics["interval"]["halfwidth_by_horizon"][t] for t in TARGETS], dtype=float).T
-        self.preprocessor = InputSpec(lookback=self.forecaster.lookback, horizon=len(self.halfwidth))
+        self.ranges = Ranges(self.metrics["interval"])
+        self.preprocessor = InputSpec(lookback=self.forecaster.lookback, horizon=len(self.ranges.flat))
 
     def predict(self, features: pd.DataFrame) -> Prediction:
         from .config import FEATURE_ORDER
@@ -157,7 +169,7 @@ class GBMPredictor:
         issued = window.index[-1]
         X = build_matrix(F, np.array([issued.hour]), np.array([len(F) - 1]), prev)
         values = self.forecaster.predict_matrix(X, prev)[0]
-        lower, upper = apply_ranges(values, self.halfwidth)
+        lower, upper = apply_ranges(values, self.ranges.at(issued))
         times = [issued + pd.Timedelta(hours=i) for i in range(1, horizon + 1)]
         return Prediction(issued_at=issued, times=times, values=values, lower=lower, upper=upper)
 
@@ -179,7 +191,7 @@ class EnsemblePredictor:
         self.name = model_dir.name
         self.members = members
         self.metrics = json.loads((model_dir / "metrics.json").read_text())
-        self.halfwidth = np.array([self.metrics["interval"]["halfwidth_by_horizon"][t] for t in TARGETS], dtype=float).T
+        self.ranges = Ranges(self.metrics["interval"])
         # The longest member lookback decides how much history the API must fetch.
         self.preprocessor = max((m.preprocessor for m in members), key=lambda p: p.lookback)
 
@@ -195,5 +207,5 @@ class EnsemblePredictor:
         if len(issued) != 1:
             raise InsufficientHistoryError("Ensemble members disagree on the last complete hour.")
         values = np.mean([p.values for p in preds], axis=0)
-        lower, upper = apply_ranges(values, self.halfwidth)
+        lower, upper = apply_ranges(values, self.ranges.at(preds[0].issued_at))
         return Prediction(issued_at=preds[0].issued_at, times=preds[0].times, values=values, lower=lower, upper=upper)

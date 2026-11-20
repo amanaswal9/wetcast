@@ -43,3 +43,5 @@ ml/artifacts/india/*/test_predictions.npz
 # Browser tests: images from a failed screenshot comparison
 e2e/screenshots/**/*.actual.png
 dist-*
+ml/artifacts/calibration/
+ml/artifacts/*/calibration/

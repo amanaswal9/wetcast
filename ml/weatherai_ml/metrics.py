@@ -39,3 +39,21 @@ def conformal_halfwidth(abs_residuals: np.ndarray, level: float) -> float:
         return float("nan")
     k = min(n, math.ceil((n + 1) * level))
     return float(r[k - 1])
+
+
+def monthly_halfwidths(abs_residuals: np.ndarray, months: np.ndarray, level: float) -> list[list[float]]:
+    """Split-conformal half-widths for each calendar month (1-12) and lead hour.
+
+    `abs_residuals` is (n, horizon) for one target and `months` (n,) the month of each window's
+    issue hour. Errors vary with the season (spring is harder in India), so one width for the
+    whole year is too narrow in hard months and too wide in easy ones. A month without
+    calibration windows falls back to the whole year."""
+    abs_residuals = np.asarray(abs_residuals, dtype=float)
+    months = np.asarray(months)
+    horizon = abs_residuals.shape[1]
+    overall = [conformal_halfwidth(abs_residuals[:, h], level) for h in range(horizon)]
+    table = []
+    for m in range(1, 13):
+        rows = abs_residuals[months == m]
+        table.append([conformal_halfwidth(rows[:, h], level) for h in range(horizon)] if len(rows) else list(overall))
+    return table

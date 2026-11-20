@@ -276,8 +276,10 @@ whole training job (about 4 hours on an ordinary CPU).
 
 - Every metric is on the 2026 test period, which training never saw.
 - A **persistence baseline** (same hour yesterday) is reported next to every model.
-- **Error ranges** use split conformal prediction calibrated on the validation year; the Models page shows how
-  often test values actually fell inside them.
+- **Error ranges** use split conformal prediction calibrated on the validation year, with separate ranges for
+  each calendar month because errors change with the season (wider in spring). The Models page shows how often
+  test values actually fell inside them, at the training and the held-out cities.
+  `python -m weatherai_ml.recalibrate --region india` recomputes them for saved models without retraining.
 - A **station check** compares test predictions with Meteostat weather-station measurements, and scores
   Open-Meteo's own data against the same stations to show the data source's error floor.
 - **Where the models predict:** anywhere in India within 310 km of a training city (the farthest a held-out

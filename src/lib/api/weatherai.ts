@@ -92,7 +92,11 @@ export interface ModelMetrics {
     level: number
     method: string
     halfwidth_by_horizon: Record<Target, number[]>
+    /** Half-widths per calendar month (12 rows) and lead hour; older models have one set for the year. */
+    halfwidth_by_month?: Record<Target, number[][]>
     test_coverage: Record<Target, number>
+    /** Same check at the held-out cities (all-India models only). */
+    test_coverage_unseen?: Record<Target, number>
   }
   inference: { single_ms_median: number; batch256_ms_per_forecast: number; device: string; cpu: string }
   windows: { val: number; test: number }

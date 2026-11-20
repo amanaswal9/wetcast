@@ -18,9 +18,9 @@ from weatherai_ml.config import (
 )
 from weatherai_ml.dataset import Dataset, residual_targets, window_ends
 from weatherai_ml.features import build_frames
-from weatherai_ml.metrics import conformal_halfwidth, r2, summary
+from weatherai_ml.metrics import conformal_halfwidth, monthly_halfwidths, r2, summary
 from weatherai_ml.models import MODEL_NAMES
-from weatherai_ml.predict import EnsemblePredictor, InsufficientHistoryError, Predictor, nearest_city
+from weatherai_ml.predict import EnsemblePredictor, InsufficientHistoryError, Predictor, Ranges, nearest_city
 from weatherai_ml.preprocess import FeatureOrderError, Preprocessor
 from weatherai_ml.synthetic import synthetic_long_frame
 
@@ -177,6 +177,29 @@ def test_conformal_halfwidth_reaches_level():
     residuals = np.abs(np.random.default_rng(3).normal(0, 1, 2000))
     hw = conformal_halfwidth(residuals, 0.8)
     assert np.mean(residuals <= hw) >= 0.8
+
+
+def test_monthly_halfwidths_follow_the_season():
+    rng = np.random.default_rng(4)
+    months = np.repeat(np.arange(1, 13), 500)
+    months = months[months != 11]  # no November windows: falls back to the whole year
+    scale = np.where(months == 4, 3.0, 1.0)[:, None]  # April errors three times larger
+    residuals = np.abs(rng.normal(0, 1, (len(months), 2))) * scale
+    table = monthly_halfwidths(residuals, months, 0.8)
+    assert len(table) == 12 and len(table[0]) == 2
+    assert table[3][0] > 2.5 * table[0][0]  # wider in April
+    assert np.mean(residuals[months == 4, 0] <= table[3][0]) >= 0.8
+    assert table[10] == [conformal_halfwidth(residuals[:, h], 0.8) for h in range(2)]
+
+
+def test_ranges_use_the_issue_month():
+    flat = {t: [1.0, 1.0] for t in TARGETS}
+    by_month = {t: [[float(m), float(m)] for m in range(1, 13)] for t in TARGETS}
+    ranges = Ranges({"halfwidth_by_horizon": flat, "halfwidth_by_month": by_month})
+    assert ranges.at(pd.Timestamp("2026-04-30T20:00", tz="UTC"))[0, 0] == 4.0
+    # 05:00 IST on 1 May is still April in UTC, the month the ranges were calibrated by.
+    assert ranges.at(pd.Timestamp("2026-05-01T05:00", tz="Asia/Kolkata"))[0, 0] == 4.0
+    assert Ranges({"halfwidth_by_horizon": flat}).at(pd.Timestamp("2026-04-30"))[0, 0] == 1.0  # older artifacts
 
 
 def test_metrics_summary():
