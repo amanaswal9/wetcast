@@ -1,0 +1,6 @@
+{
+ "url": "http://127.0.0.1:4173/api/health",
+ "status": 200,
+ "content_type": "application/json",
+ "body": "{\"status\":\"ok\",\"database\":\"ok\",\"models\":[\"lstm\",\"gru\",\"cnn_lstm\",\"transformer\",\"lightgbm\",\"ensemble\"]}"
+}

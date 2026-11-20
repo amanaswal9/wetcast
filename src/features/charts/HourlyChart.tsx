@@ -58,6 +58,17 @@ interface HourlyChartProps {
   nowTime: string | null
 }
 
+/** "Lowest 14 °C at 06:00, highest 24 °C at 15:00." (or the busiest hour for rain) */
+function summarise(rows: Row[], mode: Mode, unit: string, time: (t: string) => string): string | undefined {
+  const known = rows.filter((r): r is Row & { value: number } => r.value !== null)
+  if (known.length === 0) return undefined
+  const low = known.reduce((a, b) => (b.value < a.value ? b : a))
+  const high = known.reduce((a, b) => (b.value > a.value ? b : a))
+  const span = `From ${time(known[0].time)} to ${time(known[known.length - 1].time)}.`
+  if (mode === 'rain') return `${span} Highest chance of rain ${round(high.value)}% at ${time(high.time)}.`
+  return `${span} Lowest ${round(low.value)} ${unit} at ${time(low.time)}, highest ${round(high.value)} ${unit} at ${time(high.time)}.`
+}
+
 export function HourlyChart({ rows, mode, unit, colors, nowTime }: HourlyChartProps) {
   const wide = useMediaQuery('(min-width: 640px)')
   const fmt = useFormat()
@@ -87,6 +98,7 @@ export function HourlyChart({ rows, mode, unit, colors, nowTime }: HourlyChartPr
       barGap={0.08}
       tooltip={(row) => <ChartTooltip row={row} unit={unit} />}
       label={`${mode === 'temperature' ? 'Temperature' : mode === 'rain' ? 'Chance of rain' : 'Wind'} by hour`}
+      summary={summarise(rows, mode, unit, fmt.time)}
     />
   )
 }
