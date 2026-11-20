@@ -353,7 +353,7 @@ The **Ask** page answers weather questions with one of two models, chosen by `WE
 (default `auto`: Hosted if an Hosted key is set, otherwise the local model if Ollama is running with it
 installed, otherwise off):
 
-- **Free, local:** a small open model (default `qwen3:4b`, about 2.5 GB) run by [Ollama](https://ollama.com/) on
+- **Free, local:** a small open model (default `qwen3:4b-instruct`, about 2.5 GB) run by [Ollama](https://ollama.com/) on
   the same computer as the API (`backend/app/assistant_local.py`). Nothing is billed and questions don't leave
   the machine (only the tools' own lookups do). It is slower and makes more mistakes than Hosted, and the Ask
   page says so.
@@ -376,7 +376,7 @@ How it answers (`backend/app/assistant.py`, data tools in `backend/app/assistant
 Switch on the free local model:
 
 1. Install Ollama: `winget install Ollama.Ollama` (it starts with Windows and listens on `127.0.0.1:11434`).
-2. Download the model once: `ollama pull qwen3:4b`.
+2. Download the model once: `ollama pull qwen3:4b-instruct`.
 3. That's all: `GET /api/assistant/status` reports `configured: true, provider: "local"` within 30 seconds.
    A small model is told firmly to look data up first; if it gives numbers without any lookup, it is sent back
    once to do so.
@@ -394,7 +394,8 @@ Settings (all optional, in `backend/.env`):
 | --- | --- | --- |
 | `WEATHERAI_ASSISTANT_PROVIDER` | `auto` | `auto`, `local`, `hosted` or `off` |
 | `WEATHERAI_OLLAMA_URL` | `http://127.0.0.1:11434` | Where Ollama listens |
-| `WEATHERAI_OLLAMA_MODEL` | `qwen3:4b` | Any installed Ollama model that supports tool calling |
+| `WEATHERAI_OLLAMA_MODEL` | `qwen3:4b-instruct` | Any installed Ollama model that supports tool calling (use an instruct, non-thinking edition) |
+| `WEATHERAI_OLLAMA_CONTEXT` | `4096` | Context window in tokens; larger needs more graphics memory |
 | `WEATHERAI_ASSISTANT_MODEL` | `hosted-opus-5-5` | `hosted-haiku-5-5` is about 40× cheaper per answer; `hosted-sonnet-5-5` is in between |
 | `WEATHERAI_ASSISTANT_EFFORT` | `low` | Hosted's effort level (`low` to `max`); higher costs more |
 | `WEATHERAI_ASSISTANT_DAILY_LIMIT_PER_CLIENT` | `20` | Questions per visitor (anonymous browser id) per UTC day |

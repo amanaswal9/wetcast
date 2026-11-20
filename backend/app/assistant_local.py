@@ -33,6 +33,8 @@ LOCAL_RULES = """
 Rules for this conversation (follow them exactly):
 - Before giving any number about weather, call a tool. If you have not called a tool in this conversation, call one now.
 - If the question is about a place other than the one in [App context], call find_place first, then use its latitude and longitude.
+- Use only figures that appear in the tool results. If the figure asked for is not there, say WeatherAI doesn't have it. Never estimate or round into a range of your own.
+- Answer the question asked; don't repeat earlier answers.
 - After the tools answer, reply in plain English sentences. Do not show JSON, tool names or your reasoning."""
 
 _status_lock = threading.Lock()
@@ -87,6 +89,51 @@ def _clean(text: str) -> str:
     return _THINK.sub("", text or "").strip()
 
 
+def weather_text(out: dict) -> str:
+    """The forecast lookup as short plain lines with the days named ("today", "tomorrow").
+    Small models misread large JSON tables (they quoted figures that weren't there); plain
+    lines with nothing to work out are read reliably. Hosted still gets the full JSON."""
+    from datetime import date
+
+    today = str(out.get("local_time_now", ""))[:10]
+    try:
+        base = date.fromisoformat(today)
+    except ValueError:
+        base = None
+
+    def day_name(d: str) -> str:
+        if base is None:
+            return d
+        day = date.fromisoformat(d)
+        weekday = day.strftime("%A")  # so "this weekend" can be matched to dates
+        prefix = {0: "today, ", 1: "tomorrow, "}.get((day - base).days, "")
+        return f"{prefix}{weekday} ({d})"
+
+    def v(x, unit=""):
+        return "unknown" if x is None else f"{x}{unit}"
+
+    now = out.get("now", {})
+    lines = [
+        f"Source: {out.get('source')}. Local time now: {out.get('local_time_now')} ({out.get('timezone')}).",
+        f"Now: {v(now.get('temperature_c'), ' °C')}, feels like {v(now.get('feels_like_c'), ' °C')}, humidity {v(now.get('humidity_pct'), '%')}, "
+        f"{now.get('sky')}, wind {v(now.get('wind_kmh'), ' km/h')}, rain in the last hour {v(now.get('rain_last_hour_mm'), ' mm')}.",
+        "Days:",
+    ]
+    for d in out.get("next_7_days", []):
+        lines.append(
+            f"- {day_name(d['date'])}: {d['sky']}, high {v(d['high_c'], ' °C')}, low {v(d['low_c'], ' °C')}, "
+            f"humidity {v(d.get('humidity_low_pct'))} to {v(d.get('humidity_high_pct'), '%')}, chance of rain {v(d['chance_of_rain_pct'], '%')}, "
+            f"rain {v(d['rain_mm'], ' mm')}, wind up to {v(d['max_wind_kmh'], ' km/h')}."
+        )
+    lines.append("Next 48 hours, every 3 hours:")
+    for h in out.get("next_48_hours_every_3_hours", []):
+        lines.append(
+            f"- {day_name(h['time'][:10]).split(' (')[0].split(',')[0]} {h['time'][11:16]}: {v(h['temperature_c'], ' °C')}, humidity {v(h.get('humidity_pct'), '%')}, "
+            f"chance of rain {v(h['chance_of_rain_pct'], '%')}, {h['sky']}, wind {v(h['wind_kmh'], ' km/h')}."
+        )
+    return "\n".join(lines)
+
+
 def answer(conversation: list[dict], place: dict, session: Session, registry: ModelRegistry, http: httpx.Client | None = None):
     from .assistant import MAX_ROUNDS, SOURCE_LABELS, SYSTEM_PROMPT, AssistantUnavailable, Reply, context_message, run_tool
 
@@ -112,8 +159,9 @@ def answer(conversation: list[dict], place: dict, session: Session, registry: Mo
                         "messages": messages,
                         "tools": tools,
                         "stream": False,
-                        "think": False,
-                        "options": {"temperature": 0.2, "num_ctx": 8192},
+                        # Stay loaded between questions, so a follow-up doesn't wait for the model to load.
+                        "keep_alive": "15m",
+                        "options": {"temperature": 0.2, "num_ctx": settings.ollama_context},
                     },
                 )
             except httpx.TimeoutException as exc:
@@ -153,7 +201,8 @@ def answer(conversation: list[dict], place: dict, session: Session, registry: Mo
                 if label and label not in reply.sources:
                     reply.sources.append(label)
                 try:
-                    content = json.dumps(data.nan_safe(run_tool(name, dict(args), session, registry)), ensure_ascii=False)
+                    result = data.nan_safe(run_tool(name, dict(args), session, registry))
+                    content = weather_text(result) if name == "get_weather" else json.dumps(result, ensure_ascii=False)
                 except Exception as exc:  # noqa: BLE001 - tell the model, don't crash
                     log.warning("local assistant tool %s failed: %s", name, exc)
                     content = f"The lookup failed: {exc}"

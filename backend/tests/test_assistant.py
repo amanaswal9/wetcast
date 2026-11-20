@@ -145,9 +145,10 @@ def test_weather_summary_from_open_meteo(monkeypatch):
         "timezone": "Asia/Kolkata",
         "current": {"time": "2026-11-20T10:15", "temperature_2m": 21.4, "apparent_temperature": 20.9, "relative_humidity_2m": 40,
                     "precipitation": 0.0, "weather_code": 0, "wind_speed_10m": 8.2, "wind_direction_10m": 300, "wind_gusts_10m": 15.1},
-        "hourly": {"time": hours, "temperature_2m": [20.0] * 72, "precipitation_probability": [10] * 72, "precipitation": [0.0] * 72,
+        "hourly": {"time": hours, "temperature_2m": [20.0] * 72, "relative_humidity_2m": [55] * 72, "precipitation_probability": [10] * 72, "precipitation": [0.0] * 72,
                    "weather_code": [61] * 72, "wind_speed_10m": [5.0] * 72},
         "daily": {"time": ["2026-11-20"], "weather_code": [3], "temperature_2m_max": [26.0], "temperature_2m_min": [14.0],
+                  "relative_humidity_2m_min": [22], "relative_humidity_2m_max": [68],
                   "precipitation_probability_max": [20], "precipitation_sum": [0.0], "wind_speed_10m_max": [12.0]},
     }
     monkeypatch.setattr(assistant_data, "_get", lambda url, params: payload)
@@ -155,7 +156,9 @@ def test_weather_summary_from_open_meteo(monkeypatch):
     assert out["now"]["sky"] == "clear sky" and out["timezone"] == "Asia/Kolkata"
     times = [h["time"] for h in out["next_48_hours_every_3_hours"]]
     assert times[0] == "2026-11-20T12:00" and len(times) == 16 and all(int(t[11:13]) % 3 == 0 for t in times)
+    assert out["next_48_hours_every_3_hours"][0]["humidity_pct"] == 55  # hourly humidity, so it is never guessed
     assert out["next_7_days"][0]["sky"] == "overcast" and "not WeatherAI" in out["source"]
+    assert (out["next_7_days"][0]["humidity_low_pct"], out["next_7_days"][0]["humidity_high_pct"]) == (22, 68)
 
 
 def test_nan_becomes_null():
@@ -224,3 +227,19 @@ def test_endpoint_validation(client, monkeypatch):
     bad_place = {**body(), "place": {**PLACE, "latitude": 95}}
     assert client.post("/api/assistant", json=bad_place, headers=CLIENT).status_code == 422
     assert client.post("/api/assistant", json=body()).status_code == 422  # no client id
+
+
+def test_model_accuracy_names_the_winners(client):
+    """The tool states the most accurate models itself, so a small model can't mix them up."""
+    from app import db
+
+    registry = get_registry()
+    if not registry.names:
+        pytest.skip("no trained models")
+    with db.new_session() as session:
+        out = assistant_data.model_accuracy(session, registry)
+    for target, best in out["most_accurate_on_test_period"].items():
+        lowest = min(scores[target] for name, scores in out["test_mean_absolute_error"].items() if name != "units")
+        assert best["mean_absolute_error"] == lowest
+    assert out["live_track_record_last_30_days_temperature_best_first"] == "Nothing scored yet."
+    assert out["most_accurate_live"] is None and "too early" in out["live_record_note"]

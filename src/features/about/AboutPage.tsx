@@ -215,7 +215,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
               </tr>
               <tr>
                 <th scope="row">
-                  <Link href="https://ollama.com/">Ollama</Link> with <Link href="https://huggingface.co/Qwen/Qwen3-4B">Qwen3 4B</Link>, optional
+                  <Link href="https://ollama.com/">Ollama</Link> with <Link href="https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507">Qwen3 4B Instruct</Link>, optional
                 </th>
                 <td>The free alternative for the Ask page: a small model running on WeatherAI&apos;s own computer, with the same data and rules</td>
                 <td>Free; Ollama MIT licence, Qwen3 Apache 2.0</td>

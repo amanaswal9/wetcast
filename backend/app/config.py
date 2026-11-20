@@ -31,7 +31,12 @@ class Settings(BaseSettings):
     assistant_provider: Literal["auto", "hosted", "local", "off"] = "auto"
     assistant_model: str = "hosted-opus-5-5"
     ollama_url: str = "http://127.0.0.1:11434"
-    ollama_model: str = "qwen3:4b"
+    # The Instruct edition answers directly; the plain "qwen3:4b" tag is the thinking edition, which
+    # reasons at length before every answer (far too slow on a small graphics card).
+    ollama_model: str = "qwen3:4b-instruct"
+    # Context window in tokens. 4096 holds the instructions, tools and a couple of lookups, and keeps
+    # the model small enough to sit (mostly) on a 4 GB graphics card; 8192 spilled onto the CPU.
+    ollama_context: int = 4096
     assistant_effort: Literal["low", "medium", "high", "xhigh", "max"] = "low"
     assistant_daily_limit_per_client: int = 20
     assistant_daily_limit_total: int = 200
