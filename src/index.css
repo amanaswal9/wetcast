@@ -39,6 +39,10 @@
   --tip-border: #000000;
   --term-bg: #000000;
   --term-text: #c0c0c0;
+  /* LCD readout: lit segments and the faint unlit "8"s behind them. */
+  --lcd-bg: #000000;
+  --lcd-on: #39ff6a;
+  --lcd-off: rgb(57 255 106 / 0.13);
 }
 
 /* High-contrast black, modelled on the classic accessibility scheme. */
@@ -66,6 +70,9 @@
   --tip-border: #ffffff;
   --term-bg: #000000;
   --term-text: #00ff00;
+  --lcd-bg: #000000;
+  --lcd-on: #ffffff;
+  --lcd-off: rgb(255 255 255 / 0.16);
 }
 
 html {
@@ -358,9 +365,17 @@ body {
       inset var(--p2) var(--p2) var(--dark);
   }
 
-  .r-progress-fill {
-    height: 100%;
-    background: repeating-linear-gradient(90deg, var(--select) 0 8px, transparent 8px 10px);
+  .r-progress {
+    display: flex;
+    gap: var(--p2);
+  }
+
+  .r-progress-block {
+    flex: 1;
+  }
+
+  .r-progress-block[data-lit] {
+    background: var(--select);
   }
 
   .r-tooltip {
@@ -920,6 +935,123 @@ body {
   }
 }
 
+/* LCD readout (current temperature): a sunken display with lit digits over unlit "8"s. */
+@layer components {
+  .r-lcd {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 12px 6px;
+    background: var(--lcd-bg);
+    color: var(--lcd-on);
+    box-shadow:
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--shadow),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--dark);
+  }
+
+  .r-lcd-digits {
+    display: grid;
+  }
+
+  .r-lcd-digits > * {
+    grid-area: 1 / 1;
+    text-align: right;
+  }
+
+  .r-lcd-ghost {
+    color: var(--lcd-off);
+  }
+
+  .r-lcd-unit {
+    padding-top: 0.1em;
+    font-size: 0.42em;
+  }
+}
+
+/* Dithered pictures keep their hard black-and-white pixels when scaled. */
+.r-dither-img {
+  image-rendering: pixelated;
+}
+
+/* Map layer toolbox: square tool buttons with pixel icons, the chosen one pressed in and dithered. */
+@layer components {
+  .r-toolbox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    align-self: flex-start;
+    padding: 4px;
+  }
+
+  .r-toolbox-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .r-tool {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: var(--face);
+    color: var(--text);
+    cursor: pointer;
+    box-shadow:
+      inset var(--n1) var(--n1) var(--dark),
+      inset var(--p1) var(--p1) var(--hilite),
+      inset var(--n2) var(--n2) var(--shadow),
+      inset var(--p2) var(--p2) var(--light);
+  }
+
+  .r-tool[aria-pressed='true'] {
+    background-color: var(--face);
+    background-image: repeating-conic-gradient(var(--hilite) 0 25%, transparent 0 50%);
+    background-size: var(--p2) var(--p2);
+    box-shadow:
+      inset var(--n1) var(--n1) var(--hilite),
+      inset var(--p1) var(--p1) var(--dark),
+      inset var(--n2) var(--n2) var(--light),
+      inset var(--p2) var(--p2) var(--shadow);
+  }
+
+  .r-tool:active > svg,
+  .r-tool[aria-pressed='true'] > svg {
+    transform: translate(1px, 1px);
+  }
+
+  .r-tool:focus-visible {
+    outline: 1px dotted var(--text);
+    outline-offset: -5px;
+  }
+
+  .r-toolbox-label {
+    font-size: 0.85em;
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    .r-toolbox {
+      flex-direction: row;
+      align-self: stretch;
+      padding: 0;
+    }
+
+    .r-toolbox-tools {
+      flex-direction: row;
+    }
+
+    .r-toolbox-label {
+      font-size: 1em;
+    }
+  }
+}
+
 /* The map's pixel-arrow location pin: no box behind it, and clicks pass through to the map. */
 .r-map .r-map-pointer {
   border: 0;
@@ -1090,6 +1222,55 @@ html[data-busy] * {
 @media (prefers-reduced-motion: reduce) {
   .r-start-menu:not([hidden]),
   .r-listbox:not(.hidden):not(.sr-only) {
+    animation: none;
+  }
+}
+
+/* Stacked error windows: a cascade of identical windows with the real one in front. */
+@layer components {
+  .r-error-stack {
+    position: relative;
+    max-width: 560px;
+  }
+
+  .r-error-stack-ghost {
+    position: absolute;
+    width: calc(100% - var(--stack-inset, 84px));
+    height: 120px;
+  }
+
+  .r-error-stack-front {
+    position: relative;
+  }
+
+  /* On phones the cascade is shallower so the message keeps its width. */
+  @media (max-width: 640px) {
+    .r-error-stack {
+      --stack-inset: 66px !important;
+      padding-top: 78px !important;
+      padding-left: 66px !important;
+    }
+
+    .r-error-stack-ghost:nth-child(n + 4) {
+      display: none;
+    }
+  }
+}
+
+@keyframes r-pop-in {
+  from {
+    visibility: hidden;
+  }
+}
+
+.r-error-stack-ghost,
+.r-error-stack-front {
+  animation: r-pop-in 1ms step-end backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .r-error-stack-ghost,
+  .r-error-stack-front {
     animation: none;
   }
 }

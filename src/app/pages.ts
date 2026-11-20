@@ -21,9 +21,24 @@ export const PAGES: PageInfo[] = [
   { id: 'about', label: 'About', plan: '', ready: true },
 ]
 
+function hashId(): string {
+  return window.location.hash.replace(/^#\/?/, '')
+}
+
 function pageFromHash(): PageId {
-  const id = window.location.hash.replace(/^#\/?/, '')
+  const id = hashId()
   return PAGES.some((p) => p.id === id) ? (id as PageId) : 'dashboard'
+}
+
+/** The address asked for when it isn't a page (e.g. "#/radar"), else null. */
+export function useUnknownPage(): string | null {
+  const [id, setId] = useState(hashId)
+  useEffect(() => {
+    const onChange = () => setId(hashId())
+    window.addEventListener('hashchange', onChange)
+    return () => window.removeEventListener('hashchange', onChange)
+  }, [])
+  return id && !PAGES.some((p) => p.id === id) ? id : null
 }
 
 /** Hash-based page state, so pages are linkable without a router yet. */

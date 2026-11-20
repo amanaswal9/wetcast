@@ -1,6 +1,6 @@
 import { Contrast, LocateFixed, RefreshCw, Star } from 'lucide-react'
 import { Suspense, useCallback, useEffect, useState } from 'react'
-import { Button, TitleButton, Window } from '../components/retro'
+import { Button, ErrorStack, TitleButton, Window } from '../components/retro'
 import { buildSummary } from '../features/dashboard/buildSummary'
 import { CitySearch } from '../features/search/CitySearch'
 import { usePlace } from '../hooks/usePlace'
@@ -21,7 +21,7 @@ import type { Place } from '../types/weather'
 import { ErrorBoundary } from './ErrorBoundary'
 import { AboutPage, AnalyticsPage, AssistantPage, Dashboard, ForecastPage, LocationsPage, MapPage, ModelsPage, PageLoading } from './lazyPages'
 import { loaders, preloadPages } from './pageLoaders'
-import { PAGES, usePage } from './pages'
+import { PAGES, usePage, useUnknownPage } from './pages'
 import { PlannedPage } from './PlannedPage'
 import { Taskbar } from './Taskbar'
 
@@ -29,6 +29,7 @@ const MINUTE = 60_000
 
 export default function App() {
   const page = usePage()
+  const unknownPage = useUnknownPage()
   const pageInfo = PAGES.find((p) => p.id === page) ?? PAGES[0]
   const [place, setPlace] = usePlace()
   const saved = useSavedPlaces()
@@ -248,7 +249,7 @@ export default function App() {
                   onPointerDown={() => void loaders[p.id]().catch(() => undefined)}
                   onFocus={() => void loaders[p.id]().catch(() => undefined)}
                   className="r-menu-item"
-                  aria-current={page === p.id ? 'page' : undefined}
+                  aria-current={page === p.id && unknownPage === null ? 'page' : undefined}
                 >
                   {p.label}
                 </a>
@@ -283,7 +284,27 @@ export default function App() {
             <main id="content" tabIndex={-1} className="min-w-0 p-2 outline-none sm:p-3">
               <ErrorBoundary resetKey={`${page}:${place.id}`}>
               <Suspense fallback={<PageLoading />}>
-              {page === 'dashboard' && (
+              {unknownPage !== null && (
+                <ErrorStack
+                  caption="WeatherAI"
+                  kind="info"
+                  title="Not found."
+                  actions={
+                    <Button
+                      onClick={() => {
+                        window.location.hash = '#/dashboard'
+                      }}
+                    >
+                      Go to the Dashboard
+                    </Button>
+                  }
+                >
+                  <p className="m-0">
+                    There&apos;s no page called &quot;{unknownPage.slice(0, 40)}&quot;. Pick a page from the menu or the Start menu.
+                  </p>
+                </ErrorStack>
+              )}
+              {page === 'dashboard' && unknownPage === null && (
                 <Dashboard place={place} forecast={forecast} air={air} summary={summary} theme={theme} speech={speech} />
               )}
               {page === 'forecast' && (
@@ -317,7 +338,7 @@ export default function App() {
       </div>
       <Taskbar
         title={title}
-        page={page}
+        page={unknownPage === null ? page : null}
         minimized={minimized}
         onToggleWindow={() => (minimized ? restore() : minimize())}
         highContrast={theme === 'dark'}
