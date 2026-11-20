@@ -48,6 +48,8 @@ class PredictionPointOut(BaseModel):
     precipitation: float
     precipitation_lower: float
     precipitation_upper: float
+    # Chance (0-1) of at least 0.1 mm of rain in the hour; only models with a calibrated table (the ensemble).
+    rain_chance: float | None = None
 
 
 class ModelPredictionOut(BaseModel):

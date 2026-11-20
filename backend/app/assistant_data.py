@@ -173,6 +173,8 @@ def weatherai_prediction(registry: ModelRegistry, latitude: float, longitude: fl
             unit = {"°C": "c", "%": "pct", "mm": "mm"}[TARGET_UNITS[target]]
             row[f"{target}_{unit}"] = _r(pred.values[i, k])
             row[f"{target}_range_{unit}"] = [_r(pred.lower[i, k]), _r(pred.upper[i, k])]
+        if pred.rain_chance is not None:
+            row["chance_of_rain_this_hour_pct"] = round(float(pred.rain_chance[i]) * 100)
         rows.append(row)
     level = metrics["interval"]["level"]
     label, detail = model_coverage.describe(region, located)
@@ -189,7 +191,25 @@ def weatherai_prediction(registry: ModelRegistry, latitude: float, longitude: fl
         "expected_error_here": {
             t: f"{v:.2f} {TARGET_UNITS[t]} average error ({expected['basis']})" for t, v in expected["mae"].items() if v is not None
         },
+        **(rain_chance_summary(pred, predictor) if pred.rain_chance is not None else {}),
         "forecast_every_3_hours": rows,
+    }
+
+
+def rain_chance_summary(pred, predictor) -> dict:
+    """The highest hourly chance of rain in the next 24 hours, and how trustworthy the chances are."""
+    i = int(np.argmax(pred.rain_chance))
+    table = predictor.rain_chance
+    score = table["scores"]["test"]
+    return {
+        "chance_of_rain": {
+            "highest_in_next_24h_pct": round(float(pred.rain_chance[i]) * 100),
+            "at": pred.times[i].tz_convert(IST).strftime("%Y-%m-%dT%H:%M"),
+            "meaning": f"chance of at least {table['wet_mm']} mm of rain in one hour (not over the whole day)",
+            "reliability": "On the 2026 test period these chances were close to how often it rained (it rained slightly more often "
+            f"than they said); their Brier score was {score['brier']:.3f}, against {score['climatology_brier']:.3f} for always "
+            "forecasting the usual rain frequency (lower is better).",
+        }
     }
 
 

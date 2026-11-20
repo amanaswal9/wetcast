@@ -30,6 +30,7 @@ class Prediction:
     values: np.ndarray  # (horizon, n_targets)
     lower: np.ndarray
     upper: np.ndarray
+    rain_chance: np.ndarray | None = None  # (horizon,) chance of >= 0.1 mm in each hour; ensemble only
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -192,6 +193,10 @@ class EnsemblePredictor:
         self.members = members
         self.metrics = json.loads((model_dir / "metrics.json").read_text())
         self.ranges = Ranges(self.metrics["interval"])
+        chance_file = model_dir / "rain_chance.json"  # see rain_chance.py
+        self.rain_chance = json.loads(chance_file.read_text()) if chance_file.exists() else None
+        if self.rain_chance is not None:  # its scores travel with the metrics (the lookup table stays here)
+            self.metrics = {**self.metrics, "rain_chance": {k: v for k, v in self.rain_chance.items() if k != "leads"}}
         # The longest member lookback decides how much history the API must fetch.
         self.preprocessor = max((m.preprocessor for m in members), key=lambda p: p.lookback)
 
@@ -208,4 +213,9 @@ class EnsemblePredictor:
             raise InsufficientHistoryError("Ensemble members disagree on the last complete hour.")
         values = np.mean([p.values for p in preds], axis=0)
         lower, upper = apply_ranges(values, self.ranges.at(preds[0].issued_at))
-        return Prediction(issued_at=preds[0].issued_at, times=preds[0].times, values=values, lower=lower, upper=upper)
+        chance = None
+        if self.rain_chance is not None:
+            from .rain_chance import chance as rain_chance
+
+            chance = rain_chance(self.rain_chance["leads"], values[:, TARGETS.index("precipitation")])
+        return Prediction(issued_at=preds[0].issued_at, times=preds[0].times, values=values, lower=lower, upper=upper, rain_chance=chance)

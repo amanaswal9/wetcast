@@ -232,6 +232,8 @@ def predictions(
                 row[target] = round(float(pred.values[i, k]), 2)
                 row[f"{target}_lower"] = round(float(pred.lower[i, k]), 2)
                 row[f"{target}_upper"] = round(float(pred.upper[i, k]), 2)
+            if pred.rain_chance is not None:
+                row["rain_chance"] = round(float(pred.rain_chance[i]), 3)
             points.append(PredictionPointOut(**row))
         results.append(ModelPredictionOut(model=name, display_name=registry.display_name(name), points=points))
 

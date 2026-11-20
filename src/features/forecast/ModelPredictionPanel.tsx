@@ -18,6 +18,8 @@ interface Row {
   model: number
   band: [number, number]
   openMeteo: number | null
+  /** Chance of rain in the hour (0-1), from the model that has one (the ensemble), shown with every model. */
+  chance: number | null
 }
 
 /** Rows in the viewer's units: temperatures (model, its range and Open-Meteo) are converted together. */
@@ -45,7 +47,8 @@ function buildRows(data: Predictions, model: string, target: Target, week: WeekF
     return null
   }
   const conv = target === 'temperature' ? fmt.temp : (v: number) => v
-  return prediction.points.map((p) => {
+  const chances = data.models.find((m) => m.points.some((p) => p.rain_chance != null))?.points
+  return prediction.points.map((p, i) => {
     const local = utcToLocal(p.time, week.utcOffsetSeconds)
     const openMeteo = target === 'humidity' ? null : valueAt(Date.parse(p.time))
     return {
@@ -53,6 +56,7 @@ function buildRows(data: Predictions, model: string, target: Target, week: WeekF
       model: conv(p[target]),
       band: [conv(p[`${target}_lower`]), conv(p[`${target}_upper`])],
       openMeteo: openMeteo === null ? null : conv(openMeteo),
+      chance: chances?.[i]?.rain_chance ?? null,
     }
   })
 }
@@ -70,6 +74,7 @@ function PredictionTooltip({ row, target, modelName }: { row: Row; target: Targe
       <div>
         {modelName}: <b>{format(row.model, target, fmt)}</b> (range {format(row.band[0], target, fmt)} to {format(row.band[1], target, fmt)})
       </div>
+      {target === 'precipitation' && row.chance !== null && <div>Chance of rain this hour (Ensemble): {Math.round(row.chance * 100)}%</div>}
       {row.openMeteo !== null && <div>Open-Meteo forecast: {format(row.openMeteo, target, fmt)}</div>}
     </div>
   )
@@ -97,6 +102,7 @@ function PredictionChart({
   const step = wide ? 3 : 6
   const xTicks = rows.flatMap((r, i) => (Number(r.time.slice(11, 13)) % step === 0 ? [{ at: i, label: fmt.hourTick(r.time) }] : []))
   const hasOpenMeteo = rows.some((r) => r.openMeteo !== null)
+  const likeliest = target === 'precipitation' ? rows.reduce<Row | null>((best, r) => (r.chance !== null && (best === null || r.chance > (best.chance ?? 0)) ? r : best), null) : null
 
   return (
     <>
@@ -109,7 +115,8 @@ function PredictionChart({
           xTicks={xTicks}
           y={{
             domain: target === 'humidity' ? [0, 100] : target === 'precipitation' ? [0, 'auto'] : ['auto', 'auto'],
-            format: (v) => (target === 'precipitation' ? v.toFixed(1) : `${round(v)}`),
+            // Rain amounts are often below 1 mm; one decimal would label every tick "0.0".
+            format: (v) => (target === 'precipitation' ? v.toFixed(v !== 0 && v < 1 ? 2 : 1) : `${round(v)}`),
           }}
           series={[
             { type: 'band', key: 'band', lower: (r) => r.band[0], upper: (r) => r.band[1], color: modelColor, opacity: 0.45 },
@@ -161,6 +168,15 @@ function PredictionChart({
           <li className="text-[var(--text-muted)]">Open-Meteo's forecast for these hours isn't loaded, so only the model is shown.</li>
         )}
       </ul>
+      {likeliest && likeliest.chance !== null && (
+        <p className="m-0 mt-2" data-rain-chance>
+          <b>Chance of rain (Ensemble):</b> highest {Math.round(likeliest.chance * 100)}% in the hour to {fmt.time(likeliest.time)}.{' '}
+          <span className="text-[var(--text-muted)]">
+            That is the chance of at least 0.1 mm falling in that one hour. The amounts on the chart run low, so judge rain by this chance rather than
+            by the line.
+          </span>
+        </p>
+      )}
     </>
   )
 }
