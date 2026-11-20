@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, create_engine
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship, sessionmaker
 
 from .config import get_settings
@@ -128,6 +128,18 @@ class Alert(Base):
     superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     link: Mapped[str | None] = mapped_column(String(300), nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+
+class AssistantUsage(Base):
+    """How many questions one visitor asked the assistant on one UTC day. Kept in the database so the
+    daily limits (app/assistant.py) hold when the API restarts; rows older than a week are removed."""
+
+    __tablename__ = "assistant_usage"
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    client_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    questions: Mapped[int] = mapped_column(Integer, default=0)
 
 
 _engine = None
