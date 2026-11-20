@@ -250,6 +250,11 @@ export interface TrackRecord {
   totals: TrackStats[]
   daily: (TrackStats & { date: string })[]
   by_lead: (TrackStats & { lead: string })[]
+  /** Per-city scores. Show a city's figures only once city_days reaches min_days_per_city. */
+  by_city: (TrackStats & { city: string })[]
+  /** Different (UTC) days with scores, per city, within the chosen period. */
+  city_days: Record<string, number>
+  min_days_per_city: number
   source: string
   baseline: string
 }

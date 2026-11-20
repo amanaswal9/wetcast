@@ -101,6 +101,40 @@ function DailyChart({ record, target, theme }: { record: TrackRecord; target: Ta
   )
 }
 
+/**
+ * Accuracy city by city. A city's numbers appear only once it has enough different days scored
+ * (min_days_per_city); until then it shows how far along it is, so a few days of one city's
+ * weather are never presented as that city's accuracy.
+ */
+function ByCity({ record, models, target, digits, unit }: { record: TrackRecord; models: ModelMetrics[]; target: Target; digits: number; unit: string }) {
+  const need = record.min_days_per_city
+  const cities = models[0]?.data.cities ?? []
+  const names = Object.fromEntries(record.models.map((m) => [m.model, m.display_name]))
+  const ready = cities.filter((c) => (record.city_days[c.id] ?? 0) >= need).length
+  return (
+    <>
+      <Table
+        caption={`${TARGET_LABELS[target]}: live accuracy by city`}
+        head={['City', 'Days scored', 'Most accurate model here', `Its MAE (${unit})`, `Persistence MAE (${unit})`]}
+        rows={cities.map((c) => {
+          const days = record.city_days[c.id] ?? 0
+          if (days < need) return [c.name, `${days} of ${need}`, 'Not enough days yet', '–', '–']
+          const rows = record.by_city.filter((b) => b.city === c.id && b.target === target)
+          if (rows.length === 0) return [c.name, `${days}`, 'No scores for this measure', '–', '–']
+          const best = rows.reduce((a, b) => (b.mae < a.mae ? b : a))
+          return [c.name, `${days}`, names[best.model] ?? best.model, fmt(best.mae, digits), fmt(best.persistence_mae, digits)]
+        })}
+      />
+      <p className="m-0 mt-1 mb-3 max-w-[75ch] text-[0.92em] text-[var(--text-muted)]">
+        {ready === 0
+          ? `No city has ${need} days of scores in this period yet, so no city's accuracy is shown: a few days of one place's weather say little about a model. `
+          : `Cities appear once they have ${need} different days of scores in the chosen period. `}
+        &quot;Most accurate&quot; is simply the lowest error here so far, not a model chosen for that city.
+      </p>
+    </>
+  )
+}
+
 export function TrackRecordPanel({ models, target, theme }: { models: ModelMetrics[]; target: Target; theme: Theme }) {
   const [days, setDays] = useState<(typeof WINDOWS)[number]>(30)
   const record = useResource(`track:${days}`, ({ signal }) => getTrackRecord(days, signal))
@@ -179,6 +213,7 @@ export function TrackRecordPanel({ models, target, theme }: { models: ModelMetri
       </p>
       <DailyChart record={r} target={target} theme={theme} />
       <p className="m-0 mt-1 mb-3 text-[0.92em] text-[var(--text-muted)]">Mean absolute error per day (UTC) of the hours being forecast, {TARGET_LABELS[target].toLowerCase()} ({unit}).</p>
+      <ByCity record={r} models={models} target={target} digits={digits} unit={unit} />
       <Table
         caption={`${TARGET_LABELS[target]}: live error by hours ahead`}
         head={['Model', ...LEADS.map((l) => `${l} h ahead`)]}

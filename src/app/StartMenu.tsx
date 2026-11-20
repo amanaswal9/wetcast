@@ -1,4 +1,4 @@
-import { Contrast, Ruler } from 'lucide-react'
+import { Bell, Contrast, Ruler } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { loaders } from './pageLoaders'
 import { PAGE_ICONS } from './pageIcons'
@@ -9,6 +9,8 @@ interface StartMenuProps {
   page: PageId
   highContrast: boolean
   onToggleContrast: () => void
+  warningNotifications: boolean
+  onToggleNotifications: () => void
 }
 
 const preload = (id: PageId) => void loaders[id]().catch(() => undefined)
@@ -18,7 +20,7 @@ const preload = (id: PageId) => void loaders[id]().catch(() => undefined)
  * replaces the menu bar, so the header stays short. A disclosure (button + list of links),
  * not an ARIA menu, because its items are ordinary page links.
  */
-export function StartMenu({ page, highContrast, onToggleContrast }: StartMenuProps) {
+export function StartMenu({ page, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: StartMenuProps) {
   const [open, setOpen] = useState(false)
   const [unitsOpen, setUnitsOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -117,6 +119,18 @@ export function StartMenu({ page, highContrast, onToggleContrast }: StartMenuPro
           >
             <Ruler size={16} aria-hidden="true" />
             Units…
+          </button>
+          <button
+            type="button"
+            className="r-start-item w-full"
+            aria-pressed={warningNotifications}
+            onClick={() => {
+              onToggleNotifications()
+              setOpen(false)
+            }}
+          >
+            <Bell size={16} aria-hidden="true" />
+            Warning notifications{warningNotifications ? ': on' : ''}
           </button>
         </div>
       </div>
