@@ -278,15 +278,13 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     const group = citiesRef.current
     if (!group) return
     group.clearLayers()
+    const ink = theme === 'dark' ? '#ffffff' : '#000000'
+    const paper = theme === 'dark' ? '#000000' : '#ffffff'
     for (const c of coverage.data ?? []) {
-      L.circleMarker([c.latitude, c.longitude], {
-        radius: 5,
-        color: theme === 'dark' ? '#ffffff' : '#000000',
-        weight: 2,
-        fillColor: theme === 'dark' ? '#000000' : '#ffffff',
-        fillOpacity: 1,
-      })
-        .bindTooltip(`${c.name}: covered by WeatherAI's models`, { direction: 'top' })
+      const held = c.role === 'holdout'
+      // Training cities: hollow dots. Held-out cities (never trained on): solid dots.
+      L.circleMarker([c.latitude, c.longitude], { radius: 5, color: ink, weight: 2, fillColor: held ? ink : paper, fillOpacity: 1 })
+        .bindTooltip(held ? `${c.name}: kept out of training to test the models` : `${c.name}: the models trained here`, { direction: 'top' })
         .addTo(group)
     }
   }, [coverage.data, theme])
@@ -405,12 +403,27 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
         <GroupBox title="Key">
           <Legend layer={layer} />
           {(coverage.data?.length ?? 0) > 0 && (
-            <p className="m-0 mt-2 flex items-center gap-1.5 text-[0.92em]">
-              <svg width="12" height="12" aria-hidden="true">
-                <circle cx="6" cy="6" r="4.5" fill="var(--field)" stroke="var(--dark)" strokeWidth="2" />
-              </svg>
-              A city WeatherAI's own models cover.
-            </p>
+            <>
+              <p className="m-0 mt-2 flex items-center gap-1.5 text-[0.92em]">
+                <svg width="12" height="12" aria-hidden="true">
+                  <circle cx="6" cy="6" r="4.5" fill="var(--field)" stroke="var(--dark)" strokeWidth="2" />
+                </svg>
+                A city WeatherAI's own models trained on.
+              </p>
+              {coverage.data?.some((c) => c.role === 'holdout') && (
+                <>
+                  <p className="m-0 mt-1 flex items-center gap-1.5 text-[0.92em]">
+                    <svg width="12" height="12" aria-hidden="true">
+                      <circle cx="6" cy="6" r="4.5" fill="var(--dark)" stroke="var(--dark)" strokeWidth="2" />
+                    </svg>
+                    A city kept out of training, to test them on new places.
+                  </p>
+                  <p className="m-0 mt-1 max-w-[60ch] text-[0.92em] text-[var(--text-muted)]">
+                    Their own forecast works anywhere in India near these cities: open a point to see it.
+                  </p>
+                </>
+              )}
+            </>
           )}
         </GroupBox>
         <GroupBox title={picked ? 'Selected point' : 'Point at the map centre'}>

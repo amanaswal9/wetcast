@@ -159,7 +159,7 @@ so they are offline and deterministic. Synthetic data is never used for training
 
 | | |
 | --- | --- |
-| Region | North India: Delhi, Jaipur, Lucknow, Chandigarh, Agra, Dehradun, Kanpur, Amritsar, Bikaner, Varanasi |
+| Region | India: trained on 40 cities (state and territory capitals and North India), tested on 8 more held out from training |
 | Data | Open-Meteo Historical Forecast API, hourly, 2023-01-01 to 2026-10-31 |
 | Spatial context | Each city plus four points about 55 km north, south, east and west |
 | Input | Last 48 hours × 42 features (7 weather variables × 5 points, time of day, season, latitude, longitude, elevation) |
@@ -258,8 +258,9 @@ cd ml
 ```
 
 The download waits out Open-Meteo's per-minute, hourly and daily limits on its own and skips cities already saved,
-so it can be stopped and restarted at any time. Artifacts go to `ml/artifacts/india/`; the North India models stay
-in service until the all-India ones are evaluated.
+so it can be stopped and restarted at any time. Artifacts go to `ml/artifacts/india/`, which the API serves
+(`WEATHERAI_ARTIFACTS_DIR`); the earlier North India models stay in `ml/artifacts/`. `ml/train_india.ps1` runs the
+whole training job (about 4 hours on an ordinary CPU).
 
 ### How leakage is prevented
 
@@ -279,16 +280,21 @@ in service until the all-India ones are evaluated.
   often test values actually fell inside them.
 - A **station check** compares test predictions with Meteostat weather-station measurements, and scores
   Open-Meteo's own data against the same stations to show the data source's error floor.
-- Models only predict for the ten trained cities. Elsewhere the API answers `unsupported_location`.
+- **Where the models predict:** anywhere in India within 310 km of a training city (the farthest a held-out
+  city lies from one). Each forecast says whether the place is a training city, a held-out city or an untrained
+  location, with the error measured for that kind of place. Elsewhere the API answers `unsupported_location`.
+- **Held-out cities** (Aurangabad, Nagpur, Coimbatore, Visakhapatnam, Jodhpur, Indore, Gorakhpur, Mangaluru)
+  never touch training, scaling or validation, and are each at least 150 km from every training city.
 - Training targets are Open-Meteo model data, not observations; live inputs come from the same model family.
 - A **live track record** keeps scoring the models after training (below).
 
 ### Live track record
 
 A background job in the API (`backend/app/track_record.py`) runs every 3 hours, aligned to UTC hours. For each
-of the ten cities it fetches the last 72 hours (one Open-Meteo request), issues and stores a 24-hour forecast
+of the 48 cities it fetches the last 72 hours (one Open-Meteo request), issues and stores a 24-hour forecast
 from every model, saves the city centre's past hours as observations, and scores every stored forecast whose
-hour has passed. Forecasts people open on the Forecast page are stored and scored the same way.
+hour has passed. Forecasts people open for those cities on the Forecast page are stored and scored the same
+way; forecasts for other points are not kept. Each stored forecast records which model set made it.
 
 - **What happened** is Open-Meteo's record of past hours at the city centre: the same kind of data the models
   were trained and tested on, not a weather-station reading. An hour is saved only once it is 6 hours old,

@@ -38,6 +38,14 @@ class ModelRegistry:
             self._predictors[GBM_NAME] = GBMPredictor(gbm_folder)
             log.info("model %s registered", GBM_NAME)
         self._register_ensemble()
+        self._summaries: dict[str, dict] = {}
+
+    @property
+    def region_id(self) -> str:
+        """Which region's cities the served models were trained on ("india" or "north_india")."""
+        for predictor in self._predictors.values():
+            return predictor.metrics["data"].get("region_id", "north_india")
+        return "north_india"
 
     def _register_ensemble(self) -> None:
         folder = self.artifacts_dir / ENSEMBLE_NAME
@@ -77,6 +85,12 @@ class ModelRegistry:
 
     def evaluation(self, name: str) -> dict:
         return json.loads((self.artifacts_dir / name / "evaluation.json").read_text())
+
+    def evaluation_summary(self, name: str) -> dict:
+        """The evaluation without its sample series (per-city and per-horizon errors), kept in memory."""
+        if name not in self._summaries:
+            self._summaries[name] = {k: v for k, v in self.evaluation(name).items() if k != "samples"}
+        return self._summaries[name]
 
     @staticmethod
     def display_name(name: str) -> str:

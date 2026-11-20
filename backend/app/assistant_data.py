@@ -14,11 +14,12 @@ import numpy as np
 from sqlalchemy.orm import Session
 
 from weatherai_ml.config import TARGET_UNITS, TARGETS
-from weatherai_ml.predict import InsufficientHistoryError, nearest_city
+from weatherai_ml.predict import InsufficientHistoryError
 
 from . import alerts as official_alerts
 from .accuracy import track_record_summary
-from .predictions import UpstreamError, recent_features, supported_cities
+from . import coverage as model_coverage
+from .predictions import UpstreamError, recent_features
 from .registry import ModelRegistry
 
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
@@ -146,15 +147,13 @@ def weather(latitude: float, longitude: float) -> dict:
     }
 
 
-def weatherai_prediction(registry: ModelRegistry, latitude: float, longitude: float) -> dict:
-    """WeatherAI's own 24-hour forecast (the ensemble), only for the cities the models were trained on."""
-    city = nearest_city(latitude, longitude)
-    if city is None:
-        return {
-            "available": False,
-            "reason": "WeatherAI's own models only cover the cities they were trained on (within 30 km).",
-            "covered_cities": [c.name for c in supported_cities()],
-        }
+def weatherai_prediction(registry: ModelRegistry, latitude: float, longitude: float, country: str | None = None) -> dict:
+    """WeatherAI's own 24-hour forecast (the ensemble), where its models cover the place."""
+    region = registry.region_id
+    located = model_coverage.locate(region, latitude, longitude, country)
+    if located is None:
+        return {"available": False, "reason": model_coverage.unsupported_detail(region)}
+    city = located.city
     name = "ensemble" if registry.get("ensemble") else (registry.names[0] if registry.names else None)
     if name is None:
         return {"available": False, "reason": "No trained models are loaded on this server."}
@@ -176,15 +175,20 @@ def weatherai_prediction(registry: ModelRegistry, latitude: float, longitude: fl
             row[f"{target}_range_{unit}"] = [_r(pred.lower[i, k]), _r(pred.upper[i, k])]
         rows.append(row)
     level = metrics["interval"]["level"]
+    label, detail = model_coverage.describe(region, located)
+    expected = model_coverage.expected_error(registry, name, located)
     return {
         "available": True,
+        "place_kind": f"{label}. {detail}",
         "source": f"WeatherAI's own {registry.display_name(name)} model (machine-learning forecast, not an official forecast)",
         "city": city.name,
         "times": "India Standard Time",
         "issued_from_data_up_to": pred.issued_at.tz_convert(IST).strftime("%Y-%m-%dT%H:%M"),
         "ranges": f"Each range is sized to hold {round(level * 100)}% of past errors; on the 2026 test period they held about "
         f"{round(min(metrics['interval']['test_coverage'].values()) * 100)}-{round(max(metrics['interval']['test_coverage'].values()) * 100)}% of the time.",
-        "test_error": {t: f"{metrics['test'][t]['mae']:.2f} {TARGET_UNITS[t]} average error" for t in TARGETS},
+        "expected_error_here": {
+            t: f"{v:.2f} {TARGET_UNITS[t]} average error ({expected['basis']})" for t, v in expected["mae"].items() if v is not None
+        },
         "forecast_every_3_hours": rows,
     }
 

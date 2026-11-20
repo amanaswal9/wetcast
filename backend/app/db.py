@@ -24,12 +24,14 @@ class PredictionRun(Base):
     can later be scored against what actually happened."""
 
     __tablename__ = "prediction_runs"
-    __table_args__ = (UniqueConstraint("model", "city_id", "issued_at", name="uq_run"),)
+    __table_args__ = (UniqueConstraint("model_set", "model", "city_id", "issued_at", name="uq_run"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     model: Mapped[str] = mapped_column(String(32), index=True)
     city_id: Mapped[str] = mapped_column(String(32), index=True)
     issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    # Region the models were trained on ("north_india", "india"): model names repeat across sets.
+    model_set: Mapped[str] = mapped_column(String(32), index=True, default="north_india", server_default="north_india")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     points: Mapped[list["PredictionPoint"]] = relationship(back_populates="run", cascade="all, delete-orphan")
 

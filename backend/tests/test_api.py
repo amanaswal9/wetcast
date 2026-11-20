@@ -25,11 +25,15 @@ def test_health(client):
     assert r.json()["database"] == "ok"
 
 
-def test_coverage_lists_ten_cities(client):
+def test_coverage_lists_training_and_held_out_cities(client):
     r = client.get("/api/coverage")
     assert r.status_code == 200
-    assert {c["id"] for c in r.json()} >= {"delhi", "jaipur", "lucknow"}
-    assert len(r.json()) == 10
+    cities = r.json()
+    assert {c["id"] for c in cities} >= {"delhi", "mumbai", "kolkata", "nagpur"}
+    assert sum(c["role"] == "train" for c in cities) == 40
+    assert {c["id"] for c in cities if c["role"] == "holdout"} == {
+        "aurangabad", "nagpur", "coimbatore", "visakhapatnam", "jodhpur", "indore", "gorakhpur", "mangaluru"
+    }
 
 
 def test_predictions_reject_bad_coordinates(client):
@@ -41,7 +45,52 @@ def test_predictions_outside_region_says_unsupported(client):
     assert r.status_code == 404
     body = r.json()
     assert body["code"] == "unsupported_location"
-    assert len(body["supported"]) == 10
+    assert "India" in body["detail"]
+    assert len(body["supported"]) == 40  # training cities, nearest first
+    assert body["supported"][0]["id"] in {"amritsar", "srinagar", "leh"}
+
+
+@pytest.mark.parametrize(
+    ("lat", "lon", "country"),
+    [
+        (27.70, 85.32, None),  # Kathmandu: near Patna, but in Nepal
+        (31.55, 74.34, None),  # Lahore: 51 km from Amritsar, but in Pakistan
+        (23.81, 90.41, None),  # Dhaka
+        (18.52, 73.86, "NP"),  # Pune, but the app says the place is in another country
+    ],
+)
+def test_predictions_only_in_india(client, lat, lon, country):
+    params = {"latitude": lat, "longitude": lon} | ({"country": country} if country else {})
+    assert client.get("/api/predictions", params=params).status_code == 404
+
+
+@pytest.mark.skipif(not HAS_MODELS, reason="no trained models yet")
+def test_untrained_place_in_india_is_forecast_and_labelled(client, monkeypatch):
+    monkeypatch.setattr(predictions, "fetch_recent", fake_fetch)
+    r = client.get("/api/predictions", params={"latitude": 18.52, "longitude": 73.86})  # Pune
+    assert r.status_code == 200, r.text
+    body = r.json()
+    cov = body["coverage"]
+    assert cov["kind"] == "untrained"
+    assert cov["nearest_city"]["id"] == "mumbai" and 100 < cov["nearest_km"] < 140
+    assert cov["expected_error"]["mae"]["temperature"] > 0
+    low, high = cov["expected_error"]["temperature_range"]
+    assert low <= cov["expected_error"]["mae"]["temperature"] <= high
+    assert body["city"]["latitude"] == 18.5 and body["city"]["longitude"] == 73.85  # snapped to the 0.05 grid
+    assert body["city"]["role"] is None
+    with next(db.get_session()) as session:  # forecast, but not kept for the track record
+        assert session.scalar(select(func.count()).select_from(db.PredictionRun)) == 0
+
+
+@pytest.mark.skipif(not HAS_MODELS, reason="no trained models yet")
+def test_held_out_city_reports_its_own_accuracy(client, monkeypatch):
+    monkeypatch.setattr(predictions, "fetch_recent", fake_fetch)
+    r = client.get("/api/predictions", params={"latitude": 21.15, "longitude": 79.09})  # Nagpur
+    assert r.status_code == 200, r.text
+    cov = r.json()["coverage"]
+    assert cov["kind"] == "held_out" and r.json()["city"]["id"] == "nagpur"
+    per_city = get_registry().evaluation_summary(cov["model"])["per_city_mae"]
+    assert cov["expected_error"]["mae"]["temperature"] == round(per_city["temperature"]["nagpur"], 3)
 
 
 @pytest.mark.skipif(not HAS_MODELS, reason="no trained models yet")
@@ -51,6 +100,7 @@ def test_predictions_for_delhi(client, monkeypatch):
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["city"]["id"] == "delhi"
+    assert body["coverage"]["kind"] == "trained" and body["coverage"]["nearest_km"] < 5
     assert len(body["models"]) == len(get_registry().names)
     for model in body["models"]:
         assert len(model["points"]) == 24

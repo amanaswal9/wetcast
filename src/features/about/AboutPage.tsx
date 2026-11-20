@@ -62,7 +62,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
             </p>
             <p className="m-0 mt-2">
               Everyday weather comes from Open-Meteo for any city in the world. WeatherAI&apos;s own models (LSTM, GRU, CNN-LSTM, a
-              spatio-temporal Transformer, LightGBM and their ensemble) cover ten cities in North India, where they were trained and tested.
+              spatio-temporal Transformer, LightGBM and their ensemble) cover India: they trained on 40 cities across the country and were tested on 8 more they never saw.
             </p>
           </div>
         </div>
@@ -95,7 +95,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
             mistakes.
           </li>
           <li>
-            <b>Serve.</b> When you open a covered city, the server fetches the latest 48 hours, prepares them with exactly the same
+            <b>Serve.</b> When you open a place in India, the server fetches the latest 48 hours, prepares them with exactly the same
             code and saved settings as training, and runs all three models. Each forecast is stored so it can be scored later.
           </li>
         </ol>
@@ -239,7 +239,10 @@ export function AboutPage({ theme }: { theme: Theme }) {
 
       <GroupBox title="Limits worth knowing">
         <ul className="m-0 flex max-w-[75ch] flex-col gap-1.5 pl-5">
-          <li>The models only cover the ten North India cities they were trained on.</li>
+          <li>
+            The models only cover India, near the cities they were trained on. Away from those cities their accuracy is an estimate,
+            measured on the eight held-out cities; each forecast says which kind of place it is for.
+          </li>
           <li>
             They learn from Open-Meteo&apos;s model data, so they inherit its errors. Against weather stations, that data is itself
             off by about a degree on average.

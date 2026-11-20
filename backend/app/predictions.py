@@ -12,7 +12,7 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from weatherai_ml.config import CITIES, TARGETS, City
+from weatherai_ml.config import TARGETS, City, region_cities
 from weatherai_ml.features import build_frames
 from weatherai_ml.openmeteo import fetch_recent
 from weatherai_ml.models import ENSEMBLE_NAME
@@ -43,13 +43,17 @@ _cache: dict[str, CacheEntry] = {}
 _lock = threading.Lock()
 
 
-def city_elevation(registry: ModelRegistry, city: City) -> float:
-    """Use the same centre elevation recorded at training time."""
+def city_elevation(registry: ModelRegistry, city: City, fetched: float | None = None) -> float:
+    """A known city uses the centre elevation recorded at training time; any other point uses the
+    elevation Open-Meteo reports for it with the live data (the same source the recorded ones came from)."""
     for name in registry.names:
         for c in registry.metrics(name)["data"]["cities"]:
             if c["id"] == city.id:
                 return float(c["elevation_m"])
-    raise KeyError(city.id)
+        break  # every model was trained on the same cities
+    if fetched is None:
+        raise KeyError(city.id)
+    return float(fetched)
 
 
 def recent_features(registry: ModelRegistry, city: City, lookback: int) -> pd.DataFrame:
@@ -63,11 +67,11 @@ def recent_features(registry: ModelRegistry, city: City, lookback: int) -> pd.Da
             return hit.features
     try:
         with httpx.Client(timeout=20) as client:
-            long_df, _ = fetch_recent(client, city, past_hours=hours)
+            long_df, elevation = fetch_recent(client, city, past_hours=hours)
     except (httpx.HTTPError, ValueError, KeyError, RuntimeError) as exc:
         log.warning("open-meteo fetch failed for %s: %s", city.id, exc)
         raise UpstreamError("Couldn't get recent weather data from Open-Meteo.") from exc
-    features, _ = build_frames(long_df, city, city_elevation(registry, city))
+    features, _ = build_frames(long_df, city, city_elevation(registry, city, elevation))
     with _lock:
         _cache[city.id] = CacheEntry(time.monotonic() + ttl, features, hours)
     return features
@@ -110,17 +114,22 @@ def predict_models(registry: ModelRegistry, city: City, names: list[str], featur
     return {name: out[name] for name in wanted}
 
 
-def store_run(session: Session, model: str, city: City, prediction: Prediction) -> bool:
-    """Store a forecast once; return False if this model already stored one for that hour."""
+def store_run(session: Session, model: str, city: City, prediction: Prediction, model_set: str) -> bool:
+    """Store a forecast once; return False if this model already stored one for that hour.
+    `model_set` is the region the models were trained on, so the track record never mixes model sets
+    that share names (the North India and all-India LSTM are different models)."""
     issued = prediction.issued_at.to_pydatetime()
     exists = session.scalar(
         select(PredictionRun.id).where(
-            PredictionRun.model == model, PredictionRun.city_id == city.id, PredictionRun.issued_at == issued
+            PredictionRun.model == model,
+            PredictionRun.city_id == city.id,
+            PredictionRun.issued_at == issued,
+            PredictionRun.model_set == model_set,
         )
     )
     if exists:
         return False
-    run = PredictionRun(model=model, city_id=city.id, issued_at=issued)
+    run = PredictionRun(model=model, city_id=city.id, issued_at=issued, model_set=model_set)
     for lead, valid in enumerate(prediction.times, start=1):
         for k, target in enumerate(TARGETS):
             run.points.append(
@@ -138,5 +147,6 @@ def store_run(session: Session, model: str, city: City, prediction: Prediction) 
     return True
 
 
-def supported_cities() -> list[City]:
-    return list(CITIES)
+def tracked_cities(region: str) -> list[City]:
+    """Cities whose forecasts are stored and scored: every training and held-out city."""
+    return list(region_cities(region))

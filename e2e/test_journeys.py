@@ -60,6 +60,10 @@ def test_start_menu_by_keyboard_then_pick_a_day(desktop):
     days.nth(2).click()
     expect(days.nth(2)).to_have_attribute("aria-selected", "true")
     expect(desktop.get_by_text("WeatherAI model prediction, next 24 hours")).to_be_visible()
+    # Delhi is a training city: the panel says so, with the error measured there.
+    note = desktop.locator('[data-coverage="trained"]')
+    expect(note).to_contain_text("Trained city.")
+    expect(note).to_contain_text("Average error to expect from the Ensemble")
     expect_screenshot(desktop, "forecast-desktop")
 
 

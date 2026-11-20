@@ -14,7 +14,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", env_prefix="WEATHERAI_", extra="ignore")
 
     database_url: str = "sqlite:///./weatherai-dev.db"
-    artifacts_dir: Path = BACKEND_DIR.parent / "ml" / "artifacts"
+    # The served models. The all-India set (2026-11-20) covers any point in India and beats the older
+    # North India set on its own cities; that set is still in ml/artifacts (point here to serve it).
+    artifacts_dir: Path = BACKEND_DIR.parent / "ml" / "artifacts" / "india"
     cors_origins: list[str] = ["http://localhost:5173"]
     prediction_cache_seconds: int = 900
     log_level: str = "INFO"

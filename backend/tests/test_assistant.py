@@ -135,7 +135,7 @@ def test_rounds_are_capped(client, stub_weather):
 
 def test_prediction_outside_coverage_says_so():
     out = assistant_data.weatherai_prediction(get_registry(), 51.5, -0.12)
-    assert out["available"] is False and "Jaipur" in out["covered_cities"]
+    assert out["available"] is False and "India" in out["reason"]
 
 
 def test_weather_summary_from_open_meteo(monkeypatch):

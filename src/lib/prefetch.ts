@@ -22,6 +22,6 @@ function whenIdle(task: () => void): () => void {
 export function prefetchPlace(place: Place): () => void {
   return whenIdle(() => {
     getWeekForecast(place).catch((e: unknown) => log.debug('prefetch week failed', e))
-    getPredictions(place.latitude, place.longitude).catch((e: unknown) => log.debug('prefetch predictions failed', e))
+    getPredictions(place.latitude, place.longitude, undefined, false, place.countryCode).catch((e: unknown) => log.debug('prefetch predictions failed', e))
   })
 }

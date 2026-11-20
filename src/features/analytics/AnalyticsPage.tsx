@@ -85,11 +85,34 @@ function ActualVsPredicted({ theme }: { theme: Theme }) {
           City
         </label>
         <select id={selectId} className="r-input" value={city} onChange={(e) => setCity(e.target.value)}>
-          {cities.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
+          {cities.some((c) => c.role === 'holdout') ? (
+            <>
+              <optgroup label="Trained on">
+                {cities
+                  .filter((c) => c.role !== 'holdout')
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Held out (never trained on)">
+                {cities
+                  .filter((c) => c.role === 'holdout')
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+              </optgroup>
+            </>
+          ) : (
+            cities.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))
+          )}
         </select>
       </div>
       <PickerRow label="Model" options={models.data.map((m) => ({ value: m.model, label: m.display_name }))} value={activeModel ?? ''} onChange={setModel} />

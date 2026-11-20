@@ -189,6 +189,8 @@ export function ModelsPage({ theme }: { theme: Theme }) {
   const first = list[0]
   const unit = TARGET_UNITS[target]
   const digits = target === 'precipitation' ? 3 : 2
+  const training = first.data.cities.filter((c) => c.role !== 'holdout')
+  const heldOut = first.data.cities.filter((c) => c.role === 'holdout')
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -220,6 +222,41 @@ export function ModelsPage({ theme }: { theme: Theme }) {
           ]}
         />
         <MaeBars models={list} target={target} theme={theme} />
+        {first.test_unseen && first.persistence_baseline_unseen && (
+          <>
+            <p className="m-0 mt-3 mb-2 max-w-[75ch]">
+              The table above is for the cities the models trained on (on days they never saw). To test them at places they had
+              never seen at all, {heldOut.length} cities were kept out of training entirely: {heldOut.map((c) => c.name).join(', ')}.
+              Each is at least 150 km from every training city. Anywhere else in India, expect accuracy like this.
+            </p>
+            <Table
+              caption={`${TARGET_LABELS[target]} errors at the ${heldOut.length} held-out cities`}
+              head={['Model', `MAE (${unit})`, `RMSE (${unit})`, 'R²', 'MAE vs persistence']}
+              rows={[
+                ...list.flatMap((m) =>
+                  m.test_unseen
+                    ? [
+                        [
+                          m.display_name,
+                          fmt(m.test_unseen[target].mae, digits),
+                          fmt(m.test_unseen[target].rmse, digits),
+                          fmt(m.test_unseen[target].r2, 3),
+                          improvement(m.test_unseen[target].mae, first.persistence_baseline_unseen![target].mae),
+                        ],
+                      ]
+                    : [],
+                ),
+                [
+                  'Persistence baseline',
+                  fmt(first.persistence_baseline_unseen[target].mae, digits),
+                  fmt(first.persistence_baseline_unseen[target].rmse, digits),
+                  fmt(first.persistence_baseline_unseen[target].r2, 3),
+                  '–',
+                ],
+              ]}
+            />
+          </>
+        )}
         {target === 'precipitation' && (
           <p className="m-0 mt-2 max-w-[75ch] text-[0.92em]">
             Hourly rainfall is hard to predict: most hours are dry and rain is patchy, so R² for rain is expected to be low.
@@ -344,7 +381,8 @@ export function ModelsPage({ theme }: { theme: Theme }) {
         <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1">
           <dt>Region</dt>
           <dd className="m-0">
-            {first.data.region}: {first.data.cities.map((c) => c.name).join(', ')}
+            {first.data.region}. Trained on {training.length} cities: {training.map((c) => c.name).join(', ')}.
+            {heldOut.length > 0 && ` Held out to test new places: ${heldOut.map((c) => c.name).join(', ')}.`}
           </dd>
           <dt>Data</dt>
           <dd className="m-0">{first.data.source}</dd>
