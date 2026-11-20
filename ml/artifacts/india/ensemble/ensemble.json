@@ -1,0 +1,10 @@
+{
+  "members": [
+    "lstm",
+    "gru",
+    "cnn_lstm",
+    "lightgbm",
+    "transformer"
+  ],
+  "method": "mean"
+}
