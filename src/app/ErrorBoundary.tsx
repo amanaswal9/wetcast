@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { Button, MessageBox } from '../components/retro'
+import { Button, ErrorStack } from '../components/retro'
 import { log } from '../lib/log'
 
 interface Props {
@@ -32,16 +32,13 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (!this.state.error) return this.props.children
     return (
-      <div className="r-group">
-        <MessageBox
-          kind="error"
-          role="alert"
-          title="This page stopped working"
-          actions={<Button onClick={() => this.setState({ error: null })}>Try again</Button>}
-        >
-          <p className="m-0">Something on this page failed to display. The other pages still work.</p>
-        </MessageBox>
-      </div>
+      <ErrorStack
+        caption="WeatherAI"
+        title="This page stopped working"
+        actions={<Button onClick={() => this.setState({ error: null })}>Try again</Button>}
+      >
+        <p className="m-0">Something on this page failed to display. The other pages still work.</p>
+      </ErrorStack>
     )
   }
 }

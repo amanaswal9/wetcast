@@ -1,4 +1,4 @@
-import { Button, ChartSkeleton, GroupBox, MessageBox, Skeleton } from '../../components/retro'
+import { Button, ChartSkeleton, ErrorStack, GroupBox, MessageBox, Skeleton } from '../../components/retro'
 import type { ResourceState } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import type { AirQuality, Forecast, Place } from '../../types/weather'
@@ -52,16 +52,9 @@ export function Dashboard({ place, forecast, air, summary, theme, speech }: Dash
   if (!forecast.data) {
     if (forecast.status === 'error') {
       return (
-        <div className="r-sunken" style={{ background: 'var(--face)' }}>
-          <MessageBox
-            kind="error"
-            role="alert"
-            title="Couldn't load the weather"
-            actions={<Button onClick={forecast.reload}>Try again</Button>}
-          >
-            {forecast.error?.message}
-          </MessageBox>
-        </div>
+        <ErrorStack caption="Weather" title="Couldn't load the weather" actions={<Button onClick={forecast.reload}>Try again</Button>}>
+          {forecast.error?.message}
+        </ErrorStack>
       )
     }
     return <DashboardSkeleton />

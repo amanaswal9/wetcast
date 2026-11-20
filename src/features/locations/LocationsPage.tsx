@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, ChartSkeleton, GroupBox, MessageBox, PixelWeatherIcon, Skeleton, TableSkeleton } from '../../components/retro'
+import { Button, ChartSkeleton, DitherPicture, GroupBox, MessageBox, PixelWeatherIcon, Skeleton, TableSkeleton } from '../../components/retro'
 import { useForecasts, type PlaceForecast } from '../../hooks/useForecasts'
 import { MAX_SAVED, samePlace, type SavedPlaces } from '../../hooks/useSavedPlaces'
 import type { Theme } from '../../hooks/useTheme'
@@ -151,7 +151,8 @@ export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: Loc
         </div>
 
         {saved.places.length === 0 ? (
-          <div className="mt-3">
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start">
+            <DitherPicture caption="No places saved" />
             <MessageBox kind="info" title="Save the places you check most">
               <p className="m-0">
                 Search for a city above to add it. Saved places load together here, can be compared side by side, and

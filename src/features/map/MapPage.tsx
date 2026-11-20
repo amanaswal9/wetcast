@@ -2,7 +2,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, GroupBox } from '../../components/retro'
+import { Button, GroupBox, ProgressBar } from '../../components/retro'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { isAbort, toApiError } from '../../lib/api/http'
@@ -12,6 +12,7 @@ import { compass, latLonLabel } from '../../lib/format'
 import { BANDS, bandFor, bandLabel, blowingTowards, LAYER_INFO, type MapLayer } from '../../lib/mapScales'
 import { useFormat } from '../../lib/units'
 import { pointerIcon } from './pointerPin'
+import { ToolIcon } from './ToolIcons'
 import type { Place } from '../../types/weather'
 
 const LAYERS: MapLayer[] = ['temperature', 'rain', 'wind']
@@ -29,7 +30,7 @@ const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 const ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Weather: <a href="https://open-meteo.com/">Open-Meteo</a>'
 
-type Status = { kind: 'loading'; points: number } | { kind: 'waiting'; seconds: number } | { kind: 'ready' } | { kind: 'error'; message: string }
+type Status = { kind: 'loading'; points: number; done: number } | { kind: 'waiting'; seconds: number } | { kind: 'ready' } | { kind: 'error'; message: string }
 
 function toBounds(b: L.LatLngBounds): Bounds {
   return { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }
@@ -120,7 +121,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
   const [touch] = useState(() => window.matchMedia('(pointer: coarse)').matches)
   const [touchHint, setTouchHint] = useState(false)
   const [data, setData] = useState<Map<string, PointForecast>>(() => new Map())
-  const [status, setStatus] = useState<Status>({ kind: 'loading', points: 0 })
+  const [status, setStatus] = useState<Status>({ kind: 'loading', points: 0, done: 0 })
   const [retry, setRetry] = useState(0)
   const coverage = useResource('coverage', ({ signal }) => getCoverage(signal))
 
@@ -198,11 +199,14 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     const missing = uncachedPoints(grid.points).length
     const controller = new AbortController()
     const timer = window.setTimeout(() => {
-      if (missing > 0) setStatus({ kind: 'loading', points: missing })
+      if (missing > 0) setStatus({ kind: 'loading', points: missing, done: 0 })
       getGridForecasts(grid.points, {
         signal: controller.signal,
         fresh,
         onWait: (ms) => setStatus({ kind: 'waiting', seconds: Math.ceil(ms / 1000) }),
+        onProgress: (done, total) => {
+          if (done < total) setStatus({ kind: 'loading', points: total, done })
+        },
       })
         .then((result) => {
           setData((prev) => new Map([...prev, ...result]))
@@ -315,13 +319,6 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <GroupBox title="Weather map">
-        <div className="mb-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="Map layer">
-          {LAYERS.map((l) => (
-            <Button key={l} aria-pressed={layer === l} onClick={() => setLayer(l)}>
-              {LAYER_INFO[l].label}
-            </Button>
-          ))}
-        </div>
         <div className="mb-2 flex flex-wrap items-center gap-1.5">
           <Button onClick={() => setHour(Math.max(hourIndex - 1, 0))} disabled={hourIndex === 0} aria-label="One hour earlier">
             ◀
@@ -344,7 +341,29 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
             {hourText}
           </span>
         </div>
-        <div className="r-sunken relative p-0.5">
+        <div className="flex min-w-0 gap-2 max-sm:flex-col">
+          {/* Layer tools, like a paint program's toolbox: beside the map, or above it on phones. */}
+          <div className="r-toolbox" role="group" aria-label="Map layer">
+            <div className="r-toolbox-tools">
+              {LAYERS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  className="r-tool"
+                  aria-pressed={layer === l}
+                  aria-label={LAYER_INFO[l].label}
+                  title={LAYER_INFO[l].label}
+                  onClick={() => setLayer(l)}
+                >
+                  <ToolIcon layer={l} />
+                </button>
+              ))}
+            </div>
+            <p className="r-toolbox-label m-0" aria-hidden="true">
+              {LAYER_INFO[layer].label}
+            </p>
+          </div>
+        <div className="r-sunken relative min-w-0 flex-1 p-0.5">
           <div
             ref={container}
             data-theme={theme}
@@ -362,10 +381,15 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
             </div>
           )}
         </div>
+        </div>
+        {status.kind === 'loading' && status.points > 0 && (
+          // Real progress: fills as each batch of points arrives from Open-Meteo.
+          <ProgressBar value={(status.done / status.points) * 100} label="Loading the map" className="mt-1 max-w-[320px]" />
+        )}
         <div className="mt-1 flex flex-wrap justify-between gap-x-3 text-[0.92em]" role="status">
           <span>
             {status.kind === 'loading'
-              ? `Loading forecasts for ${status.points} points…`
+              ? `Loading forecasts for ${status.points} points (${status.done} done)…`
               : status.kind === 'waiting'
                 ? `Waiting ${status.seconds} s to stay within Open-Meteo's free limit of requests per minute…`
                 : status.kind === 'error'
