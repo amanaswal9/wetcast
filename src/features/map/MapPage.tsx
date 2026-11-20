@@ -11,6 +11,7 @@ import { getCoverage } from '../../lib/api/weatherai'
 import { compass, latLonLabel } from '../../lib/format'
 import { BANDS, bandFor, bandLabel, blowingTowards, LAYER_INFO, type MapLayer } from '../../lib/mapScales'
 import { useFormat } from '../../lib/units'
+import { pointerIcon } from './pointerPin'
 import type { Place } from '../../types/weather'
 
 const LAYERS: MapLayer[] = ['temperature', 'rain', 'wind']
@@ -238,7 +239,6 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     group.clearLayers()
     const halfLat = grid.latSpacing / 2
     const halfLon = grid.lonSpacing / 2
-    const outline = theme === 'dark' ? '#ffffff' : '#000000'
     for (const p of grid.points) {
       const f = data.get(p.key)
       if (!f) continue
@@ -259,13 +259,13 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
       }
     }
     if (selected) {
-      L.rectangle(
-        [
-          [selected.latitude - halfLat, selected.longitude - halfLon],
-          [selected.latitude + halfLat, selected.longitude + halfLon],
-        ],
-        { color: outline, weight: 2, dashArray: '4 3', fill: false, interactive: false },
-      ).addTo(group)
+      // The pointer's tip marks the forecast point whose values are shown below the map.
+      L.marker([selected.latitude, selected.longitude], {
+        icon: pointerIcon(theme),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 1000,
+      }).addTo(group)
     }
   }, [data, grid, layer, hourIndex, selected, theme])
 
