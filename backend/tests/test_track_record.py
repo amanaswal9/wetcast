@@ -74,6 +74,10 @@ def test_issue_then_score(client, monkeypatch):
         assert 0 <= t["coverage"] <= 1 and t["mae"] >= 0
     assert sum(r["n"] for r in body["daily"] if r["model"] == names[0] and r["target"] == "humidity") == 24
     assert {r["lead"] for r in body["by_lead"]} == {"1-6", "7-12", "13-18", "19-24"}
+    by_city = [r for r in body["by_city"] if r["target"] == "temperature"]
+    assert {r["city"] for r in by_city} == {"delhi"} and {r["n"] for r in by_city} == {24}
+    assert set(body["city_days"]) == {"delhi"} and body["city_days"]["delhi"] in (1, 2)  # 24 h: one or two UTC days
+    assert body["min_days_per_city"] == 14
     assert body["pending_points"] == len(names) * 24 * 3  # the second cycle's forecasts
 
 
@@ -126,6 +130,7 @@ def test_one_city_failing_does_not_stop_the_others(client, monkeypatch):
 def test_empty_track_record(client):
     body = client.get("/api/track-record").json()
     assert body["totals"] == [] and body["daily"] == [] and body["runs"] == 0
+    assert body["by_city"] == [] and body["city_days"] == {}
     assert "not a weather-station reading" in body["source"]
 
 

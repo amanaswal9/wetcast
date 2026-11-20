@@ -11,9 +11,11 @@ import { useOnline } from '../hooks/useOnline'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useTheme } from '../hooks/useTheme'
 import { getAirQuality, getForecast } from '../lib/api/openMeteo'
-import { getHealth } from '../lib/api/weatherai'
 import { placeShortLabel } from '../lib/format'
 import { useFormat } from '../lib/units'
+import { setAlertNotifications, useAlertNotificationsEnabled } from '../lib/alertNotifications'
+import { getAlerts, getHealth } from '../lib/api/weatherai'
+import { useAlertNotifications } from '../hooks/useAlertNotifications'
 import { prefetchPlace } from '../lib/prefetch'
 import type { Place } from '../types/weather'
 import { ErrorBoundary } from './ErrorBoundary'
@@ -114,6 +116,23 @@ export default function App() {
   }
 
   const placeSaved = saved.isSaved(place)
+
+  const notificationsOn = useAlertNotificationsEnabled()
+  useAlertNotifications(place)
+  async function toggleNotifications() {
+    const result = await setAlertNotifications(!notificationsOn, async () =>
+      (await getAlerts(place.latitude, place.longitude, place.countryCode)).alerts,
+    )
+    setNotice(
+      result === 'on'
+        ? `Warning notifications on for ${place.name}, while WeatherAI is open. Official warnings are connected for India and the US.`
+        : result === 'off'
+          ? 'Warning notifications off.'
+          : result === 'blocked'
+            ? 'Notifications are blocked for this site. Allow them in your browser settings, then try again.'
+            : "This browser can't show notifications.",
+    )
+  }
 
   function toggleSaved() {
     if (placeSaved) {
@@ -303,6 +322,8 @@ export default function App() {
         onToggleWindow={() => (minimized ? restore() : minimize())}
         highContrast={theme === 'dark'}
         onToggleContrast={toggleTheme}
+        warningNotifications={notificationsOn}
+        onToggleNotifications={() => void toggleNotifications()}
       />
     </>
   )

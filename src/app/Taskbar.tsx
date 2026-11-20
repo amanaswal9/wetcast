@@ -13,9 +13,11 @@ interface TaskbarProps {
   onToggleWindow: () => void
   highContrast: boolean
   onToggleContrast: () => void
+  warningNotifications: boolean
+  onToggleNotifications: () => void
 }
 
-export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, onToggleContrast }: TaskbarProps) {
+export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: TaskbarProps) {
   const now = useClock()
   const fmt = useFormat()
   return (
@@ -27,7 +29,13 @@ export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, 
         paddingRight: 'max(4px, env(safe-area-inset-right))',
       }}
     >
-      <StartMenu page={page} highContrast={highContrast} onToggleContrast={onToggleContrast} />
+      <StartMenu
+        page={page}
+        highContrast={highContrast}
+        onToggleContrast={onToggleContrast}
+        warningNotifications={warningNotifications}
+        onToggleNotifications={onToggleNotifications}
+      />
       {/* Quick launch: the three most-used pages, one tap away on phones (the menu bar covers wider screens). */}
       <nav aria-label="Quick launch" className="flex shrink-0 gap-0.5 sm:hidden">
         {QUICK_LAUNCH.map((id) => {

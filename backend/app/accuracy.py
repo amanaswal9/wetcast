@@ -14,6 +14,10 @@ from .track_record import SETTLE_HOURS
 
 LEAD_BUCKETS = ((1, 6), (7, 12), (13, 18), (19, 24))
 
+# A city's own accuracy is only shown once it has this many different days scored. A few days
+# of one season say little about a model; the frontend shows progress until then.
+MIN_DAYS_PER_CITY = 14
+
 
 def _day(session: Session):
     """Calendar day (UTC) of a point's valid time, on PostgreSQL or SQLite."""
@@ -81,6 +85,17 @@ def track_record_summary(session: Session, registry: ModelRegistry, days: int, c
     totals = [{"model": r.model, "target": r.target, **_row(r)} for r in grouped()]
     daily = [{"model": r.model, "target": r.target, "date": str(r.day), **_row(r)} for r in grouped(day)]
     by_lead = [{"model": r.model, "target": r.target, "lead": r.lead, **_row(r)} for r in grouped(lead)]
+    by_city = [{"model": r.model, "target": r.target, "city": r.city_id, **_row(r)} for r in grouped(PredictionRun.city_id)]
+    # How many different days each city has scores for (any model, any target).
+    days_per_city = dict(
+        session.execute(
+            select(PredictionRun.city_id, func.count(func.distinct(day)))
+            .select_from(PredictionPoint)
+            .join(PredictionRun)
+            .where(*scored)
+            .group_by(PredictionRun.city_id)
+        ).all()
+    )
 
     span = session.execute(
         select(
@@ -110,6 +125,9 @@ def track_record_summary(session: Session, registry: ModelRegistry, days: int, c
         "totals": totals,
         "daily": sorted(daily, key=lambda r: r["date"]),
         "by_lead": by_lead,
+        "by_city": sorted(by_city, key=lambda r: r["city"]),
+        "city_days": {c: int(n) for c, n in sorted(days_per_city.items())},
+        "min_days_per_city": MIN_DAYS_PER_CITY,
         "settle_hours": SETTLE_HOURS,
         "interval_hours": get_settings().track_record_interval_hours,
         "source": (
