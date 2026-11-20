@@ -47,6 +47,8 @@ class PredictionPoint(Base):
     value: Mapped[float] = mapped_column(Float)
     lower: Mapped[float] = mapped_column(Float)
     upper: Mapped[float] = mapped_column(Float)
+    # Rain points of models with a calibrated chance of rain (the ensemble): chance of >= 0.1 mm in the hour.
+    rain_chance: Mapped[float | None] = mapped_column(Float, nullable=True)
     # Filled in by the track-record job once what happened is known (app/track_record.py).
     observed: Mapped[float | None] = mapped_column(Float, nullable=True)
     persistence: Mapped[float | None] = mapped_column(Float, nullable=True)  # same hour one day earlier

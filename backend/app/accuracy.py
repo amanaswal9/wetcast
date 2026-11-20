@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_, case, func, select
+from sqlalchemy import and_, case, func, literal, select
 from sqlalchemy.orm import Session
 
 from .db import PredictionPoint, PredictionRun
@@ -63,6 +63,61 @@ def _row(r) -> dict:
         "mae": round(float(r.mae), 4),
         "persistence_mae": round(float(r.persistence_mae), 4),
         "coverage": round(float(r.coverage), 4),
+    }
+
+
+CHANCE_BINS = ((0.1, "0-10%"), (0.3, "10-30%"), (0.5, "30-50%"), (0.7, "50-70%"), (0.9, "70-90%"))
+
+
+def rain_chance_summary(session: Session, registry: ModelRegistry, scored: list) -> dict | None:
+    """Brier score of the ensemble's stored chances of rain, against two simple forecasts on the same
+    hours: always the validation year's rain frequency, and "rain if it rained at this hour yesterday"."""
+    ensemble = registry.get("ensemble")
+    table = getattr(ensemble, "rain_chance", None) if ensemble is not None else None
+    if table is None:
+        return None
+    wet_mm, usual = float(table["wet_mm"]), float(table["validation_rain_share"])
+    chance = PredictionPoint.rain_chance
+    wet = case((PredictionPoint.observed >= wet_mm, 1.0), else_=0.0)
+    yesterday = case((PredictionPoint.persistence.is_(None), None), (PredictionPoint.persistence >= wet_mm, 1.0), else_=0.0)
+    where = [*scored, PredictionPoint.target == "precipitation", chance.is_not(None), PredictionRun.model == "ensemble"]
+    row = session.execute(
+        select(
+            func.count(),
+            func.avg((chance - wet) * (chance - wet)),
+            func.avg((literal(usual) - wet) * (literal(usual) - wet)),
+            func.avg((yesterday - wet) * (yesterday - wet)),
+            func.avg(wet),
+            func.min(PredictionPoint.valid_at),
+        )
+        .join(PredictionRun)
+        .where(*where)
+    ).one()
+    n = int(row[0] or 0)
+    out = {
+        "wet_mm": wet_mm,
+        "usual_share": round(usual, 4),
+        "test_brier": table["scores"]["test"]["brier"],
+        "n": n,
+        "first_valid_at": _iso(row[5]),
+    }
+    if n == 0:
+        return out
+    band = case(*[(chance < hi, label) for hi, label in CHANCE_BINS], else_="90-100%").label("band")
+    bins = session.execute(
+        select(band, func.count(), func.avg(chance), func.avg(wet)).join(PredictionRun).where(*where).group_by(band)
+    ).all()
+    order = [label for _, label in CHANCE_BINS] + ["90-100%"]
+    return {
+        **out,
+        "brier": round(float(row[1]), 5),
+        "usual_brier": round(float(row[2]), 5),
+        "yesterday_brier": round(float(row[3]), 5) if row[3] is not None else None,
+        "rain_share": round(float(row[4]), 4),
+        "reliability": sorted(
+            ({"band": b, "n": int(c), "said": round(float(s), 3), "rained": round(float(w), 3)} for b, c, s, w in bins),
+            key=lambda r: order.index(r["band"]),
+        ),
     }
 
 
@@ -130,6 +185,7 @@ def track_record_summary(session: Session, registry: ModelRegistry, days: int, c
         "by_lead": by_lead,
         "by_city": sorted(by_city, key=lambda r: r["city"]),
         "city_days": {c: int(n) for c, n in sorted(days_per_city.items())},
+        "rain_chance": rain_chance_summary(session, registry, scored),
         "min_days_per_city": MIN_DAYS_PER_CITY,
         "settle_hours": SETTLE_HOURS,
         "interval_hours": get_settings().track_record_interval_hours,

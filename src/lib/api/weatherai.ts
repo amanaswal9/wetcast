@@ -304,6 +304,19 @@ export interface TrackRecord {
   /** Different (UTC) days with scores, per city, within the chosen period. */
   city_days: Record<string, number>
   min_days_per_city: number
+  /** The ensemble's stored chances of rain, scored (Brier, lower is better); null without a table. */
+  rain_chance?: {
+    wet_mm: number
+    usual_share: number
+    test_brier: number
+    n: number
+    first_valid_at: string | null
+    brier?: number
+    usual_brier?: number
+    yesterday_brier?: number | null
+    rain_share?: number
+    reliability?: { band: string; n: number; said: number; rained: number }[]
+  } | null
   source: string
   baseline: string
 }

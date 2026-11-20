@@ -180,6 +180,7 @@ export function TrackRecordPanel({ models, target, theme }: { models: ModelMetri
         <p className="m-0 max-w-[75ch]">
           Nothing has been scored in the last {days} days yet. A forecast can be scored about {24 + r.settle_hours} hours after it is issued, once
           all 24 of its hours have passed and settled.{r.pending_points > 0 && ` ${r.pending_points.toLocaleString()} forecast values are waiting.`}
+          {target === 'precipitation' && r.rain_chance && ' The Ensemble’s chance of rain is stored with its forecasts too and will be scored the same way.'}
         </p>
       </>
     )
@@ -214,6 +215,7 @@ export function TrackRecordPanel({ models, target, theme }: { models: ModelMetri
       <p className="m-0 mt-1 mb-3 max-w-[75ch] text-[0.92em] text-[var(--text-muted)]">
         {r.baseline} "Inside range" is how often what happened fell inside the model's {Math.round((models[0]?.interval.level ?? 0.8) * 100)}% range.
       </p>
+      {target === 'precipitation' && r.rain_chance && <RainChanceRecord chance={r.rain_chance} />}
       <DailyChart record={r} target={target} theme={theme} />
       <p className="m-0 mt-1 mb-3 text-[0.92em] text-[var(--text-muted)]">Mean absolute error per day (UTC) of the hours being forecast, {TARGET_LABELS[target].toLowerCase()} ({unit}).</p>
       <ByCity record={r} models={models} target={target} digits={digits} unit={unit} />
@@ -228,6 +230,39 @@ export function TrackRecordPanel({ models, target, theme }: { models: ModelMetri
           }),
         ])}
       />
+    </>
+  )
+}
+
+/** The Ensemble's chance of rain, scored on the live record (Brier score: lower is better). */
+function RainChanceRecord({ chance: c }: { chance: NonNullable<TrackRecord['rain_chance']> }) {
+  const pct = (v: number) => `${Math.round(v * 100)}%`
+  if (c.n === 0 || c.brier === undefined) {
+    return (
+      <p className="m-0 mb-3 max-w-[75ch]">
+        <b>Chance of rain:</b> the Ensemble&apos;s hourly chance of rain has been stored with its forecasts since 21 November 2026 and is scored the same
+        way once those hours settle. Nothing has been scored yet.
+      </p>
+    )
+  }
+  return (
+    <>
+      <Table
+        caption="Chance of rain: live track record (Brier score, lower is better)"
+        head={['Forecast', 'Brier score', 'Hours scored']}
+        rows={[
+          ['Ensemble chance of rain', c.brier.toFixed(3), c.n.toLocaleString()],
+          [`Always ${pct(c.usual_share)} (2025's rain frequency)`, (c.usual_brier ?? 0).toFixed(3), c.n.toLocaleString()],
+          ...(c.yesterday_brier != null ? [['Rain if it rained at that hour yesterday', c.yesterday_brier.toFixed(3), c.n.toLocaleString()]] : []),
+          ['Ensemble chance of rain, test period', c.test_brier.toFixed(3), '–'],
+        ]}
+      />
+      <p className="m-0 mt-1 mb-3 max-w-[75ch] text-[0.92em] text-[var(--text-muted)]">
+        Chance of at least {c.wet_mm} mm in the hour, scored since {c.first_valid_at ? dateTime(c.first_valid_at) : 'the start'}. It rained in{' '}
+        {pct(c.rain_share ?? 0)} of these hours.
+        {c.reliability && c.reliability.length > 0 &&
+          ` When it said: ${c.reliability.map((b) => `${b.band}, it rained ${pct(b.rained)} of the time (${b.n.toLocaleString()} hours)`).join('; ')}.`}
+      </p>
     </>
   )
 }
