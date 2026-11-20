@@ -73,16 +73,32 @@ function noonOf(date: string): Date {
   return new Date(`${date}T12:00:00`)
 }
 
+const formatters = new Map<string, Intl.DateTimeFormat>()
+
+/**
+ * A date/time formatter for these options, built once and reused. Creating one is slow
+ * (toLocaleString does it on every call), and pages format hundreds of dates.
+ */
+export function dateFormatter(locale: string | undefined, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${locale ?? ''}|${JSON.stringify(options)}`
+  let formatter = formatters.get(key)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, options)
+    formatters.set(key, formatter)
+  }
+  return formatter
+}
+
 /** "Today", "Tomorrow" (long only) or the weekday name. */
 export function dayName(date: string, index: number, style: 'short' | 'long'): string {
   if (index === 0) return 'Today'
   if (index === 1 && style === 'long') return 'Tomorrow'
-  return noonOf(date).toLocaleDateString('en-GB', { weekday: style })
+  return dateFormatter('en-GB', { weekday: style }).format(noonOf(date))
 }
 
 /** "2026-11-19" -> "19 Nov". */
 export function shortDate(date: string): string {
-  return noonOf(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return dateFormatter('en-GB', { day: 'numeric', month: 'short' }).format(noonOf(date))
 }
 
 /** UTC ISO time -> location-local "YYYY-MM-DDTHH:MM", matching Open-Meteo's local strings. */
@@ -96,5 +112,5 @@ export function coordKey(place: Place): string {
 
 /** Viewer's own clock time, used for "updated at" and the taskbar. */
 export function localClock(date: Date): string {
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return dateFormatter(undefined, { hour: '2-digit', minute: '2-digit' }).format(date)
 }

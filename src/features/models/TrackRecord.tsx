@@ -6,6 +6,7 @@ import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { getTrackRecord, TARGET_LABELS, TARGET_UNITS, type ModelMetrics, type Target, type TrackRecord, type TrackStats } from '../../lib/api/weatherai'
 import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
+import { dateFormatter } from '../../lib/format'
 import { getUnits } from '../../lib/units'
 import { BackendNotice } from './BackendNotice'
 import { DASHES, fmt, improvement } from './format'
@@ -16,11 +17,11 @@ const LEADS = ['1-6', '7-12', '13-18', '19-24']
 const PERSISTENCE = 'persistence'
 
 function dayLabel(iso: string): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' })
+  return dateFormatter(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`))
 }
 
 function dateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: getUnits().clock === '12' })
+  return dateFormatter(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: getUnits().clock === '12' }).format(new Date(iso))
 }
 
 /** Daily rows for the chart: one MAE per model plus persistence on the same hours (weighted by hours scored). */

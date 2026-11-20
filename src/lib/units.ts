@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react'
+import { dateFormatter } from './format'
 
 /**
  * Display units, chosen by the viewer and kept in this browser. Data stays metric everywhere
@@ -113,7 +114,7 @@ export function makeFormat(units: Units) {
     /** Options for toLocaleString/toLocaleTimeString so viewer-clock times follow the choice. */
     hour12: twelve,
     /** The viewer's own clock time ("updated at", taskbar). */
-    clock: (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: twelve }),
+    clock: (date: Date) => dateFormatter(undefined, { hour: '2-digit', minute: '2-digit', hour12: twelve }).format(date),
   }
 }
 

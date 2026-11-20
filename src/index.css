@@ -258,21 +258,35 @@ body {
     color: var(--text-muted);
   }
 
-  /* Etched group box with its caption sitting on the top edge. */
+  /* Etched group box with its caption sitting on the top edge.
+     Off-screen boxes skip layout and painting until scrolled near (content-visibility), which makes
+     long pages switch faster; they stay in the accessibility tree and find-in-page, and browsers
+     without support ignore it. That also clips anything outside the box, so the caption must sit
+     inside it: the box starts half a line higher and the etched frame (::before) starts half a
+     line down, which looks the same as a frame with the caption hanging over its top edge. */
   .r-group {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 320px;
     position: relative;
     min-width: 0;
-    margin-top: 8px;
-    padding: 14px 10px 10px;
+    margin-top: calc(8px - 0.75em);
+    padding: calc(15px + 0.75em) 11px 11px 11px; /* content box exactly as before: 1 px border + 10 px */
+  }
+
+  .r-group::before {
+    content: '';
+    position: absolute;
+    inset: 0.75em 1px 1px 0; /* 1 px right and bottom for the outer highlight */
     border: 1px solid var(--shadow);
     box-shadow:
       var(--p1) var(--p1) 0 var(--hilite),
       inset var(--p1) var(--p1) 0 var(--hilite);
+    pointer-events: none;
   }
 
   .r-group-title {
     position: absolute;
-    top: -0.75em;
+    top: 0;
     left: 8px;
     margin: 0;
     padding: 0 4px;
