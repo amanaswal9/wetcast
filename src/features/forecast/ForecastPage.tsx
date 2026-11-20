@@ -1,10 +1,11 @@
 import * as RadixTabs from '@radix-ui/react-tabs'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Button, GroupBox, MessageBox, PixelWeatherIcon, Skeleton } from '../../components/retro'
+import { Button, ChartSkeleton, GroupBox, MessageBox, PixelWeatherIcon, Skeleton } from '../../components/retro'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { getWeekForecast } from '../../lib/api/openMeteo'
-import { compass, coordKey, dayName, formatDuration, hhmm, placeShortLabel, round, shortDate, uvCategory } from '../../lib/format'
+import { compass, coordKey, dayName, formatDuration, placeShortLabel, shortDate, uvCategory } from '../../lib/format'
+import { useFormat } from '../../lib/units'
 import { describeWeather } from '../../lib/weatherCodes'
 import type { DayDetail, Place, WeekForecast } from '../../types/weather'
 import { HourlyTabs } from '../charts/HourlyTabs'
@@ -22,13 +23,14 @@ function Stat({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function DayButton({ day, index, weekMin, weekMax }: { day: DayDetail; index: number; weekMin: number; weekMax: number }) {
+  const fmt = useFormat()
   const span = Math.max(1, weekMax - weekMin)
   const hasRange = day.tempMin !== null && day.tempMax !== null
   const left = hasRange ? ((day.tempMin! - weekMin) / span) * 100 : 0
   const width = hasRange ? Math.max(4, ((day.tempMax! - day.tempMin!) / span) * 100) : 0
   const label = `${dayName(day.date, index, 'long')} ${shortDate(day.date)}: ${
     day.weatherCode === null ? '' : describeWeather(day.weatherCode)
-  }, high ${day.tempMax === null ? 'unknown' : round(day.tempMax)}, low ${day.tempMin === null ? 'unknown' : round(day.tempMin)}`
+  }, high ${day.tempMax === null ? 'unknown' : fmt.t(day.tempMax)}, low ${day.tempMin === null ? 'unknown' : fmt.t(day.tempMin)}`
 
   return (
     <RadixTabs.Trigger value={day.date} className="r-day shrink-0 snap-start md:w-auto" aria-label={label}>
@@ -36,8 +38,8 @@ function DayButton({ day, index, weekMin, weekMax }: { day: DayDetail; index: nu
       <span className="text-[0.92em]">{shortDate(day.date)}</span>
       {day.weatherCode !== null && <PixelWeatherIcon code={day.weatherCode} size={32} className="my-1" />}
       <span className="tabular-nums">
-        <span className="font-pixel text-[20px] leading-none">{day.tempMax === null ? '–' : `${round(day.tempMax)}°`}</span>{' '}
-        <span className="text-[var(--text-muted)]">{day.tempMin === null ? '' : `${round(day.tempMin)}°`}</span>
+        <span className="font-pixel text-[20px] leading-none">{day.tempMax === null ? '–' : fmt.deg(day.tempMax)}</span>{' '}
+        <span className="text-[var(--text-muted)]">{day.tempMin === null ? '' : fmt.deg(day.tempMin)}</span>
       </span>
       {hasRange && (
         <span className="r-range mt-1" aria-hidden="true">
@@ -52,6 +54,7 @@ function DayButton({ day, index, weekMin, weekMax }: { day: DayDetail; index: nu
 }
 
 function DayDetailPanel({ week, day, index, theme }: { week: WeekForecast; day: DayDetail; index: number; theme: Theme }) {
+  const fmt = useFormat()
   const hours = useMemo(() => week.hourly.filter((h) => h.time.startsWith(day.date)), [week.hourly, day.date])
 
   return (
@@ -60,21 +63,21 @@ function DayDetailPanel({ week, day, index, theme }: { week: WeekForecast; day: 
         {day.weatherCode === null ? 'Conditions unavailable' : describeWeather(day.weatherCode)}
       </p>
       <dl className="m-0 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat label="High">{day.tempMax === null ? 'n/a' : `${round(day.tempMax)}°C`}</Stat>
-        <Stat label="Low">{day.tempMin === null ? 'n/a' : `${round(day.tempMin)}°C`}</Stat>
+        <Stat label="High">{day.tempMax === null ? 'n/a' : fmt.t(day.tempMax)}</Stat>
+        <Stat label="Low">{day.tempMin === null ? 'n/a' : fmt.t(day.tempMin)}</Stat>
         <Stat label="Chance of rain">{day.precipitationProbabilityMax === null ? 'n/a' : `${day.precipitationProbabilityMax}%`}</Stat>
         <Stat label="Rain total">{day.precipitationSum === null ? 'n/a' : `${day.precipitationSum.toFixed(1)} mm`}</Stat>
         <Stat label="Wind">
           {day.windSpeedMax === null
             ? 'n/a'
-            : `${round(day.windSpeedMax)} km/h${day.windDirection === null ? '' : ` ${compass(day.windDirection)}`}`}
+            : `${fmt.s(day.windSpeedMax)}${day.windDirection === null ? '' : ` ${compass(day.windDirection)}`}`}
         </Stat>
-        <Stat label="Gusts">{day.windGustsMax === null ? 'n/a' : `${round(day.windGustsMax)} km/h`}</Stat>
+        <Stat label="Gusts">{day.windGustsMax === null ? 'n/a' : fmt.s(day.windGustsMax)}</Stat>
         <Stat label="UV index">
           {day.uvIndexMax === null ? 'n/a' : `${day.uvIndexMax.toFixed(1)}, ${uvCategory(day.uvIndexMax).toLowerCase()}`}
         </Stat>
         <Stat label="Sun">
-          {day.sunrise && day.sunset ? `${hhmm(day.sunrise)} to ${hhmm(day.sunset)}` : 'n/a'}
+          {day.sunrise && day.sunset ? `${fmt.time(day.sunrise)} to ${fmt.time(day.sunset)}` : 'n/a'}
           {day.daylightSeconds !== null && <span className="sr-only">, {formatDuration(day.daylightSeconds)} of daylight</span>}
         </Stat>
       </dl>
@@ -85,7 +88,7 @@ function DayDetailPanel({ week, day, index, theme }: { week: WeekForecast; day: 
       )}
       {index === 0 && (
         <p className="m-0 text-[0.92em] text-[var(--text-muted)]">
-          Hours before {hhmm(week.currentTime)} are Open-Meteo model estimates for time that has already passed.
+          Hours before {fmt.time(week.currentTime)} are Open-Meteo model estimates for time that has already passed.
         </p>
       )}
     </div>
@@ -99,14 +102,14 @@ function ForecastSkeleton() {
         Loading the 7-day forecast
       </p>
       <GroupBox title="Next 7 days">
-        <div className="flex gap-1 overflow-hidden md:grid md:grid-cols-7">
+        <div className="r-day-strip flex gap-1 overflow-hidden md:grid md:grid-cols-7">
           {Array.from({ length: 7 }, (_, i) => (
-            <Skeleton key={i} height={150} className="w-[96px] shrink-0 md:w-auto" />
+            <Skeleton key={i} height={150} className="shrink-0 md:w-auto" />
           ))}
         </div>
       </GroupBox>
       <GroupBox title="Day detail">
-        <Skeleton height={300} />
+        <ChartSkeleton height={300} />
       </GroupBox>
     </div>
   )

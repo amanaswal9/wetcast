@@ -53,6 +53,25 @@ export const WIND_BANDS: Band[] = [
 
 export const BANDS: Record<MapLayer, Band[]> = { temperature: TEMPERATURE_BANDS, rain: RAIN_BANDS, wind: WIND_BANDS }
 
+/**
+ * A band's legend text in the viewer's units. Colours are always chosen on the metric value;
+ * only the limits shown are converted. `convert` maps °C or km/h to the shown unit (rain stays mm).
+ */
+export function bandLabel(layer: MapLayer, index: number, convert: (value: number) => number): string {
+  const bands = BANDS[layer]
+  const band = bands[index]
+  if (layer === 'rain') return band.label
+  const show = (v: number) => {
+    const r = Math.round(convert(v))
+    return String(Object.is(r, -0) ? 0 : r).replace('-', '−')
+  }
+  const next = bands[index + 1]?.min
+  const note = band.label.match(/ \(.*\)$/)?.[0] ?? ''
+  if (band.min === -Infinity || (index === 0 && band.min === 0 && next !== undefined)) return `below ${show(next!)}${note}`
+  if (next === undefined) return `${show(band.min)} and above${note}`
+  return `${show(band.min)} to ${show(next)}${note}`
+}
+
 /** The band a value falls in, or null when there is nothing to draw. */
 export function bandFor(layer: MapLayer, value: number | null): Band | null {
   if (value === null || !Number.isFinite(value)) return null

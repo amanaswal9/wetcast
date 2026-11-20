@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { MessageBox } from '../../components/retro'
 import { useResource } from '../../hooks/useResource'
 import { getAlerts, type AlertsResult, type OfficialAlert } from '../../lib/api/weatherai'
+import { getUnits } from '../../lib/units'
 import type { Place } from '../../types/weather'
 
 const REFRESH_MS = 10 * 60_000
@@ -10,11 +11,11 @@ function when(iso: string | null): string | null {
   if (!iso) return null
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return null
-  return date.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: getUnits().clock === '12' })
 }
 
 function clock(iso: string | null | undefined): string {
-  return iso ? new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : 'never'
+  return iso ? new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: getUnits().clock === '12' }) : 'never'
 }
 
 const fieldStyle = { whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' } as const

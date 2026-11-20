@@ -1,13 +1,14 @@
 import * as RadixTabs from '@radix-ui/react-tabs'
 import { useState } from 'react'
 import { Chart } from '../../components/chart/Chart'
-import { Button, GroupBox, MessageBox, Skeleton } from '../../components/retro'
+import { Button, ChartSkeleton, GroupBox, MessageBox } from '../../components/retro'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
-import { getPredictions, TARGET_LABELS, TARGET_UNITS, type Predictions, type Target } from '../../lib/api/weatherai'
+import { getPredictions, TARGET_LABELS, type Predictions, type Target } from '../../lib/api/weatherai'
 import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
-import { coordKey, hhmm, round, utcToLocal } from '../../lib/format'
+import { coordKey, round, utcToLocal } from '../../lib/format'
+import { useFormat, type Format } from '../../lib/units'
 import type { Place, WeekForecast } from '../../types/weather'
 
 const TARGETS: Target[] = ['temperature', 'humidity', 'precipitation']
@@ -19,7 +20,8 @@ interface Row {
   openMeteo: number | null
 }
 
-function buildRows(data: Predictions, model: string, target: Target, week: WeekForecast): Row[] {
+/** Rows in the viewer's units: temperatures (model, its range and Open-Meteo) are converted together. */
+function buildRows(data: Predictions, model: string, target: Target, week: WeekForecast, fmt: Format): Row[] {
   const prediction = data.models.find((m) => m.model === model)
   if (!prediction) return []
   // Align on absolute (UTC) time. In half-hour time zones such as India (UTC+5:30) the
@@ -42,30 +44,33 @@ function buildRows(data: Predictions, model: string, target: Target, week: WeekF
     }
     return null
   }
+  const conv = target === 'temperature' ? fmt.temp : (v: number) => v
   return prediction.points.map((p) => {
     const local = utcToLocal(p.time, week.utcOffsetSeconds)
     const openMeteo = target === 'humidity' ? null : valueAt(Date.parse(p.time))
     return {
       time: local,
-      model: p[target],
-      band: [p[`${target}_lower`], p[`${target}_upper`]],
-      openMeteo,
+      model: conv(p[target]),
+      band: [conv(p[`${target}_lower`]), conv(p[`${target}_upper`])],
+      openMeteo: openMeteo === null ? null : conv(openMeteo),
     }
   })
 }
 
-function format(value: number, target: Target): string {
-  return target === 'precipitation' ? `${value.toFixed(1)} mm` : `${round(value)}${TARGET_UNITS[target] === '°C' ? '°C' : '%'}`
+/** Values are already in the viewer's units (see buildRows). */
+function format(value: number, target: Target, fmt: Format): string {
+  return target === 'precipitation' ? `${value.toFixed(1)} mm` : `${round(value)}${target === 'temperature' ? fmt.tempUnit : '%'}`
 }
 
 function PredictionTooltip({ row, target, modelName }: { row: Row; target: Target; modelName: string }) {
+  const fmt = useFormat()
   return (
     <div className="r-tooltip tabular-nums">
-      <div>{hhmm(row.time)} local time</div>
+      <div>{fmt.time(row.time)} local time</div>
       <div>
-        {modelName}: <b>{format(row.model, target)}</b> (range {format(row.band[0], target)} to {format(row.band[1], target)})
+        {modelName}: <b>{format(row.model, target, fmt)}</b> (range {format(row.band[0], target, fmt)} to {format(row.band[1], target, fmt)})
       </div>
-      {row.openMeteo !== null && <div>Open-Meteo forecast: {format(row.openMeteo, target)}</div>}
+      {row.openMeteo !== null && <div>Open-Meteo forecast: {format(row.openMeteo, target, fmt)}</div>}
     </div>
   )
 }
@@ -88,8 +93,9 @@ function PredictionChart({
   const colors = CHART_COLORS[theme]
   const modelColor = MODEL_COLORS[theme][model] ?? colors.model
   const wide = useMediaQuery('(min-width: 640px)')
+  const fmt = useFormat()
   const step = wide ? 3 : 6
-  const xTicks = rows.flatMap((r, i) => (Number(r.time.slice(11, 13)) % step === 0 ? [{ at: i, label: hhmm(r.time) }] : []))
+  const xTicks = rows.flatMap((r, i) => (Number(r.time.slice(11, 13)) % step === 0 ? [{ at: i, label: fmt.hourTick(r.time) }] : []))
   const hasOpenMeteo = rows.some((r) => r.openMeteo !== null)
 
   return (
@@ -161,6 +167,7 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
   const result = useResource(`pred:${coordKey(place)}`, ({ signal }) => getPredictions(place.latitude, place.longitude, signal), 15 * 60_000)
   const [model, setModel] = useState<string | null>(null)
   const [target, setTarget] = useState<Target>('temperature')
+  const fmt = useFormat()
 
   let body
   if (!result.data) {
@@ -170,7 +177,7 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
           <p className="m-0">{result.error?.message} The rest of the forecast above still works.</p>
         </MessageBox>
       ) : (
-        <Skeleton height={260} />
+        <ChartSkeleton height={260} />
       )
   } else if (result.data.kind === 'unsupported') {
     body = (
@@ -215,7 +222,7 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
           {data.models.map((m) => (
             <RadixTabs.Content key={m.model} value={m.model} className="r-tabpanel">
               <PredictionChart
-                rows={buildRows(data, m.model, target, week)}
+                rows={buildRows(data, m.model, target, week, fmt)}
                 target={target}
                 theme={theme}
                 model={m.model}
@@ -226,7 +233,7 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
           ))}
         </RadixTabs.Root>
         <p className="m-0 text-[0.92em] text-[var(--text-muted)]">
-          Issued from data up to {hhmm(issuedLocal)} local time for {data.city.name}. {data.note} {data.source}{' '}
+          Issued from data up to {fmt.time(issuedLocal)} local time for {data.city.name}. {data.note} {data.source}{' '}
           <a href="#/models" className="text-[inherit]">
             See how each model was tested
           </a>

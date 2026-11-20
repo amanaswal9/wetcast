@@ -1,4 +1,5 @@
-import { hhmm, placeShortLabel, round } from '../../lib/format'
+import { placeShortLabel } from '../../lib/format'
+import type { Format } from '../../lib/units'
 import { describeWeather } from '../../lib/weatherCodes'
 import type { Forecast, Place } from '../../types/weather'
 
@@ -7,12 +8,12 @@ import type { Forecast, Place } from '../../types/weather'
  * purpose: no language model, so it can't invent conditions, and the wording
  * says "likely"/"chance" because these are forecasts, not certainties.
  */
-export function buildSummary(place: Place, forecast: Forecast): string {
+export function buildSummary(place: Place, forecast: Forecast, fmt: Format): string {
   const { current, hourly, daily } = forecast
   const parts: string[] = []
 
   parts.push(
-    `It's ${round(current.temperature)}°C and ${describeWeather(current.weatherCode, current.isDay).toLowerCase()} in ${place.name}, feeling like ${round(current.apparentTemperature)}°C.`,
+    `It's ${fmt.t(current.temperature)} and ${describeWeather(current.weatherCode, current.isDay).toLowerCase()} in ${place.name}, feeling like ${fmt.t(current.apparentTemperature)}.`,
   )
 
   const next12 = hourly.filter((h) => !h.isPast).slice(0, 12)
@@ -20,14 +21,14 @@ export function buildSummary(place: Place, forecast: Forecast): string {
   if (withChance.length > 0) {
     const peak = withChance.reduce((a, b) => ((b.precipitationProbability ?? 0) > (a.precipitationProbability ?? 0) ? b : a))
     const chance = peak.precipitationProbability ?? 0
-    if (chance >= 50) parts.push(`Rain is likely around ${hhmm(peak.time)}, with a ${chance}% chance.`)
-    else if (chance >= 20) parts.push(`There's a ${chance}% chance of rain around ${hhmm(peak.time)}.`)
+    if (chance >= 50) parts.push(`Rain is likely around ${fmt.time(peak.time)}, with a ${chance}% chance.`)
+    else if (chance >= 20) parts.push(`There's a ${chance}% chance of rain around ${fmt.time(peak.time)}.`)
     else parts.push('Rain is unlikely over the next 12 hours.')
   }
 
   const today = daily[0]
   if (today && today.tempMin !== null && today.tempMax !== null) {
-    parts.push(`Today ranges from ${round(today.tempMin)}° to ${round(today.tempMax)}°.`)
+    parts.push(`Today ranges from ${fmt.deg(today.tempMin)} to ${fmt.deg(today.tempMax)}.`)
   }
 
   return parts.join(' ')

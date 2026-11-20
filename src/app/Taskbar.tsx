@@ -1,6 +1,6 @@
 import { Button } from '../components/retro'
 import { useClock } from '../hooks/useClock'
-import { localClock } from '../lib/format'
+import { useFormat } from '../lib/units'
 import { loaders } from './pageLoaders'
 import { PAGE_ICONS, QUICK_LAUNCH } from './pageIcons'
 import { PAGES, type PageId } from './pages'
@@ -17,6 +17,7 @@ interface TaskbarProps {
 
 export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, onToggleContrast }: TaskbarProps) {
   const now = useClock()
+  const fmt = useFormat()
   return (
     <footer
       className="r-raised fixed inset-x-0 bottom-0 z-30 flex items-center gap-1 px-1 py-[3px] sm:gap-2"
@@ -57,7 +58,7 @@ export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, 
         <span className="block truncate">{title}</span>
       </Button>
       <time className="r-status-field ml-auto shrink-0 tabular-nums" dateTime={now.toISOString()}>
-        {localClock(now)}
+        {fmt.clock(now)}
       </time>
     </footer>
   )

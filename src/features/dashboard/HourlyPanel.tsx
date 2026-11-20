@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Button, GroupBox } from '../../components/retro'
 import type { Theme } from '../../hooks/useTheme'
-import { hhmm, round } from '../../lib/format'
+import { useFormat } from '../../lib/units'
 import type { Forecast, HourlyPoint } from '../../types/weather'
 import { HourlyTabs } from '../charts/HourlyTabs'
 
 function HourlyTable({ hourly }: { hourly: HourlyPoint[] }) {
+  const fmt = useFormat()
   return (
     <div className="r-sunken max-h-[260px] overflow-auto">
       <table className="r-table">
@@ -22,10 +23,10 @@ function HourlyTable({ hourly }: { hourly: HourlyPoint[] }) {
         <tbody>
           {hourly.map((h) => (
             <tr key={h.time}>
-              <td>{hhmm(h.time)}</td>
-              <td>{h.temperature === null ? 'n/a' : `${round(h.temperature)}°C`}</td>
+              <td>{fmt.time(h.time)}</td>
+              <td>{h.temperature === null ? 'n/a' : fmt.t(h.temperature)}</td>
               <td>{h.precipitationProbability === null ? 'n/a' : `${h.precipitationProbability}%`}</td>
-              <td>{h.windSpeed === null ? 'n/a' : `${round(h.windSpeed)} km/h`}</td>
+              <td>{h.windSpeed === null ? 'n/a' : fmt.s(h.windSpeed)}</td>
               <td>{h.isPast ? 'Past' : 'Forecast'}</td>
             </tr>
           ))}

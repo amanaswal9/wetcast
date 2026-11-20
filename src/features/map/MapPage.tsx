@@ -8,8 +8,9 @@ import type { Theme } from '../../hooks/useTheme'
 import { isAbort, toApiError } from '../../lib/api/http'
 import { clearGridCache, getGridForecasts, gridFor, nearestPoint, uncachedPoints, type Bounds, type Grid, type GridPoint, type PointForecast, type ViewSize } from '../../lib/api/mapGrid'
 import { getCoverage } from '../../lib/api/weatherai'
-import { compass, latLonLabel, round } from '../../lib/format'
-import { BANDS, bandFor, blowingTowards, LAYER_INFO, type MapLayer } from '../../lib/mapScales'
+import { compass, latLonLabel } from '../../lib/format'
+import { BANDS, bandFor, bandLabel, blowingTowards, LAYER_INFO, type MapLayer } from '../../lib/mapScales'
+import { useFormat } from '../../lib/units'
 import type { Place } from '../../types/weather'
 
 const LAYERS: MapLayer[] = ['temperature', 'rain', 'wind']
@@ -33,8 +34,8 @@ function toBounds(b: L.LatLngBounds): Bounds {
   return { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }
 }
 
-function hourLabel(time: number): string {
-  return new Date(time).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+function hourLabel(time: number, hour12: boolean): string {
+  return new Date(time).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12 })
 }
 
 function valueAt(f: PointForecast, layer: MapLayer, hour: number): number | null {
@@ -65,16 +66,19 @@ function windArrow(p: GridPoint, grid: Grid, speed: number, fromDegrees: number)
 
 function Legend({ layer }: { layer: MapLayer }) {
   const info = LAYER_INFO[layer]
+  const fmt = useFormat()
+  const unit = layer === 'temperature' ? fmt.tempUnit : layer === 'wind' ? fmt.speedUnit : info.unit
+  const convert = layer === 'temperature' ? fmt.temp : layer === 'wind' ? fmt.speed : (v: number) => v
   return (
     <div>
       <p className="m-0 mb-1">
-        {info.description} ({info.unit}).
+        {info.description} ({unit}).
       </p>
       <ul className="m-0 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-[0.92em]" aria-label={`${info.label} key`}>
-        {BANDS[layer].map((b) => (
+        {BANDS[layer].map((b, i) => (
           <li key={b.label} className="flex items-center gap-1.5 tabular-nums">
             <span aria-hidden="true" className="inline-block h-3 w-4 border border-[var(--dark)]" style={{ background: b.color }} />
-            {b.label}
+            {bandLabel(layer, i, convert)}
           </li>
         ))}
         {layer === 'rain' && <li className="text-[var(--text-muted)]">Empty square: less than 0.1 mm</li>}
@@ -91,6 +95,7 @@ interface MapPageProps {
 }
 
 export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPageProps) {
+  const fmt = useFormat()
   const reduceMotion = useReducedMotion()
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -293,7 +298,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     window.location.hash = '#/forecast'
   }
 
-  const hourText = times[hourIndex] !== undefined ? hourLabel(times[hourIndex]) : '–'
+  const hourText = times[hourIndex] !== undefined ? hourLabel(times[hourIndex], fmt.hour12) : '–'
   const detail = (() => {
     if (!selectedForecast) return null
     const t = selectedForecast.temperature[hourIndex]
@@ -301,9 +306,9 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     const w = selectedForecast.windSpeed[hourIndex]
     const d = selectedForecast.windDirection[hourIndex]
     return [
-      ['Temperature', t === null ? 'n/a' : `${round(t)} °C`],
+      ['Temperature', t === null ? 'n/a' : fmt.t(t)],
       ['Rain in the hour', r === null ? 'n/a' : `${r.toFixed(1)} mm`],
-      ['Wind', w === null ? 'n/a' : `${round(w)} km/h${d === null ? '' : ` from ${compass(d)}`}`],
+      ['Wind', w === null ? 'n/a' : `${fmt.s(w)}${d === null ? '' : ` from ${compass(d)}`}`],
     ] as const
   })()
 

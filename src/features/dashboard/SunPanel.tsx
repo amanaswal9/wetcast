@@ -1,5 +1,6 @@
 import { GroupBox } from '../../components/retro'
-import { formatDuration, hhmm, minutesOfDay } from '../../lib/format'
+import { formatDuration, minutesOfDay } from '../../lib/format'
+import { useFormat } from '../../lib/units'
 import type { Forecast } from '../../types/weather'
 
 const W = 200
@@ -10,6 +11,7 @@ const RX = 88
 const RY = 52
 
 export function SunPanel({ forecast }: { forecast: Forecast }) {
+  const fmt = useFormat()
   const today = forecast.daily[0]
   if (!today?.sunrise || !today.sunset) {
     return (
@@ -49,9 +51,9 @@ export function SunPanel({ forecast }: { forecast: Forecast }) {
       </svg>
       <dl className="m-0 mt-2 grid grid-cols-[auto_1fr] gap-x-3 tabular-nums">
         <dt>Sunrise</dt>
-        <dd className="m-0">{hhmm(today.sunrise)}</dd>
+        <dd className="m-0">{fmt.time(today.sunrise)}</dd>
         <dt>Sunset</dt>
-        <dd className="m-0">{hhmm(today.sunset)}</dd>
+        <dd className="m-0">{fmt.time(today.sunset)}</dd>
         {today.daylightSeconds !== null && (
           <>
             <dt>Daylight</dt>

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { GroupBox, PixelWeatherIcon, Skeleton } from '../../components/retro'
+import { GroupBox, PixelWeatherIcon, TextSkeleton } from '../../components/retro'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { getModels, type ModelMetrics } from '../../lib/api/weatherai'
@@ -107,7 +107,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
           ) : models.status === 'error' ? (
             <p className="m-0 text-[var(--text-muted)]">Live results appear here when the WeatherAI server is running.</p>
           ) : (
-            <Skeleton height={36} />
+            <TextSkeleton lines={2} />
           )}
         </div>
       </GroupBox>
