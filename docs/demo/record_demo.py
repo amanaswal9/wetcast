@@ -1,9 +1,9 @@
 """Record the README demo from the real, running app (no mock-ups).
 
-Needs the dev servers running (Vite on :5173, API on :8000), Playwright with Chromium,
-and ffmpeg. From the repository root:
+Needs the dev servers running (Vite, default :5173, and the API on :8000), Playwright with
+Chromium, and ffmpeg. From the repository root:
 
-    python docs/demo/record_demo.py --ffmpeg PATH_TO_FFMPEG
+    python docs/demo/record_demo.py --ffmpeg PATH_TO_FFMPEG [--base http://localhost:5175]
 
 Writes docs/demo/weatherai-demo.mp4 (1280x720) and docs/demo/weatherai-demo.gif.
 Everything on screen is live: Open-Meteo data, WeatherAI's model predictions and the
@@ -22,7 +22,7 @@ from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
-BASE = "http://localhost:5173"
+BASE = "http://localhost:5173"  # replaced by --base
 W, H = 1280, 720
 OUT = Path(__file__).resolve().parent
 START_PLACE = (
@@ -84,7 +84,7 @@ TITLE_BODY = """
 
 END_BODY = """
 <div style="font:700 44px 'Pixelify Sans',monospace;line-height:1">WeatherAI</div>
-<div style="font:20px Tahoma;margin-top:14px;line-height:1.4">React · FastAPI · TensorFlow · LightGBM · PostgreSQL</div>
+<div style="font:20px Tahoma;margin-top:14px;line-height:1.4">React · FastAPI · TensorFlow · LightGBM · PostgreSQL · Ollama</div>
 <div style="font:16px Tahoma;margin-top:14px;color:#3b3b3b;line-height:1.45">Weather data: Open-Meteo. Map: © OpenStreetMap contributors.<br>Warnings: NDMA Sachet and the US National Weather Service.<br>Run it locally: see the README.</div>
 """
 
@@ -142,6 +142,13 @@ def glide(page: Page, locator, steps: int = 28) -> None:
     page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, steps=steps)
     page.wait_for_timeout(150)
     locator.click()
+
+
+def start_menu(page: Page, item: str) -> None:
+    """Open the taskbar's Start menu and pick an item, as a visitor would."""
+    glide(page, page.get_by_role("button", name="Start", exact=True))
+    page.wait_for_timeout(500)
+    glide(page, page.locator(".r-start-menu").get_by_text(item, exact=True), steps=16)
 
 
 def scroll_to_heading(page: Page, text: str, offset: int = 70) -> None:
@@ -205,9 +212,10 @@ def record(video_dir: Path) -> tuple[Path, float]:
         page.get_by_role("heading", name="Now").wait_for(timeout=30_000)
         page.wait_for_timeout(1300)
 
-        # 3. The magic moment: WeatherAI's own models against Open-Meteo.
+        # 3. The magic moment: WeatherAI's own models against Open-Meteo (opened from the Start menu).
+        caption(page, "Every page is in the Start menu")
+        start_menu(page, "Forecast")
         caption(page, None)
-        glide(page, page.get_by_role("link", name="Forecast", exact=True))
         page.get_by_role("heading", name="WeatherAI model prediction, next 24 hours").wait_for(timeout=30_000)
         page.get_by_role("tab", name="Ensemble", exact=True).wait_for(timeout=30_000)
         scroll_to_heading(page, "WeatherAI model prediction")
@@ -232,7 +240,7 @@ def record(video_dir: Path) -> tuple[Path, float]:
             page.wait_for_timeout(380)
             later.click()
         page.wait_for_timeout(600)
-        glide(page, page.get_by_role("button", name="Wind", exact=True))
+        glide(page, page.get_by_role("group", name="Map layer").get_by_role("button", name="Wind"))
         page.wait_for_timeout(1000)
         for _ in range(4):
             later.click()
@@ -251,7 +259,26 @@ def record(video_dir: Path) -> tuple[Path, float]:
         caption(page, "Error by hours ahead, error ranges and a weather-station check")
         page.wait_for_timeout(2400)
 
-        # 6. End card.
+        # 6. Units: back to the Dashboard, switch to Fahrenheit, mph and a 12-hour clock.
+        caption(page, None)
+        page.evaluate("window.scrollTo({ top: 0, behavior: 'smooth' })")
+        page.wait_for_timeout(400)
+        start_menu(page, "Dashboard")
+        page.get_by_role("heading", name="Now").wait_for(timeout=30_000)
+        page.wait_for_timeout(900)
+        caption(page, "°C or °F, km/h or mph, a 24- or 12-hour clock")
+        start_menu(page, "Units…")
+        dialog = page.get_by_role("dialog", name="Units")
+        dialog.wait_for(timeout=10_000)
+        page.wait_for_timeout(500)
+        for name in ("Fahrenheit (°F)", "Miles per hour (mph)", "12-hour (1:15 pm)"):
+            glide(page, dialog.get_by_text(name, exact=True), steps=14)
+            page.wait_for_timeout(300)
+        page.wait_for_timeout(700)
+        glide(page, dialog.get_by_role("button", name="OK"))
+        page.wait_for_timeout(2600)
+
+        # 7. End card.
         caption(page, None)
         card(page, "WeatherAI", END_BODY)
         page.wait_for_timeout(3200)
@@ -288,7 +315,9 @@ def encode(ffmpeg: str, raw: Path, trim_from: float, trim_to: float) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--ffmpeg", default=shutil.which("ffmpeg") or "ffmpeg")
+    parser.add_argument("--base", default=BASE, help="where the Vite dev server runs")
     args = parser.parse_args()
+    globals()["BASE"] = args.base.rstrip("/")
     with tempfile.TemporaryDirectory() as tmp:
         raw, trim_from, trim_to = record(Path(tmp))
         print(f"recorded {raw.name}; keeping {trim_from:.1f} s to {trim_to:.1f} s")
