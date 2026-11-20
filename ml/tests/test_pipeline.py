@@ -202,6 +202,21 @@ def test_ranges_use_the_issue_month():
     assert Ranges({"halfwidth_by_horizon": flat}).at(pd.Timestamp("2026-04-30"))[0, 0] == 1.0  # older artifacts
 
 
+def test_rain_chance_is_calibrated_and_never_decreasing():
+    from weatherai_ml.rain_chance import chance, fit
+
+    rng = np.random.default_rng(5)
+    forecast = rng.gamma(0.3, 0.5, (4000, 2))
+    observed = forecast * rng.lognormal(0, 1, (4000, 2)) * (rng.random((4000, 2)) < 0.7)  # more forecast, more rain
+    leads = fit(forecast, observed, wet_mm=0.1)
+    p = chance(leads, forecast)
+    assert p.shape == forecast.shape and p.min() >= 0 and p.max() <= 1
+    assert abs(p.mean() - np.mean(observed >= 0.1)) < 0.01  # fitted chances average to the rain share
+    grid = np.tile(np.linspace(0, 3, 50)[:, None], (1, 2))
+    assert np.all(np.diff(chance(leads, grid), axis=0) >= 0)  # more forecast rain never lowers the chance
+    assert chance(leads, np.array([0.0, 0.0])).shape == (2,)
+
+
 def test_metrics_summary():
     y = np.array([1.0, 2.0, 3.0, 4.0])
     assert summary(y, y)["mae"] == 0

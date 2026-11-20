@@ -45,6 +45,8 @@ export interface ModelPoint {
   precipitation: number
   precipitation_lower: number
   precipitation_upper: number
+  /** Chance (0-1) of at least 0.1 mm of rain in the hour; only the ensemble has one. */
+  rain_chance?: number | null
 }
 
 export interface ModelPrediction {
@@ -97,6 +99,16 @@ export interface ModelMetrics {
     test_coverage: Record<Target, number>
     /** Same check at the held-out cities (all-India models only). */
     test_coverage_unseen?: Record<Target, number>
+  }
+  /** The ensemble's chance-of-rain scores (Brier score, lower is better), when it has a table. */
+  rain_chance?: {
+    wet_mm: number
+    validation_rain_share: number
+    scores: {
+      test: { brier: number; climatology_brier: number; rain_share: number }
+      test_unseen?: { brier: number; climatology_brier: number; rain_share: number }
+      reliability_test: { said: number; rained: number; n: number }[]
+    }
   }
   inference: { single_ms_median: number; batch256_ms_per_forecast: number; device: string; cpu: string }
   windows: { val: number; test: number }

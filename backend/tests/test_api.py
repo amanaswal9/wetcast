@@ -126,6 +126,11 @@ def test_ensemble_prediction_is_mean_of_members(client, monkeypatch):
     for i in (0, 11, 23):
         mean = sum(by_model[m][i]["temperature"] for m in members) / len(members)
         assert abs(by_model["ensemble"][i]["temperature"] - mean) < 0.02  # values are rounded to 0.01
+    # Only the ensemble has a calibrated chance of rain (when its table is built).
+    has_table = (get_registry().get("ensemble").rain_chance is not None)
+    assert all((p["rain_chance"] is not None) == has_table for p in by_model["ensemble"])
+    assert all(0 <= p["rain_chance"] <= 1 for p in by_model["ensemble"] if p["rain_chance"] is not None)
+    assert all(p["rain_chance"] is None for m in members for p in by_model[m])
 
 
 def test_registry_refuses_ensemble_with_missing_member(tmp_path):

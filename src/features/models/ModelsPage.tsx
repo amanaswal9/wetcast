@@ -189,6 +189,9 @@ export function ModelsPage({ theme }: { theme: Theme }) {
   const first = list[0]
   const unit = TARGET_UNITS[target]
   const digits = target === 'precipitation' ? 3 : 2
+  const ensemble = list.find((m) => m.rain_chance)
+  const rainChance = ensemble?.rain_chance
+  const ensembleName = ensemble?.display_name ?? 'Ensemble'
   const training = first.data.cities.filter((c) => c.role !== 'holdout')
   const heldOut = first.data.cities.filter((c) => c.role === 'holdout')
 
@@ -261,6 +264,29 @@ export function ModelsPage({ theme }: { theme: Theme }) {
           <p className="m-0 mt-2 max-w-[75ch] text-[0.92em]">
             Hourly rainfall is hard to predict: most hours are dry and rain is patchy, so R² for rain is expected to be low.
           </p>
+        )}
+        {target === 'precipitation' && rainChance && (
+          <>
+            <p className="m-0 mt-2 max-w-[75ch]">
+              The rain amounts run low: the models learn the logarithm of rainfall with an average-error loss, which pulls them towards
+              &ldquo;almost dry&rdquo;, and by that error an always-dry forecast would score almost as well. What they do know is when rain is likely.
+              So the {ensembleName} also gives a chance of at least {rainChance.wet_mm} mm in each hour, fitted on the validation year. Lower Brier
+              scores are better; the comparison always forecasts the validation year&apos;s rain frequency ({Math.round(rainChance.validation_rain_share * 100)}%).
+            </p>
+            <Table
+              caption="Chance of rain on the test period (Brier score)"
+              head={['Cities', 'Chance of rain', 'Always the usual frequency', 'Hours with rain']}
+              rows={[
+                ['Trained on', rainChance.scores.test.brier.toFixed(3), rainChance.scores.test.climatology_brier.toFixed(3), `${Math.round(rainChance.scores.test.rain_share * 100)}%`],
+                ...(rainChance.scores.test_unseen
+                  ? [['Held out', rainChance.scores.test_unseen.brier.toFixed(3), rainChance.scores.test_unseen.climatology_brier.toFixed(3), `${Math.round(rainChance.scores.test_unseen.rain_share * 100)}%`]]
+                  : []),
+              ]}
+            />
+            <p className="m-0 mt-2 max-w-[75ch] text-[0.92em] text-[var(--text-muted)]">
+              When it said: {rainChance.scores.reliability_test.map((r) => `about ${Math.round(r.said * 100)}%, it rained ${Math.round(r.rained * 100)}% of the time`).join('; ')}.
+            </p>
+          </>
         )}
       </GroupBox>
 

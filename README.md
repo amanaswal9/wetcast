@@ -280,6 +280,10 @@ whole training job (about 4 hours on an ordinary CPU).
   each calendar month because errors change with the season (wider in spring). The Models page shows how often
   test values actually fell inside them, at the training and the held-out cities.
   `python -m weatherai_ml.recalibrate --region india` recomputes them for saved models without retraining.
+- **Chance of rain:** the models' rain amounts run low, so the Ensemble also gives the chance of at least 0.1 mm
+  in each hour, calibrated on the validation year (`python -m weatherai_ml.rain_chance --region india`, after
+  `recalibrate`). On the test period its Brier score is 0.101, against 0.155 for always forecasting the usual
+  rain frequency; the Models page shows how often it rained when it said 20%, 50% and so on.
 - A **station check** compares test predictions with Meteostat weather-station measurements, and scores
   Open-Meteo's own data against the same stations to show the data source's error floor.
 - **Where the models predict:** anywhere in India within 310 km of a training city (the farthest a held-out
