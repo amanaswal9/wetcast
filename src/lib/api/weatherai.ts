@@ -100,6 +100,8 @@ export interface ModelMetrics {
     /** Same check at the held-out cities (all-India models only). */
     test_coverage_unseen?: Record<Target, number>
   }
+  /** The ensemble's rain-amount correction (expected amounts) and its test scores before it. */
+  rain_amount?: { trees: number; test_before: MetricSummary; test_unseen_before?: MetricSummary | null }
   /** The ensemble's chance-of-rain scores (Brier score, lower is better), when it has a table. */
   rain_chance?: {
     wet_mm: number

@@ -98,7 +98,12 @@ def main() -> None:
         team = json.loads(ens_file.read_text())["members"]
         lookback = max(members[n].lookback for n in team)
         bad = direct_bad | (resid_bad if any(members[n].target_mode == "residual24" for n in team) else False)
-        rewrite(ENSEMBLE_NAME, slice_preds(ENSEMBLE_NAME, team, lookback, bad))
+        preds = slice_preds(ENSEMBLE_NAME, team, lookback, bad)  # cached either way, for rain_chance and rain_amount
+        if (root / ENSEMBLE_NAME / "rain_amount.txt").exists():
+            # The ensemble's rain is corrected; rain_amount re-scores it and recalibrates its ranges.
+            print("ensemble: run `python -m weatherai_ml.rain_chance` and then `python -m weatherai_ml.rain_amount` to refresh it", flush=True)
+        else:
+            rewrite(ENSEMBLE_NAME, preds)
 
 
 if __name__ == "__main__":

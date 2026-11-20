@@ -47,6 +47,9 @@ def nearest_city(latitude: float, longitude: float, max_km: float = 30.0) -> Cit
     return best if haversine_km(latitude, longitude, best.latitude, best.longitude) <= max_km else None
 
 
+RECENT_RAIN_HOURS = 24  # rain_amount.RECENT_HOURS (kept here so serving doesn't import it eagerly)
+
+
 class Ranges:
     """A model's 80% error-range half-widths: per calendar month when the metrics have them
     (see train.interval_block), otherwise one set for the whole year (older artifacts)."""
@@ -197,25 +200,38 @@ class EnsemblePredictor:
         self.rain_chance = json.loads(chance_file.read_text()) if chance_file.exists() else None
         if self.rain_chance is not None:  # its scores travel with the metrics (the lookup table stays here)
             self.metrics = {**self.metrics, "rain_chance": {k: v for k, v in self.rain_chance.items() if k != "leads"}}
+        self.rain_amount = None  # expected rain amounts (rain_amount.py); needs the chance-of-rain table
+        if (model_dir / "rain_amount.txt").exists() and self.rain_chance is not None:
+            from .rain_amount import RainAmount
+
+            self.rain_amount = RainAmount(model_dir, self.rain_chance["leads"])
         # The longest member lookback decides how much history the API must fetch.
         self.preprocessor = max((m.preprocessor for m in members), key=lambda p: p.lookback)
 
     def predict(self, features: pd.DataFrame) -> Prediction:
-        return self.combine([m.predict(features) for m in self.members])
+        return self.combine([m.predict(features) for m in self.members], features)
 
-    def combine(self, preds: list[Prediction]) -> Prediction:
+    def combine(self, preds: list[Prediction], features: pd.DataFrame | None = None) -> Prediction:
         """The ensemble from member predictions already made (in member order), so a
-        caller that ran the members anyway doesn't run them twice."""
+        caller that ran the members anyway doesn't run them twice. `features` (the members'
+        input) supplies the recent observed rain for the rain-amount correction."""
         if len(preds) != len(self.members):
             raise ValueError(f"expected {len(self.members)} member predictions, got {len(preds)}")
         issued = {p.issued_at for p in preds}
         if len(issued) != 1:
             raise InsufficientHistoryError("Ensemble members disagree on the last complete hour.")
         values = np.mean([p.values for p in preds], axis=0)
-        lower, upper = apply_ranges(values, self.ranges.at(preds[0].issued_at))
+        rain = TARGETS.index("precipitation")
         chance = None
-        if self.rain_chance is not None:
+        if self.rain_chance is not None:  # from the members' plain average, as it was fitted
             from .rain_chance import chance as rain_chance
 
-            chance = rain_chance(self.rain_chance["leads"], values[:, TARGETS.index("precipitation")])
+            chance = rain_chance(self.rain_chance["leads"], values[:, rain])
+        if self.rain_amount is not None:
+            if features is None:
+                raise ValueError("The ensemble's rain correction needs the input features.")
+            recent = np.expm1(Predictor.usable(features)["c_precip_log1p"].to_numpy(dtype=float)[-RECENT_RAIN_HOURS:])
+            by_name = {m.name: p.values[:, rain] for m, p in zip(self.members, preds)}
+            values[:, rain] = self.rain_amount.predict(by_name, preds[0].issued_at, recent)
+        lower, upper = apply_ranges(values, self.ranges.at(preds[0].issued_at))
         return Prediction(issued_at=preds[0].issued_at, times=preds[0].times, values=values, lower=lower, upper=upper, rain_chance=chance)

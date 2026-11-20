@@ -109,7 +109,7 @@ def predict_models(registry: ModelRegistry, city: City, names: list[str], featur
             out[name] = cached(name) or keep(name, registry.get(name).predict(features))
     if ENSEMBLE_NAME in needed:
         out[ENSEMBLE_NAME] = cached(ENSEMBLE_NAME) or keep(
-            ENSEMBLE_NAME, registry.get(ENSEMBLE_NAME).combine([out[m] for m in registry.ensemble_members])
+            ENSEMBLE_NAME, registry.get(ENSEMBLE_NAME).combine([out[m] for m in registry.ensemble_members], features)
         )
     return {name: out[name] for name in wanted}
 

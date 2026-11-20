@@ -191,6 +191,8 @@ export function ModelsPage({ theme }: { theme: Theme }) {
   const digits = target === 'precipitation' ? 3 : 2
   const ensemble = list.find((m) => m.rain_chance)
   const rainChance = ensemble?.rain_chance
+  const amount = ensemble?.rain_amount
+  const ensembleTest = ensemble?.test.precipitation
   const ensembleName = ensemble?.display_name ?? 'Ensemble'
   const training = first.data.cities.filter((c) => c.role !== 'holdout')
   const heldOut = first.data.cities.filter((c) => c.role === 'holdout')
@@ -268,10 +270,22 @@ export function ModelsPage({ theme }: { theme: Theme }) {
         {target === 'precipitation' && rainChance && (
           <>
             <p className="m-0 mt-2 max-w-[75ch]">
-              The rain amounts run low: the models learn the logarithm of rainfall with an average-error loss, which pulls them towards
-              &ldquo;almost dry&rdquo;, and by that error an always-dry forecast would score almost as well. What they do know is when rain is likely.
-              So the {ensembleName} also gives a chance of at least {rainChance.wet_mm} mm in each hour, fitted on the validation year. Lower Brier
-              scores are better; the comparison always forecasts the validation year&apos;s rain frequency ({Math.round(rainChance.validation_rain_share * 100)}%).
+              The individual models&apos; rain amounts run low: they learn the logarithm of rainfall with an average-error loss, which pulls them
+              towards &ldquo;almost dry&rdquo;, and by that error an always-dry forecast would score almost as well.
+              {amount && first.test.precipitation && (
+                <>
+                  {' '}The {ensembleName}&apos;s amounts are corrected to the expected amount by a small LightGBM model fitted on the validation year.
+                  On the test period that raised its R² from {amount.test_before.r2.toFixed(3)} to {ensembleTest?.r2.toFixed(3)} and lowered its RMSE
+                  from {amount.test_before.rmse.toFixed(3)} to {ensembleTest?.rmse.toFixed(3)} mm, while its MAE rose from{' '}
+                  {amount.test_before.mae.toFixed(3)} to {ensembleTest?.mae.toFixed(3)} mm: expected amounts put a little rain on many hours that stay
+                  dry, which MAE punishes, in exchange for much better amounts when it does rain.
+                </>
+              )}
+            </p>
+            <p className="m-0 mt-2 max-w-[75ch]">
+              What the models know best is when rain is likely. So the {ensembleName} also gives a chance of at least {rainChance.wet_mm} mm in each
+              hour, fitted on the validation year. Lower Brier scores are better; the comparison always forecasts the validation year&apos;s rain
+              frequency ({Math.round(rainChance.validation_rain_share * 100)}%).
             </p>
             <Table
               caption="Chance of rain on the test period (Brier score)"
