@@ -10,6 +10,7 @@ import { clearGridCache, getGridForecasts, gridFor, nearestPoint, uncachedPoints
 import { getCoverage } from '../../lib/api/weatherai'
 import { compass, dateFormatter, latLonLabel } from '../../lib/format'
 import { renderField } from '../../lib/mapField'
+import { loadOutline } from '../../lib/mapOutline'
 import { BANDS, bandFor, bandLabel, blowingTowards, LAYER_INFO, type MapLayer } from '../../lib/mapScales'
 import { useFormat } from '../../lib/units'
 import { pointerIcon } from './pointerPin'
@@ -31,6 +32,13 @@ const WORLD: L.LatLngBoundsExpression = [
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 const ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Weather: <a href="https://open-meteo.com/">Open-Meteo</a>'
+/** Land drawn at once under the tiles (the sea is the map's own background, see .r-map in index.css). */
+const OUTLINE_STYLE: Record<Theme, L.PathOptions> = {
+  light: { color: '#a3a3a3', weight: 1, fillColor: '#efefef', fillOpacity: 1 },
+  dark: { color: '#5e5e5e', weight: 1, fillColor: '#2c2c2c', fillOpacity: 1 },
+}
+/** The sea: the map's own background, with land drawn over it at once and the tiles over both. */
+const SEA: Record<Theme, string> = { light: '#d4d8db', dark: '#141a1f' }
 const FIELD_OPACITY = 0.62
 
 type Status = { kind: 'loading'; points: number; done: number } | { kind: 'waiting'; seconds: number } | { kind: 'ready' } | { kind: 'error'; message: string }
@@ -108,6 +116,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
   const arrowsRef = useRef<L.LayerGroup | null>(null)
   const pointerRef = useRef<L.Marker | null>(null)
   const citiesRef = useRef<L.LayerGroup | null>(null)
+  const outlineRef = useRef<{ group: L.LayerGroup; renderer: L.Canvas } | null>(null)
 
   const [layer, setLayer] = useState<MapLayer>('temperature')
   const [hour, setHour] = useState(0)
@@ -153,6 +162,10 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     mapRef.current = map
     // The weather image sits just above the base map, under the wind arrows and markers.
     map.createPane('weather').style.zIndex = '350'
+    // A plain outline of land under the tiles, drawn as soon as it loads: the map is never an empty
+    // grey box while OpenStreetMap is slow, and the tiles cover it as they arrive.
+    map.createPane('outline').style.zIndex = '150'
+    outlineRef.current = { group: L.layerGroup().addTo(map), renderer: L.canvas({ pane: 'outline', padding: 0.5 }) }
     // Tiles load once a zoom ends and a wider ring is kept, so panning shows fewer blank edges.
     L.tileLayer(TILES, { attribution: ATTRIBUTION, maxZoom: 19, noWrap: true, keepBuffer: 4, updateWhenZooming: false }).addTo(map)
     arrowsRef.current = L.layerGroup().addTo(map)
@@ -187,8 +200,28 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
       mapRef.current = null
       fieldRef.current = null
       pointerRef.current = null
+      outlineRef.current = null
     }
   }, [])
+
+  // Draw the outline (again when the theme changes its colours).
+  useEffect(() => {
+    let cancelled = false
+    loadOutline()
+      .then((rings) => {
+        const outline = outlineRef.current
+        if (cancelled || !outline) return
+        outline.group.clearLayers()
+        // One multi-polygon: each ring is its own shape, not a hole in the first.
+        L.polygon(rings.map((ring) => [ring]), { ...OUTLINE_STYLE[theme], renderer: outline.renderer, interactive: false, smoothFactor: 1 }).addTo(outline.group)
+      })
+      .catch(() => {
+        // Only a convenience: without it the map waits for the tiles, as before.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [theme])
 
 
   // Follow the selected place.
@@ -403,6 +436,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
             ref={container}
             data-theme={theme}
             className="r-map h-[clamp(320px,60vh,620px)] w-full"
+            style={{ background: SEA[theme] }}
             role="application"
             aria-label={
               touch

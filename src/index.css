@@ -675,9 +675,9 @@ body {
     opacity: 0.5;
   }
 
+  /* The sea colour is set on the element itself (SEA in MapPage.tsx): leaflet.css, outside these layers, would win. */
   .r-map {
     font-family: var(--font-ui);
-    background: var(--field);
   }
 
   /* Greyscale basemap so only the weather is in colour; inverted for high contrast. */
