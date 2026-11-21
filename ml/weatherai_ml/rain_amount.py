@@ -15,7 +15,7 @@ Honest numbers: the error ranges for rain are calibrated on out-of-fold 2025 pre
 of the year corrected by a model that never saw it), and the ensemble is then re-scored on the 2026
 test period with train.evaluate, rewriting its metrics.json and evaluation.json.
 
-Order after retraining any model: recalibrate, then rain_chance, then this.
+Order after retraining any model: recalibrate, rain_chance, chance_model, then this.
 Reads the prediction cache that `weatherai_ml.recalibrate` writes. Writes ensemble/rain_amount.txt
 (the trees) and ensemble/rain_amount.json (settings and scores).
 """
@@ -41,14 +41,25 @@ PARAMS = {
 }
 FOLDS = ((1, 2, 3, 4), (5, 6, 7, 8), (9, 10, 11, 12))  # calendar months of the validation year
 STRIDE = 3  # fit on every third window: neighbouring windows overlap almost completely
+HIDE_OUTLOOK = 0.1  # share of training windows fitted without the day-old forecast
 
 
-def design(ensemble: np.ndarray, members: np.ndarray, months: np.ndarray, hours: np.ndarray, recent: np.ndarray, chance_leads: list[dict]) -> np.ndarray:
+def design(
+    ensemble: np.ndarray,
+    members: np.ndarray,
+    months: np.ndarray,
+    hours: np.ndarray,
+    recent: np.ndarray,
+    chance_leads: list[dict],
+    outlook: np.ndarray | None = None,
+) -> np.ndarray:
     """Inputs for the correction, one row per window and lead hour.
 
     ensemble (n, H) mean rain of the members, mm; members (n, H, M) each member's rain, mm;
     months, hours (n,) UTC month and hour of the issue time; recent (n, RECENT_HOURS) observed rain at
-    the centre, newest last (the issue hour itself is the last column), mm."""
+    the centre, newest last (the issue hour itself is the last column), mm; outlook (n, H) Open-Meteo's
+    day-old rain forecast for each hour (outlook.py), NaN where unknown, or None for a correction
+    fitted without it."""
     from .rain_chance import chance
 
     n, H = ensemble.shape
@@ -65,6 +76,9 @@ def design(ensemble: np.ndarray, members: np.ndarray, months: np.ndarray, hours:
         np.sin(2 * np.pi * hour / 24), np.cos(2 * np.pi * hour / 24),
         np.log1p(recent[:, -1:]), np.log1p(recent[:, -6:].sum(1, keepdims=True)), np.log1p(recent.sum(1, keepdims=True)),
     ]
+    if outlook is not None:
+        # NaN stays NaN: LightGBM sends unknown values down the branch learned for them.
+        cols.append(np.log1p(np.clip(np.asarray(outlook, dtype=float), 0, None)))
     return np.stack([np.broadcast_to(c, (n, H)).ravel() for c in cols], -1).astype(np.float32)
 
 
@@ -78,14 +92,19 @@ class RainAmount:
         self.booster = lgb.Booster(model_file=str(folder / "rain_amount.txt"))
         self.members: list[str] = self.meta["members"]
         self.chance_leads = chance_leads
+        self.uses_outlook = bool(self.meta.get("outlook"))  # corrections from before outlook.py: False
 
-    def predict(self, member_rain: dict[str, np.ndarray], issued: pd.Timestamp, recent: np.ndarray) -> np.ndarray:
-        """(H,) expected rain for one forecast. member_rain: name -> (H,) mm; recent: last RECENT_HOURS observed, mm."""
+    def predict(self, member_rain: dict[str, np.ndarray], issued: pd.Timestamp, recent: np.ndarray, outlook: np.ndarray | None = None) -> np.ndarray:
+        """(H,) expected rain for one forecast. member_rain: name -> (H,) mm; recent: last RECENT_HOURS observed, mm;
+        outlook: (H,) Open-Meteo's forecast for the same hours, mm (None or NaN where unknown)."""
         members = np.stack([np.asarray(member_rain[m], dtype=float) for m in self.members], -1)[None]
         ensemble = members.mean(-1)
         ts = pd.Timestamp(issued)
         ts = ts.tz_convert("UTC") if ts.tzinfo else ts
-        X = design(ensemble, members, np.array([ts.month]), np.array([ts.hour]), np.asarray(recent, dtype=float)[None], self.chance_leads)
+        extra = None
+        if self.uses_outlook:
+            extra = np.full(ensemble.shape, np.nan) if outlook is None else np.asarray(outlook, dtype=float).reshape(ensemble.shape)
+        X = design(ensemble, members, np.array([ts.month]), np.array([ts.hour]), np.asarray(recent, dtype=float)[None], self.chance_leads, extra)
         return np.clip(self.booster.predict(X, num_iteration=self.meta["trees"]), 0, None)
 
 
@@ -99,6 +118,9 @@ def main() -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", choices=REGION_NAMES, default="north_india")
+    # Off by default: on the 2025 validation year it raised out-of-fold R² only from 0.139 to 0.145 (the bar
+    # set beforehand was +0.01) and made the error in hours that rained slightly worse.
+    parser.add_argument("--outlook", action="store_true", help="also use Open-Meteo's day-old rain forecast (outlook.py)")
     args = parser.parse_args()
     root = artifacts_dir(args.region)
     out = root / "ensemble"
@@ -107,6 +129,13 @@ def main() -> None:
     chance_leads = json.loads((out / "rain_chance.json").read_text())["leads"]
     ds = load_dataset(args.region)
     months, hours = np.asarray(ds.times.month), np.asarray(ds.times.hour)
+    om = None
+    if args.outlook:
+        from .outlook import load_for_dataset
+
+        om = load_for_dataset(ds, args.region)
+        if np.isnan(om).all():
+            raise SystemExit("No day-old forecasts downloaded: run python -m weatherai_ml.outlook first.")
 
     def load(s: str):
         """Ensemble windows of one slice with every member's predictions on them (all targets)."""
@@ -130,7 +159,8 @@ def main() -> None:
 
     def X_of(ends, members):
         rain = np.clip(members[:, :, P, :], 0, None)
-        return design(rain.mean(-1), rain, months[ends], hours[ends], recent_rain(ends), chance_leads)
+        outlook = None if om is None else om[future_index(ends)]
+        return design(rain.mean(-1), rain, months[ends], hours[ends], recent_rain(ends), chance_leads, outlook)
 
     v_ends, v_mem = load("val_train")
     v_X = X_of(v_ends, v_mem)
@@ -138,9 +168,16 @@ def main() -> None:
     H = v_mem.shape[1]
     v_month = np.repeat(months[v_ends], H)
     keep = np.repeat(np.arange(len(v_ends)) % STRIDE == 0, H)
+    # The trees learn from a copy with the forecast hidden for a tenth of the windows, so they also
+    # know what to do when the live forecast can't be fetched.
+    v_X_fit = v_X
+    if om is not None:
+        v_X_fit = v_X.copy()
+        v_X_fit[np.repeat(np.random.default_rng(7).random(len(v_ends)) < HIDE_OUTLOOK, H), -1] = np.nan
+        print(f"day-old forecast missing for {np.isnan(v_X[:, -1]).mean():.2%} of validation hours", flush=True)
 
     def fit(rows: np.ndarray, trees: int | None = None, stop: np.ndarray | None = None):
-        data = lgb.Dataset(v_X[rows], v_y[rows])
+        data = lgb.Dataset(v_X_fit[rows], v_y[rows])
         if trees is not None:
             return lgb.train(PARAMS, data, trees)
         check = lgb.Dataset(v_X[stop], v_y[stop], reference=data)
@@ -194,14 +231,19 @@ def main() -> None:
     before_unseen = earlier.get("test_unseen_before") or old.get("test_unseen", {}).get("precipitation")
     after = metrics["test"]["precipitation"]
     info = {
-        "method": "LightGBM Tweedie correction of the members' rain (expected amount), fitted on the validation year",
+        "method": "LightGBM Tweedie correction of the members' rain (expected amount), fitted on the validation year"
+        + (", with Open-Meteo's day-old rain forecast as an input" if om is not None else ""),
         "params": PARAMS,
         "trees": trees,
         "members": team,
         "recent_hours": RECENT_HOURS,
+        "outlook": om is not None,
         "fitted_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "test_before": before,
         "test_unseen_before": before_unseen,
+        # The ensemble's scores just before this run (e.g. the correction without the day-old forecast).
+        "test_previous": old["test"]["precipitation"],
+        "test_unseen_previous": old.get("test_unseen", {}).get("precipitation"),
     }
     (out / "rain_amount.json").write_text(json.dumps(info, indent=2))
     keep_keys = {k: v for k, v in old.items() if k not in metrics}

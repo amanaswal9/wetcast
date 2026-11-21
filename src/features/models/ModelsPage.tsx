@@ -286,6 +286,16 @@ export function ModelsPage({ theme }: { theme: Theme }) {
               What the models know best is when rain is likely. So the {ensembleName} also gives a chance of at least {rainChance.wet_mm} mm in each
               hour, fitted on the validation year. Lower Brier scores are better; the comparison always forecasts the validation year&apos;s rain
               frequency ({Math.round(rainChance.validation_rain_share * 100)}%).
+              {rainChance.model?.outlook && rainChance.scores.test.isotonic_brier !== undefined && (
+                <>
+                  {' '}Besides the models&apos; own rain, it takes Open-Meteo&apos;s forecast for the same hour, made about a day earlier, as a hint:
+                  that lowered the test Brier score from {rainChance.scores.test.isotonic_brier.toFixed(3)} (from the models alone) to{' '}
+                  {rainChance.scores.test.brier.toFixed(3)}.
+                  {rainChance.scores.test.without_forecast_brier !== undefined &&
+                    ` When that forecast can't be fetched it still scores ${rainChance.scores.test.without_forecast_brier.toFixed(3)}.`}{' '}
+                  The same hint didn't improve the rain amounts enough to keep it there.
+                </>
+              )}
             </p>
             <Table
               caption="Chance of rain on the test period (Brier score)"

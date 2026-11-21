@@ -284,12 +284,17 @@ whole training job (about 4 hours on an ordinary CPU).
   `python -m weatherai_ml.recalibrate --region india` recomputes them for saved models without retraining.
 - **Chance of rain:** the models' rain amounts run low, so the Ensemble also gives the chance of at least 0.1 mm
   in each hour, calibrated on the validation year (`python -m weatherai_ml.rain_chance --region india`, after
-  `recalibrate`). On the test period its Brier score is 0.107, against 0.174 for always forecasting the usual
+  `recalibrate`). Since 2026-11-21 a small LightGBM classifier gives it, taking Open-Meteo's own forecast for the
+  hour (made about a day earlier, from the free Previous Runs API) as one more input
+  (`python -m weatherai_ml.outlook --region india` downloads those forecasts, then
+  `python -m weatherai_ml.chance_model --region india`). On the test period its Brier score is 0.097 (0.107 from
+  the models alone, 0.104 when the forecast can't be fetched), against 0.174 for always forecasting the usual
   rain frequency; the Models page shows how often it rained when it said 20%, 50% and so on.
 - **Rain amounts:** the Ensemble's are corrected to the expected amount by a small LightGBM model fitted on the
   validation year (`python -m weatherai_ml.rain_amount --region india`, after `rain_chance`). On the test period
   R² rose from 0.114 to 0.183 and RMSE fell from 0.755 to 0.725 mm; mean absolute error rose from 0.177 to 0.211 mm,
-  because that measure rewards forecasting almost no rain. LightGBM's own rain model learns with a Tweedie loss
+  because that measure rewards forecasting almost no rain. Open-Meteo's forecast as an input added too little here
+  to keep (`--outlook` turns it on). LightGBM's own rain model learns with a Tweedie loss
   (`python -m weatherai_ml.gbm --region india --only precipitation`).
 - A **station check** compares test predictions with Meteostat weather-station measurements, and scores
   Open-Meteo's own data against the same stations to show the data source's error floor.

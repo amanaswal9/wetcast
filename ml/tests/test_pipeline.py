@@ -395,3 +395,63 @@ def test_live_requests_fail_fast_on_daily_limit():
         with pytest.raises(RuntimeError, match="rate-limiting"):
             _get(client, "https://example.invalid", {}, retries=2)
     assert _time.perf_counter() - started < 5
+
+
+def test_rain_outlook_lines_up_with_the_forecast_hours():
+    """The live day-old forecast is returned for exactly the 24 hours after the issue hour."""
+    import httpx
+
+    from weatherai_ml.outlook import VARIABLE, fetch_live
+
+    times = pd.date_range("2026-11-21T08:00", periods=28, freq="h")
+    values = list(range(28))
+    values[5] = None  # one hour Open-Meteo has no value for
+
+    def handler(request):
+        assert request.url.params["hourly"] == VARIABLE
+        return httpx.Response(200, json={"hourly": {"time": [t.strftime("%Y-%m-%dT%H:%M") for t in times], VARIABLE: values}})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        got = fetch_live(client, DELHI, pd.Timestamp("2026-11-21T10:00", tz="UTC"))
+    assert got.shape == (24,)
+    assert got[0] == 3 and got[-1] == 26  # 11:00 ... 10:00 next day
+    assert np.isnan(fetch_live(httpx.Client(transport=httpx.MockTransport(handler)), DELHI, pd.Timestamp("2026-11-21T09:00", tz="UTC"))[3])
+
+
+def test_design_adds_the_outlook_column_and_keeps_unknowns():
+    from weatherai_ml.rain_amount import RECENT_HOURS, design
+
+    leads = [{"x": [0.0, 1.0], "p": [0.1, 0.9]} for _ in range(24)]
+    outlook = np.full((2, 24), 1.0)
+    outlook[1] = np.nan
+    X = design(np.zeros((2, 24)), np.zeros((2, 24, 5)), np.array([1, 6]), np.array([0, 6]), np.zeros((2, RECENT_HOURS)), leads, outlook)
+    assert X.shape == (48, 1 + 5 + 1 + 1 + 4 + 3 + 1)
+    assert np.allclose(X[:24, -1], np.log1p(1.0)) and np.isnan(X[24:, -1]).all()
+
+
+def test_saved_chance_model_uses_the_outlook_and_does_without_it():
+    import json
+
+    from weatherai_ml.models import ENSEMBLE_NAME
+
+    folder = ARTIFACTS_DIR / "india"
+    info_file = folder / ENSEMBLE_NAME / "rain_chance.json"
+    if not info_file.exists() or "model" not in json.loads(info_file.read_text()):
+        pytest.skip("no saved chance-of-rain model")
+    team = json.loads((folder / ENSEMBLE_NAME / "ensemble.json").read_text())["members"]
+    if not all((folder / m).exists() for m in team):
+        pytest.skip("ensemble members missing")
+    from weatherai_ml.gbm import GBM_NAME
+    from weatherai_ml.predict import GBMPredictor
+
+    members = [GBMPredictor(folder / m) if m == GBM_NAME else Predictor(folder / m) for m in team]
+    ensemble = EnsemblePredictor(folder / ENSEMBLE_NAME, members)
+    assert ensemble.chance_model is not None and ensemble.wants_outlook
+    features, _ = build_frames(synthetic_long_frame(ensemble.preprocessor.lookback + 6), DELHI, 216.0)
+    preds = [m.predict(features) for m in members]
+    blind = ensemble.combine(preds, features).rain_chance
+    dry = ensemble.combine(preds, features, np.zeros(24)).rain_chance
+    wet = ensemble.combine(preds, features, np.full(24, 5.0)).rain_chance
+    for c in (blind, dry, wet):
+        assert c.shape == (24,) and ((c >= 0) & (c <= 1)).all()
+    assert wet.mean() > dry.mean() + 0.2  # Open-Meteo forecasting heavy rain raises the chance a lot

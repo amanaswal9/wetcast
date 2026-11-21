@@ -1,28 +1,30 @@
 {
  "wet_mm": 0.1,
- "method": "isotonic map per lead hour from the ensemble's rain forecast, fitted on the validation year at the training cities",
+ "method": "LightGBM classifier on the members' rain, the isotonic chance, time of day and year, recent rain and Open-Meteo's day-old rain forecast, fitted on the validation year at the training cities",
  "validation_rain_share": 0.1933,
  "scores": {
   "test": {
-   "brier": 0.10712,
-   "climatology_brier": 0.1737,
-   "rain_share": 0.2223
+   "brier": 0.09665,
+   "climatology_brier": 0.17369,
+   "rain_share": 0.2223,
+   "isotonic_brier": 0.10712,
+   "without_forecast_brier": 0.10407
   },
   "by_lead": {
    "1": {
-    "brier": 0.07449,
-    "climatology_brier": 0.17353
+    "brier": 0.06774,
+    "climatology_brier": 0.17352
    },
    "6": {
-    "brier": 0.10543,
+    "brier": 0.09662,
     "climatology_brier": 0.1736
    },
    "12": {
-    "brier": 0.10985,
+    "brier": 0.09877,
     "climatology_brier": 0.17374
    },
    "24": {
-    "brier": 0.11455,
+    "brier": 0.10106,
     "climatology_brier": 0.17377
    }
   },
@@ -31,49 +33,50 @@
     "from": 0.0,
     "to": 0.1,
     "said": 0.026,
-    "rained": 0.036,
-    "n": 3763801
+    "rained": 0.03,
+    "n": 3878713
    },
    {
     "from": 0.1,
     "to": 0.3,
-    "said": 0.184,
-    "rained": 0.228,
-    "n": 1431477
+    "said": 0.182,
+    "rained": 0.214,
+    "n": 1296144
    },
    {
     "from": 0.3,
     "to": 0.5,
-    "said": 0.39,
-    "rained": 0.465,
-    "n": 768754
+    "said": 0.394,
+    "rained": 0.461,
+    "n": 672728
    },
    {
     "from": 0.5,
     "to": 0.7,
-    "said": 0.598,
-    "rained": 0.655,
-    "n": 523282
+    "said": 0.596,
+    "rained": 0.663,
+    "n": 519738
    },
    {
     "from": 0.7,
     "to": 0.9,
-    "said": 0.782,
-    "rained": 0.813,
-    "n": 347880
+    "said": 0.798,
+    "rained": 0.839,
+    "n": 444165
    },
    {
     "from": 0.9,
     "to": 1.0,
-    "said": 0.94,
-    "rained": 0.955,
-    "n": 100806
+    "said": 0.941,
+    "rained": 0.965,
+    "n": 124512
    }
   ],
   "test_unseen": {
-   "brier": 0.08878,
+   "brier": 0.08004,
    "climatology_brier": 0.1454,
-   "rain_share": 0.1761
+   "rain_share": 0.1761,
+   "isotonic_brier": 0.08878
   }
  },
  "leads": [
@@ -15410,5 +15413,93 @@
    ]
   }
  ],
- "fitted_at": "2026-11-21T08:20:52+00:00"
+ "fitted_at": "2026-11-21T08:20:52+00:00",
+ "scores_isotonic": {
+  "test": {
+   "brier": 0.10712,
+   "climatology_brier": 0.1737,
+   "rain_share": 0.2223
+  },
+  "by_lead": {
+   "1": {
+    "brier": 0.07449,
+    "climatology_brier": 0.17353
+   },
+   "6": {
+    "brier": 0.10543,
+    "climatology_brier": 0.1736
+   },
+   "12": {
+    "brier": 0.10985,
+    "climatology_brier": 0.17374
+   },
+   "24": {
+    "brier": 0.11455,
+    "climatology_brier": 0.17377
+   }
+  },
+  "reliability_test": [
+   {
+    "from": 0.0,
+    "to": 0.1,
+    "said": 0.026,
+    "rained": 0.036,
+    "n": 3763801
+   },
+   {
+    "from": 0.1,
+    "to": 0.3,
+    "said": 0.184,
+    "rained": 0.228,
+    "n": 1431477
+   },
+   {
+    "from": 0.3,
+    "to": 0.5,
+    "said": 0.39,
+    "rained": 0.465,
+    "n": 768754
+   },
+   {
+    "from": 0.5,
+    "to": 0.7,
+    "said": 0.598,
+    "rained": 0.655,
+    "n": 523282
+   },
+   {
+    "from": 0.7,
+    "to": 0.9,
+    "said": 0.782,
+    "rained": 0.813,
+    "n": 347880
+   },
+   {
+    "from": 0.9,
+    "to": 1.0,
+    "said": 0.94,
+    "rained": 0.955,
+    "n": 100806
+   }
+  ],
+  "test_unseen": {
+   "brier": 0.08878,
+   "climatology_brier": 0.1454,
+   "rain_share": 0.1761
+  }
+ },
+ "model": {
+  "file": "rain_chance_model.txt",
+  "trees": 126,
+  "members": [
+   "lstm",
+   "gru",
+   "cnn_lstm",
+   "lightgbm",
+   "transformer"
+  ],
+  "outlook": true,
+  "recent_hours": 24,
+  "fitted_at": "2026-11-21T11:06:25+00:00"
+ }
 }

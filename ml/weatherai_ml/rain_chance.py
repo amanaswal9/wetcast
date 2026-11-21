@@ -12,7 +12,9 @@ score against always forecasting 2025's rain frequency.
 
 It reads the ensemble's predictions cached by `weatherai_ml.recalibrate` (run that first) and writes
 <artifacts>/ensemble/rain_chance.json, which predict.EnsemblePredictor uses when present. A
-LightGBM classifier on all five members was only about 1.5% better and was not worth a sixth model.
+LightGBM classifier on all five members alone was only about 1.5% better; with Open-Meteo's day-old
+forecast as one more input it is about 10% better, and chance_model.py adds it on top of this map
+(run it after this, since this rewrites rain_chance.json).
 """
 
 from __future__ import annotations

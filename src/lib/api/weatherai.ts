@@ -106,8 +106,10 @@ export interface ModelMetrics {
   rain_chance?: {
     wet_mm: number
     validation_rain_share: number
+    /** Present when a LightGBM classifier (with Open-Meteo's day-old forecast as an input) gives the chance. */
+    model?: { outlook: boolean; trees: number }
     scores: {
-      test: { brier: number; climatology_brier: number; rain_share: number }
+      test: { brier: number; climatology_brier: number; rain_share: number; isotonic_brier?: number; without_forecast_brier?: number }
       test_unseen?: { brier: number; climatology_brier: number; rain_share: number }
       reliability_test: { said: number; rained: number; n: number }[]
     }
