@@ -278,7 +278,7 @@ export function ModelsPage({ theme }: { theme: Theme }) {
                   On the test period that raised its R² from {amount.test_before.r2.toFixed(3)} to {ensembleTest?.r2.toFixed(3)} and lowered its RMSE
                   from {amount.test_before.rmse.toFixed(3)} to {ensembleTest?.rmse.toFixed(3)} mm, while its MAE rose from{' '}
                   {amount.test_before.mae.toFixed(3)} to {ensembleTest?.mae.toFixed(3)} mm: expected amounts put a little rain on many hours that stay
-                  dry, which MAE punishes, in exchange for much better amounts when it does rain.
+                  dry, which MAE punishes, in exchange for amounts that are right on average and smaller big misses.
                 </>
               )}
             </p>

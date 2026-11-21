@@ -13,7 +13,7 @@
     "seed": 7,
     "num_threads": 0
   },
-  "trees": 170,
+  "trees": 132,
   "members": [
     "lstm",
     "gru",
@@ -22,7 +22,7 @@
     "transformer"
   ],
   "recent_hours": 24,
-  "fitted_at": "2026-11-20T20:07:45+00:00",
+  "fitted_at": "2026-11-21T08:22:55+00:00",
   "test_before": {
     "mae": 0.17708662412341494,
     "rmse": 0.7552372404335207,

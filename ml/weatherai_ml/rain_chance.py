@@ -74,10 +74,17 @@ def main() -> None:
     root = artifacts_dir(args.region)
     cache = root / "calibration"
 
+    from .dataset import load_dataset
+    from .train import future_index
+
+    ds = load_dataset(args.region)
+
     def load(s: str):
         d = np.load(cache / f"ensemble__{s}.npz")
         forecast = d["pred"][..., P].astype(float)
-        observed = np.clip(forecast + d["resid"][..., P].astype(float), 0, None)
+        # The real observations: rebuilding them from the cached float32 forecast and error turned some exact
+        # 0.1 mm hours into 0.0999999 mm, i.e. dry, at random.
+        observed = np.clip(ds.targets[future_index(d["ends"])][..., P], 0, None)
         return forecast, observed
 
     try:
