@@ -10,8 +10,12 @@ at hour t becomes 24 rows, one per hour ahead h, built by `build_matrix`:
   - the observed value 24 hours before the predicted hour.
 
 Like the version 2 neural networks, temperature and humidity are predicted as
-the change from the same hour the day before; rain is predicted directly as
-log1p(mm). One model per target, early-stopped on the validation year.
+the change from the same hour the day before. Rain is predicted directly in mm
+with a Tweedie loss (since 2026-11-21; it gives the expected amount, where the
+older squared error on log1p(mm) pulled amounts towards dry). Older artifacts
+say "log1p" in gbm_config.json and keep working. One model per target,
+early-stopped on the validation year. `--only precipitation` retrains just the
+rain model and keeps the other targets' trees.
 `build_matrix` is used unchanged by training and by live inference.
 """
 
@@ -52,6 +56,12 @@ PARAMS = {
 }
 
 
+# Rain: chosen on the 2025 validation year among squared error on log1p(mm) (R² 0.127), Tweedie 1.3 (0.146),
+# Tweedie 1.5 (0.142) and squared error on mm (0.144).
+RAIN_TARGET = "mm_tweedie"
+RAIN_PARAMS = {"objective": "tweedie", "tweedie_variance_power": 1.3}
+
+
 def feature_names() -> list[str]:
     lags = [f"{v}_lag{lag}" for v in LAG_VARS for lag in LAGS]
     extra = ["hours_ahead", "target_hour_sin", "target_hour_cos", "prev_temperature", "prev_humidity", "prev_precipitation"]
@@ -86,21 +96,23 @@ def build_matrix(F: np.ndarray, hour_of_t: np.ndarray, ends: np.ndarray, prev: n
     return np.concatenate([per_forecast, extra], axis=2).reshape(n * H, -1)
 
 
-def training_targets(y: np.ndarray, prev: np.ndarray) -> np.ndarray:
-    """(n, H, 3) physical targets -> what the trees learn: changes for temp/RH, log1p(mm) for rain."""
+def training_targets(y: np.ndarray, prev: np.ndarray, rain_target: str = RAIN_TARGET) -> np.ndarray:
+    """(n, H, 3) physical targets -> what the trees learn: changes for temp/RH; rain in mm, or log1p(mm)
+    for older models (rain_target "log1p")."""
     out = np.empty_like(y, dtype=np.float64)
     out[..., TI] = y[..., TI] - prev[..., TI]
     out[..., HI] = y[..., HI] - prev[..., HI]
-    out[..., PI] = np.log1p(np.clip(y[..., PI], 0, None))
+    rain = np.clip(y[..., PI], 0, None)
+    out[..., PI] = np.log1p(rain) if rain_target == "log1p" else rain
     return out
 
 
-def to_physical(raw: np.ndarray, prev: np.ndarray) -> np.ndarray:
+def to_physical(raw: np.ndarray, prev: np.ndarray, rain_target: str = RAIN_TARGET) -> np.ndarray:
     """Inverse of training_targets, with physical limits."""
     out = np.empty_like(raw, dtype=np.float64)
     out[..., TI] = raw[..., TI] + prev[..., TI]
     out[..., HI] = np.clip(raw[..., HI] + prev[..., HI], 0, 100)
-    out[..., PI] = np.clip(np.expm1(raw[..., PI]), 0, None)
+    out[..., PI] = np.clip(np.expm1(raw[..., PI]) if rain_target == "log1p" else raw[..., PI], 0, None)
     return out
 
 
@@ -122,10 +134,14 @@ class GBMForecaster:
     def lookback(self) -> int:
         return int(self.config["lookback_hours"])
 
+    @property
+    def rain_target(self) -> str:
+        return self.config.get("rain_target", "log1p")  # artifacts from before the Tweedie rain model
+
     def predict_matrix(self, X: np.ndarray, prev: np.ndarray) -> np.ndarray:
         n = prev.shape[0]
         raw = np.stack([self.boosters[t].predict(X, num_threads=0).reshape(n, H) for t in TARGETS], axis=2)
-        return to_physical(raw, prev)
+        return to_physical(raw, prev, self.rain_target)
 
     def predict_ends(self, ds, ends: np.ndarray) -> np.ndarray:
         prev = ds.targets[ends[:, None] + np.arange(1, H + 1)[None, :] - 24]
@@ -143,7 +159,15 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", choices=REGION_NAMES, default="north_india")
     parser.add_argument("--train-stride", type=int, default=4)
+    parser.add_argument("--only", nargs="+", choices=TARGETS, help="retrain these targets, keep the others' saved trees")
     args = parser.parse_args()
+    out = artifacts_dir(args.region) / GBM_NAME
+    previous = {}
+    if args.only:
+        previous = {"config": json.loads((out / "gbm_config.json").read_text()), "metrics": json.loads((out / "metrics.json").read_text())}
+        if previous["config"]["feature_names"] != feature_names():
+            raise SystemExit("The saved LightGBM model uses different features; retrain all targets.")
+    retrain = list(args.only or TARGETS)
 
     ds = load_dataset(args.region)
     train_cities = ds.city_indices("train")
@@ -154,7 +178,7 @@ def main() -> None:
     def matrices(ends):
         prev = ds.targets[future_index(ends) - 24]
         X = build_matrix(ds.features, ds.times[ends].hour.to_numpy(), ends, prev)
-        Y = training_targets(ds.targets[future_index(ends)], prev).reshape(len(ends) * H, len(TARGETS))
+        Y = training_targets(ds.targets[future_index(ends)], prev).reshape(len(ends) * H, len(TARGETS))  # rain in mm
         return X, Y
 
     train_ends = window_ends(ds, "train", stride=args.train_stride, lookback=L, extra_bad=extra_bad, cities=train_cities)
@@ -164,15 +188,17 @@ def main() -> None:
     names = feature_names()
     print(f"train rows {len(Xtr):,} | validation rows {len(Xva):,} | features {len(names)}")
 
-    out = artifacts_dir(args.region) / GBM_NAME
     out.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
-    rounds, importance = {}, {}
+    rounds = dict(previous.get("metrics", {}).get("trees", {}))
+    importance = dict(previous.get("metrics", {}).get("feature_importance", {}))
     for k, target in enumerate(TARGETS):
+        if target not in retrain:
+            continue
         dtrain = lgb.Dataset(Xtr, Ytr[:, k], feature_name=names, free_raw_data=False)
         dval = lgb.Dataset(Xva, Yva[:, k], reference=dtrain)
         booster = lgb.train(
-            PARAMS,
+            {**PARAMS, **(RAIN_PARAMS if target == "precipitation" else {})},
             dtrain,
             num_boost_round=3000,
             valid_sets=[dval],
@@ -186,7 +212,9 @@ def main() -> None:
         print(f"  {target}: {rounds[target]} trees")
     train_seconds = time.perf_counter() - started
 
-    config = {"feature_names": names, "lookback_hours": L, "target_mode": "residual24", "lags": list(LAGS), "params": PARAMS}
+    rain_target = RAIN_TARGET if "precipitation" in retrain else previous["config"].get("rain_target", "log1p")
+    config = {"feature_names": names, "lookback_hours": L, "target_mode": "residual24", "lags": list(LAGS), "params": PARAMS,
+              "rain_target": rain_target, "rain_params": RAIN_PARAMS if rain_target == RAIN_TARGET else None}
     (out / "gbm_config.json").write_text(json.dumps(config, indent=2))
     forecaster = GBMForecaster(out)
 
@@ -220,7 +248,9 @@ def main() -> None:
             "parameters": int(sum(rounds.values())),
             "trees": rounds,
             "feature_importance": importance,
-            "config": {"lookback_hours": L, "target_mode": "residual24", "loss": "mse", "train_stride_hours": args.train_stride},
+            "config": {"lookback_hours": L, "target_mode": "residual24", "loss": "mse", "train_stride_hours": args.train_stride,
+                       "rain_loss": "tweedie 1.3 on mm" if rain_target == RAIN_TARGET else "mse on log1p(mm)",
+                       "retrained_targets": retrain},
             "training": {
                 "epochs_run": None,
                 "best_epoch": None,

@@ -188,7 +188,10 @@ def main() -> None:
         raise SystemExit("The ensemble's windows changed; rerun recalibrate first.")
     metrics, evaluation = train.evaluate("ensemble", predict_ends, lambda ends: old["inference"], lookback, ds, bad, out, old["display_name"])
 
-    before = old["test"]["precipitation"]
+    # "Before" means the members' plain average, uncorrected: keep it from an earlier run of this script.
+    earlier = old.get("rain_amount") or {}
+    before = earlier.get("test_before") or old["test"]["precipitation"]
+    before_unseen = earlier.get("test_unseen_before") or old.get("test_unseen", {}).get("precipitation")
     after = metrics["test"]["precipitation"]
     info = {
         "method": "LightGBM Tweedie correction of the members' rain (expected amount), fitted on the validation year",
@@ -198,7 +201,7 @@ def main() -> None:
         "recent_hours": RECENT_HOURS,
         "fitted_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "test_before": before,
-        "test_unseen_before": old.get("test_unseen", {}).get("precipitation"),
+        "test_unseen_before": before_unseen,
     }
     (out / "rain_amount.json").write_text(json.dumps(info, indent=2))
     keep_keys = {k: v for k, v in old.items() if k not in metrics}

@@ -284,12 +284,13 @@ whole training job (about 4 hours on an ordinary CPU).
   `python -m weatherai_ml.recalibrate --region india` recomputes them for saved models without retraining.
 - **Chance of rain:** the models' rain amounts run low, so the Ensemble also gives the chance of at least 0.1 mm
   in each hour, calibrated on the validation year (`python -m weatherai_ml.rain_chance --region india`, after
-  `recalibrate`). On the test period its Brier score is 0.101, against 0.155 for always forecasting the usual
+  `recalibrate`). On the test period its Brier score is 0.107, against 0.174 for always forecasting the usual
   rain frequency; the Models page shows how often it rained when it said 20%, 50% and so on.
 - **Rain amounts:** the Ensemble's are corrected to the expected amount by a small LightGBM model fitted on the
   validation year (`python -m weatherai_ml.rain_amount --region india`, after `rain_chance`). On the test period
-  R² rose from 0.114 to 0.179 and RMSE fell from 0.755 to 0.727 mm; mean absolute error rose from 0.177 to 0.210 mm,
-  because that measure rewards forecasting almost no rain.
+  R² rose from 0.114 to 0.183 and RMSE fell from 0.755 to 0.725 mm; mean absolute error rose from 0.177 to 0.211 mm,
+  because that measure rewards forecasting almost no rain. LightGBM's own rain model learns with a Tweedie loss
+  (`python -m weatherai_ml.gbm --region india --only precipitation`).
 - A **station check** compares test predictions with Meteostat weather-station measurements, and scores
   Open-Meteo's own data against the same stations to show the data source's error floor.
 - **Where the models predict:** anywhere in India within 310 km of a training city (the farthest a held-out

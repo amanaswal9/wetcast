@@ -105,5 +105,10 @@
     "seed": 42,
     "verbose": -1,
     "num_threads": 0
+  },
+  "rain_target": "mm_tweedie",
+  "rain_params": {
+    "objective": "tweedie",
+    "tweedie_variance_power": 1.3
   }
 }
