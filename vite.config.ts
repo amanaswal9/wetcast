@@ -44,6 +44,13 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
+            // The map's land outline (about 70 KB compressed) is kept once the map has been opened,
+            // instead of being pre-cached for everyone.
+            urlPattern: ({ url }) => url.pathname === '/map-outline.json',
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'map-outline', expiration: { maxEntries: 2 } },
+          },
+          {
             // The base map doesn't change from day to day: keep a month of tiles (about 20 KB each, so
             // up to about 30 MB), so places looked at before open without waiting for the tile server.
             urlPattern: ({ url }) => url.hostname === 'tile.openstreetmap.org',
