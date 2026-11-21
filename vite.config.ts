@@ -44,12 +44,13 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
-            // The base map doesn't change from day to day; keep a week of tiles.
+            // The base map doesn't change from day to day: keep a month of tiles (about 20 KB each, so
+            // up to about 30 MB), so places looked at before open without waiting for the tile server.
             urlPattern: ({ url }) => url.hostname === 'tile.openstreetmap.org',
             handler: 'CacheFirst',
             options: {
               cacheName: 'osm-tiles',
-              expiration: { maxEntries: 400, maxAgeSeconds: 7 * 24 * 3600 },
+              expiration: { maxEntries: 1500, maxAgeSeconds: 30 * 24 * 3600, purgeOnQuotaError: true },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
