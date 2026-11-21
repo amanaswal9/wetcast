@@ -14,6 +14,18 @@ os.environ.pop("HOSTED_API_KEY", None)  # nor the real Hosted API
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
+@pytest.fixture(autouse=True)
+def no_rain_outlook(monkeypatch):
+    """Tests never reach Open-Meteo's live rain forecast; the ensemble then does without it."""
+    from app import predictions
+
+    def offline(*args, **kwargs):
+        raise RuntimeError("offline in tests")
+
+    monkeypatch.setattr(predictions, "fetch_outlook", offline)
+    predictions._outlooks.clear()
+
+
 @pytest.fixture()
 def client():
     from fastapi.testclient import TestClient

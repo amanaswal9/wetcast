@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass
 
 import httpx
+import numpy as np
 import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Session
 from weatherai_ml.config import TARGETS, City, region_cities
 from weatherai_ml.features import build_frames
 from weatherai_ml.openmeteo import fetch_recent
+from weatherai_ml.outlook import fetch_live as fetch_outlook
 from weatherai_ml.models import ENSEMBLE_NAME
 from weatherai_ml.predict import Prediction, Predictor
 
@@ -80,6 +82,27 @@ def recent_features(registry: ModelRegistry, city: City, lookback: int) -> pd.Da
 _predictions: dict[tuple[str, str], Prediction] = {}
 _predictions_lock = threading.Lock()
 
+# Open-Meteo's own rain forecast for the next hours, per city and issue hour (outlook.py).
+_outlooks: dict[str, tuple[pd.Timestamp, np.ndarray | None]] = {}
+
+
+def rain_outlook(city: City, issued: pd.Timestamp, hours: int) -> np.ndarray | None:
+    """(hours,) Open-Meteo's forecast rain after `issued`, or None if it can't be fetched. Optional:
+    the ensemble's rain correction does without it (it was fitted to), so a failure is only logged."""
+    with _predictions_lock:
+        hit = _outlooks.get(city.id)
+    if hit is not None and hit[0] == issued:
+        return hit[1]
+    try:
+        with httpx.Client(timeout=10) as client:
+            values: np.ndarray | None = fetch_outlook(client, city, issued, hours)
+    except (httpx.HTTPError, ValueError, KeyError, RuntimeError) as exc:
+        log.warning("open-meteo rain outlook failed for %s: %s", city.id, exc)
+        values = None
+    with _predictions_lock:
+        _outlooks[city.id] = (issued, values)
+    return values
+
 
 def predict_models(registry: ModelRegistry, city: City, names: list[str], features: pd.DataFrame) -> dict[str, Prediction]:
     """Forecasts from the requested models, computing each model at most once.
@@ -108,9 +131,13 @@ def predict_models(registry: ModelRegistry, city: City, names: list[str], featur
         if name in needed and name != ENSEMBLE_NAME:
             out[name] = cached(name) or keep(name, registry.get(name).predict(features))
     if ENSEMBLE_NAME in needed:
-        out[ENSEMBLE_NAME] = cached(ENSEMBLE_NAME) or keep(
-            ENSEMBLE_NAME, registry.get(ENSEMBLE_NAME).combine([out[m] for m in registry.ensemble_members], features)
-        )
+        hit = cached(ENSEMBLE_NAME)
+        if hit is None:
+            ensemble = registry.get(ENSEMBLE_NAME)
+            members = [out[m] for m in registry.ensemble_members]
+            outlook = rain_outlook(city, issued, len(members[0].times)) if getattr(ensemble, "wants_outlook", False) else None
+            hit = keep(ENSEMBLE_NAME, ensemble.combine(members, features, outlook))
+        out[ENSEMBLE_NAME] = hit
     return {name: out[name] for name in wanted}
 
 

@@ -205,16 +205,31 @@ class EnsemblePredictor:
             from .rain_amount import RainAmount
 
             self.rain_amount = RainAmount(model_dir, self.rain_chance["leads"])
+        self.chance_model = None  # chance of rain with Open-Meteo's forecast as a hint (chance_model.py)
+        model_info = (self.rain_chance or {}).get("model")
+        if model_info and (model_dir / model_info["file"]).exists():
+            import lightgbm as lgb
+
+            self.chance_model = (lgb.Booster(model_file=str(model_dir / model_info["file"])), model_info)
         # The longest member lookback decides how much history the API must fetch.
         self.preprocessor = max((m.preprocessor for m in members), key=lambda p: p.lookback)
 
-    def predict(self, features: pd.DataFrame) -> Prediction:
-        return self.combine([m.predict(features) for m in self.members], features)
+    @property
+    def wants_outlook(self) -> bool:
+        """True when the rain correction uses Open-Meteo's day-old rain forecast (outlook.py)."""
+        return (self.rain_amount is not None and self.rain_amount.uses_outlook) or (
+            self.chance_model is not None and bool(self.chance_model[1].get("outlook"))
+        )
 
-    def combine(self, preds: list[Prediction], features: pd.DataFrame | None = None) -> Prediction:
+    def predict(self, features: pd.DataFrame, outlook: np.ndarray | None = None) -> Prediction:
+        return self.combine([m.predict(features) for m in self.members], features, outlook)
+
+    def combine(self, preds: list[Prediction], features: pd.DataFrame | None = None, outlook: np.ndarray | None = None) -> Prediction:
         """The ensemble from member predictions already made (in member order), so a
         caller that ran the members anyway doesn't run them twice. `features` (the members'
-        input) supplies the recent observed rain for the rain-amount correction."""
+        input) supplies the recent observed rain for the rain-amount correction; `outlook`, (H,) mm,
+        Open-Meteo's forecast for the same hours (NaN or None where unknown: the correction then does
+        without it)."""
         if len(preds) != len(self.members):
             raise ValueError(f"expected {len(self.members)} member predictions, got {len(preds)}")
         issued = {p.issued_at for p in preds}
@@ -227,11 +242,23 @@ class EnsemblePredictor:
             from .rain_chance import chance as rain_chance
 
             chance = rain_chance(self.rain_chance["leads"], values[:, rain])
-        if self.rain_amount is not None:
-            if features is None:
-                raise ValueError("The ensemble's rain correction needs the input features.")
+        recent = None
+        if features is not None:
             recent = np.expm1(Predictor.usable(features)["c_precip_log1p"].to_numpy(dtype=float)[-RECENT_RAIN_HOURS:])
-            by_name = {m.name: p.values[:, rain] for m, p in zip(self.members, preds)}
-            values[:, rain] = self.rain_amount.predict(by_name, preds[0].issued_at, recent)
+        by_name = {m.name: p.values[:, rain] for m, p in zip(self.members, preds)}
+        if self.chance_model is not None and recent is not None:  # without the inputs, the isotonic chance stays
+            from .rain_amount import design
+
+            booster, info = self.chance_model
+            member_rain = np.clip(np.stack([np.asarray(by_name[m], dtype=float) for m in info["members"]], -1)[None], 0, None)
+            ts = pd.Timestamp(preds[0].issued_at)
+            ts = ts.tz_convert("UTC") if ts.tzinfo else ts
+            hint = np.full(member_rain.shape[:2], np.nan) if outlook is None else np.asarray(outlook, dtype=float).reshape(member_rain.shape[:2])
+            X = design(member_rain.mean(-1), member_rain, np.array([ts.month]), np.array([ts.hour]), recent[None], self.rain_chance["leads"], hint)
+            chance = booster.predict(X, num_iteration=info["trees"])
+        if self.rain_amount is not None:
+            if recent is None:
+                raise ValueError("The ensemble's rain correction needs the input features.")
+            values[:, rain] = self.rain_amount.predict(by_name, preds[0].issued_at, recent, outlook)
         lower, upper = apply_ranges(values, self.ranges.at(preds[0].issued_at))
         return Prediction(issued_at=preds[0].issued_at, times=preds[0].times, values=values, lower=lower, upper=upper, rain_chance=chance)

@@ -5,6 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- Open the connection to the map tile server early, so the first map tiles arrive sooner. -->
+    <link rel="preconnect" href="https://tile.openstreetmap.org" />
     <meta name="theme-color" content="#000080" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="WeatherAI: spatial-temporal weather forecasting with its own LSTM, GRU, CNN-LSTM, Transformer and LightGBM models, built on Open-Meteo data." />
