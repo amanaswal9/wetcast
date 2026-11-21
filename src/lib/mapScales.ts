@@ -1,6 +1,6 @@
 /**
  * Colour bands for the weather map. Discrete steps (not a smooth gradient) so a
- * square's colour maps to one legend entry, read the same way in both themes.
+ * colour on the map maps to one legend entry, read the same way in both themes.
  */
 
 export type MapLayer = 'temperature' | 'rain' | 'wind'
@@ -33,7 +33,7 @@ export const TEMPERATURE_BANDS: Band[] = [
   { min: 40, color: '#7b0d1e', label: '40 and above' },
 ]
 
-/** Below 0.1 mm the square is left empty: no rain to show. */
+/** Below 0.1 mm the map is left clear: no rain to show. */
 export const RAIN_BANDS: Band[] = [
   { min: 0.1, color: '#a6d8f0', label: '0.1 to 0.5' },
   { min: 0.5, color: '#5aa9e6', label: '0.5 to 1' },

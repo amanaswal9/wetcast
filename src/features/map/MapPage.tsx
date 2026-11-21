@@ -9,6 +9,7 @@ import { isAbort, toApiError } from '../../lib/api/http'
 import { clearGridCache, getGridForecasts, gridFor, nearestPoint, uncachedPoints, type Bounds, type Grid, type GridPoint, type PointForecast, type ViewSize } from '../../lib/api/mapGrid'
 import { getCoverage } from '../../lib/api/weatherai'
 import { compass, dateFormatter, latLonLabel } from '../../lib/format'
+import { renderField } from '../../lib/mapField'
 import { BANDS, bandFor, bandLabel, blowingTowards, LAYER_INFO, type MapLayer } from '../../lib/mapScales'
 import { useFormat } from '../../lib/units'
 import { pointerIcon } from './pointerPin'
@@ -24,11 +25,13 @@ const WORLD: L.LatLngBoundsExpression = [
 /**
  * Basemap: OpenStreetMap's standard tiles (no key; fine for light use with attribution,
  * see https://operations.osmfoundation.org/policies/tiles/). Shown in greyscale by CSS
- * (.r-map) so the weather colours stand out.
+ * (.r-map) so the weather colours stand out. (CARTO's grey basemaps now need an API key, and
+ * Esri's an ArcGIS account, so neither fits a free, account-free app.)
  */
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 const ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Weather: <a href="https://open-meteo.com/">Open-Meteo</a>'
+const FIELD_OPACITY = 0.62
 
 type Status = { kind: 'loading'; points: number; done: number } | { kind: 'waiting'; seconds: number } | { kind: 'ready' } | { kind: 'error'; message: string }
 
@@ -83,7 +86,7 @@ function Legend({ layer }: { layer: MapLayer }) {
             {bandLabel(layer, i, convert)}
           </li>
         ))}
-        {layer === 'rain' && <li className="text-[var(--text-muted)]">Empty square: less than 0.1 mm</li>}
+        {layer === 'rain' && <li className="text-[var(--text-muted)]">No colour: less than 0.1 mm</li>}
       </ul>
     </div>
   )
@@ -101,7 +104,9 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
   const reduceMotion = useReducedMotion()
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
-  const overlayRef = useRef<L.LayerGroup | null>(null)
+  const fieldRef = useRef<L.ImageOverlay | null>(null)
+  const arrowsRef = useRef<L.LayerGroup | null>(null)
+  const pointerRef = useRef<L.Marker | null>(null)
   const citiesRef = useRef<L.LayerGroup | null>(null)
 
   const [layer, setLayer] = useState<MapLayer>('temperature')
@@ -146,8 +151,11 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
       markerZoomAnimation: !start.reduceMotion,
     })
     mapRef.current = map
-    L.tileLayer(TILES, { attribution: ATTRIBUTION, maxZoom: 19, noWrap: true }).addTo(map)
-    overlayRef.current = L.layerGroup().addTo(map)
+    // The weather image sits just above the base map, under the wind arrows and markers.
+    map.createPane('weather').style.zIndex = '350'
+    // Tiles load once a zoom ends and a wider ring is kept, so panning shows fewer blank edges.
+    L.tileLayer(TILES, { attribution: ATTRIBUTION, maxZoom: 19, noWrap: true, keepBuffer: 4, updateWhenZooming: false }).addTo(map)
+    arrowsRef.current = L.layerGroup().addTo(map)
     citiesRef.current = L.layerGroup().addTo(map)
     const update = () => {
       const size = map.getSize()
@@ -177,8 +185,11 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
       window.clearTimeout(hintTimer)
       map.remove()
       mapRef.current = null
+      fieldRef.current = null
+      pointerRef.current = null
     }
   }, [])
+
 
   // Follow the selected place.
   useEffect(() => {
@@ -236,42 +247,68 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
   const selected = grid ? nearestPoint(grid.points, target[0], target[1]) : null
   const selectedForecast = selected ? data.get(selected.key) : undefined
 
-  // Draw the squares or arrows for the chosen hour.
+  // Paint the chosen hour as one smooth image (wind speed under the wind arrows).
   useEffect(() => {
-    const group = overlayRef.current
+    const map = mapRef.current
+    if (!map || !grid) return
+    const field = renderField(
+      grid.points,
+      grid.latSpacing,
+      grid.lonSpacing,
+      (p) => {
+        const f = data.get(p.key)
+        return f ? valueAt(f, layer, hourIndex) : null
+      },
+      (v) => bandFor(layer, v),
+    )
+    if (!field) {
+      fieldRef.current?.remove()
+      fieldRef.current = null
+      return
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = field.width
+    canvas.height = field.height
+    canvas.getContext('2d')?.putImageData(new ImageData(field.pixels, field.width, field.height), 0, 0)
+    const url = canvas.toDataURL()
+    const opacity = layer === 'wind' ? FIELD_OPACITY * 0.75 : FIELD_OPACITY
+    if (fieldRef.current) {
+      fieldRef.current.setUrl(url).setBounds(L.latLngBounds(field.bounds)).setOpacity(opacity)
+    } else {
+      fieldRef.current = L.imageOverlay(url, field.bounds, { pane: 'weather', opacity, interactive: false, className: 'r-map-field' }).addTo(map)
+    }
+  }, [data, grid, layer, hourIndex])
+
+  useEffect(() => {
+    const group = arrowsRef.current
     if (!group || !grid) return
     group.clearLayers()
-    const halfLat = grid.latSpacing / 2
-    const halfLon = grid.lonSpacing / 2
+    if (layer !== 'wind') return
+    const ink = theme === 'dark' ? '#ffffff' : '#000000'
     for (const p of grid.points) {
       const f = data.get(p.key)
-      if (!f) continue
-      const value = valueAt(f, layer, hourIndex)
-      const band = bandFor(layer, value)
-      if (layer === 'wind') {
-        const direction = f.windDirection[hourIndex]
-        if (value === null || direction === null || !band) continue
-        L.polyline(windArrow(p, grid, value, direction), { color: band.color, weight: 3, interactive: false }).addTo(group)
-      } else if (band) {
-        L.rectangle(
-          [
-            [p.latitude - halfLat, p.longitude - halfLon],
-            [p.latitude + halfLat, p.longitude + halfLon],
-          ],
-          { stroke: false, fillColor: band.color, fillOpacity: 0.55, interactive: false },
-        ).addTo(group)
-      }
+      const speed = f?.windSpeed[hourIndex] ?? null
+      const direction = f?.windDirection[hourIndex] ?? null
+      if (speed === null || direction === null) continue
+      L.polyline(windArrow(p, grid, speed, direction), { color: ink, weight: 2, opacity: 0.85, interactive: false }).addTo(group)
     }
-    if (selected) {
-      // The pointer's tip marks the forecast point whose values are shown below the map.
-      L.marker([selected.latitude, selected.longitude], {
-        icon: pointerIcon(theme),
-        interactive: false,
-        keyboard: false,
-        zIndexOffset: 1000,
-      }).addTo(group)
+  }, [data, grid, layer, hourIndex, theme])
+
+  // The pointer's tip marks the forecast point whose values are shown below the map.
+  const selectedLat = selected?.latitude
+  const selectedLon = selected?.longitude
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (selectedLat === undefined || selectedLon === undefined) {
+      pointerRef.current?.remove()
+      pointerRef.current = null
+      return
     }
-  }, [data, grid, layer, hourIndex, selected, theme])
+    if (pointerRef.current) pointerRef.current.setLatLng([selectedLat, selectedLon]).setIcon(pointerIcon(theme))
+    else
+      pointerRef.current = L.marker([selectedLat, selectedLon], { icon: pointerIcon(theme), interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(map)
+  }, [selectedLat, selectedLon, theme])
 
   // Mark the cities WeatherAI's own models cover.
   useEffect(() => {
@@ -297,7 +334,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
       latitude: selected.latitude,
       longitude: selected.longitude,
     })
-    window.location.hash = '#/forecast'
+    window.location.assign('#/forecast')
   }
 
   const hourText = times[hourIndex] !== undefined ? hourLabel(times[hourIndex], fmt.hour12) : '–'
@@ -369,8 +406,8 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
             role="application"
             aria-label={
               touch
-                ? 'Weather map. Move and zoom with two fingers; tap a square for its values.'
-                : 'Weather map. Drag or use the arrow keys to move, plus and minus to zoom (or the mouse wheel after clicking the map). Click a square for its values.'
+                ? 'Weather map. Move and zoom with two fingers; tap a place for its values.'
+                : 'Weather map. Drag or use the arrow keys to move, plus and minus to zoom (or the mouse wheel after clicking the map). Click a place for its values.'
             }
           />
           {touchHint && (
@@ -453,9 +490,9 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
 
       <GroupBox title="About this map">
         <p className="m-0 max-w-[75ch]">
-          Each square shows Open-Meteo's forecast at its centre point. This is weather-model data, not measurements, and values between points
-          are not filled in, so a square can miss a shower or a hill that its centre point doesn't. The grid gets finer as you zoom in. This map
-          uses third-party forecasts; WeatherAI's own models only cover the marked cities and are on the Forecast page.
+          The colours come from Open-Meteo's forecasts at evenly spaced points, blended smoothly in between. This is weather-model data, not
+          measurements, and the blending can miss a shower or a hill that falls between two points. The points get closer together as you
+          zoom in. This map uses third-party forecasts; WeatherAI's own models only cover the marked cities and are on the Forecast page.
         </p>
       </GroupBox>
     </div>
