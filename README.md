@@ -100,6 +100,8 @@ python -m venv ~/.venvs/weatherai
 # 3. API (applies database migrations on startup)
 cd backend
 ~/.venvs/weatherai/Scripts/python -m uvicorn app.main:app --port 8000
+#    or, on Windows, in the background with automatic restarts: scripts/start-api.ps1
+#    (copy scripts/start-api-hidden.vbs into the Startup folder to start it at login)
 
 # 4. Frontend (another terminal, repository root). Vite forwards /api to :8000.
 npm install
