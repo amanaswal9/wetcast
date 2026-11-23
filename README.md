@@ -54,6 +54,7 @@ ml/weatherai_ml Training pipeline AND the shared preprocessing the API uses at i
 ml/tests/       Pipeline, leakage and prediction tests (pytest)
 e2e/            Browser journeys, screenshots and accessibility (pytest + Playwright, recorded network)
 scripts/        check-bundle.mjs: bundle-size budget
+ci/lighthouse/  Lighthouse CI settings and its own packages
 ml/artifacts/   Trained models: model.keras, preprocessor.json, metrics.json, evaluation.json
 deploy/ (web Dockerfile, nginx), docker-compose.yml, backend/Dockerfile   Container deployment
 ```
@@ -141,6 +142,7 @@ npm test                                                             # frontend 
 npm run build && npm run lint                                        # frontend type-check, build, lint
 npm run size                                                         # bundle-size budget (after build)
 ~/.venvs/weatherai/Scripts/python -m pytest e2e                     # browser journeys + accessibility (after build)
+cd ci/lighthouse && npm ci && npx lhci autorun                       # Lighthouse scores (after build, about 3 minutes)
 ```
 
 The browser tests open the production build in Chromium with every network call answered from
@@ -154,7 +156,8 @@ screenshots after an intended visual change.
 
 `.forgejo/workflows/ci.yml` runs on Codeberg's Forgejo Actions (hosted `codeberg-medium` runners, enabled under
 the repository's Settings, Units, "Enable Actions") on every push and pull request: a frontend job (`npm ci`, lint, Vitest, type-check, build and the bundle-size budget), a browser job (the
-`e2e` tests, compared with the Linux reference screenshots in `e2e/screenshots/linux/`) and a Python job (ML pipeline and API tests on
+`e2e` tests, compared with the Linux reference screenshots in `e2e/screenshots/linux/`, then Lighthouse on four pages with
+the limits in `ci/lighthouse/lighthouserc.js`; its reports are kept as the `lighthouse-reports` artifact) and a Python job (ML pipeline and API tests on
 Python 3.13 with CPU TensorFlow). It needs no secrets and uses only open-source actions from code.forgejo.org.
 Codeberg's hosted runners allow 10 minutes a job; if installing TensorFlow runs over, change the Python job's
 `runs-on` to `codeberg-medium-lazy` or register a self-hosted Forgejo runner.

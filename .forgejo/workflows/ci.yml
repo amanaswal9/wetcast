@@ -1,5 +1,6 @@
 # Runs every test on each push and pull request, on Codeberg's hosted Forgejo Actions runners.
-# Nothing here needs secrets or network services: API tests use SQLite and synthetic weather inputs.
+# Nothing here needs secrets or a backend: API tests use SQLite and synthetic weather inputs, and the
+# browser tests answer every request from recorded files. Only Lighthouse fetches live weather.
 #
 # Codeberg runners (fair use, public free-software repos only): codeberg-small is 2 CPU, 4 GB,
 # about 5 minutes; codeberg-medium is 4 CPU, 8 GB, about 10 minutes. Files written in the
@@ -36,7 +37,7 @@ jobs:
         run: npm run size
 
   browser:
-    name: Browser journeys and accessibility (Playwright, axe-core)
+    name: Browser journeys, accessibility and Lighthouse
     runs-on: codeberg-medium
     container:
       image: python:3.13-bookworm
@@ -72,6 +73,21 @@ jobs:
         with:
           name: e2e-screenshots
           path: e2e/screenshots/
+          if-no-files-found: ignore
+      # Phone-profile scores for four pages, using the Chromium Playwright installed above. Its packages
+      # live in ci/lighthouse so the app's own npm ci stays small; see lighthouserc.js there for the limits.
+      - name: Lighthouse (performance, accessibility, best practices, SEO)
+        working-directory: ci/lighthouse
+        run: |
+          npm ci
+          export CHROME_PATH=$(python -c "from playwright.sync_api import sync_playwright as s; p = s().start(); print(p.chromium.executable_path); p.stop()")
+          npx lhci autorun
+      - name: Keep the Lighthouse reports
+        if: always()
+        uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: ci/lighthouse/reports/
           if-no-files-found: ignore
 
   python:

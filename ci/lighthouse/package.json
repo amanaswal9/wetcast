@@ -1,0 +1,15 @@
+{
+  "name": "wetcast-lighthouse",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "description": "Lighthouse CI for Wetcast, kept apart from the app's own packages so npm ci for the app stays small.",
+  "scripts": {
+    "lighthouse": "lhci autorun"
+  },
+  "devDependencies": {
+    "@lhci/cli": "0.16.1"
+  },
+  "overrides": {
+    "@sentry/node": "file:./no-telemetry"
+  }
+}
