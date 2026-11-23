@@ -35,6 +35,10 @@ ml/artifacts/india/calibration/
 # Browser tests: screenshots from a failed comparison, kept only to look at
 e2e/screenshots-failed/
 
+# Lighthouse reports and its working folder (a local build can include the personal desktop picture)
+ci/lighthouse/reports/
+ci/lighthouse/.lighthouseci/
+
 # Personal desktop art: a picture of your own choosing and its ASCII version. Kept out of git
 # so it is never committed or published (docs/share/make_wallpaper_ascii.py makes it).
 local/
