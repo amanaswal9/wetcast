@@ -11,14 +11,14 @@ import type { Place } from '../../types/weather'
 
 type Status = 'idle' | 'searching' | 'done' | 'error'
 
-/** City search as an ARIA 1.2 combobox, backed by Open-Meteo geocoding. */
+// City search as an ARIA 1.2 combobox, backed by Open-Meteo geocoding.
 interface CitySearchProps {
   onSelect: (place: Place) => void
   label?: string
   placeholder?: string
-  /** Show a microphone button (where the browser supports speech recognition). */
+  // Show a microphone button (where the browser supports speech recognition).
   voice?: boolean
-  /** Called when a spoken phrase names a page, e.g. "open the forecast". */
+  // Called when a spoken phrase names a page, e.g. "open the forecast".
   onVoicePage?: (page: PageId) => void
 }
 

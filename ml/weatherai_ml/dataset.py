@@ -14,6 +14,8 @@ from .features import build_frames
 
 @dataclass
 class Dataset:
+    """Every city's hourly rows stacked one after another, with enough bookkeeping to find each city."""
+
     features: np.ndarray  # (rows, n_features) physical units, NaN where missing
     targets: np.ndarray  # (rows, n_targets) physical units
     times: pd.DatetimeIndex  # time of each row
@@ -23,9 +25,11 @@ class Dataset:
     cities: tuple[City, ...] = ()
 
     def city_indices(self, role: str) -> set[int]:
+        """Indexes of the cities with this role ("train" or "holdout")."""
         return {i for i, c in enumerate(self.cities) if c.role == role}
 
     def rows_of(self, cities: set[int]) -> np.ndarray:
+        """Boolean mask of the rows that belong to the given cities."""
         return np.isin(self.city_of_row, list(cities))
 
 

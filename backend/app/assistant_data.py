@@ -37,11 +37,13 @@ WEATHER_CODES = {
     96: "thunderstorm with hail", 99: "thunderstorm with heavy hail",
 }
 
+# Lookups are cached for CACHE_SECONDS: follow-up questions often ask about the same place.
 _cache: dict[str, tuple[float, dict]] = {}
 _lock = threading.Lock()
 
 
 def _cached(key: str, fetch) -> dict:
+    """The cached value for `key`, or a fresh one from `fetch()`."""
     with _lock:
         hit = _cache.get(key)
         if hit and hit[0] > time.monotonic():
@@ -53,6 +55,7 @@ def _cached(key: str, fetch) -> dict:
 
 
 def _get(url: str, params: dict) -> dict:
+    """GET JSON from Open-Meteo; any failure becomes UpstreamError."""
     try:
         response = httpx.get(url, params=params, timeout=15)
         response.raise_for_status()
@@ -62,10 +65,12 @@ def _get(url: str, params: dict) -> dict:
 
 
 def _r(value, digits: int = 1):
+    """Round a number, keeping None as None."""
     return None if value is None else round(float(value), digits)
 
 
 def find_place(name: str) -> dict:
+    """Up to three places matching a name, from Open-Meteo's geocoding."""
     data = _cached(f"geo:{name.lower()}", lambda: _get(GEOCODING_URL, {"name": name, "count": 3, "language": "en", "format": "json"}))
     results = [
         {
@@ -97,6 +102,7 @@ def weather(latitude: float, longitude: float) -> dict:
     hourly = data.get("hourly", {})
     now_local = cur.get("time", "")
     hours = []
+    # From the current hour on, every third hour, 16 rows (48 hours).
     for i, t in enumerate(hourly.get("time", [])):
         if t < now_local[:13] or len(hours) >= 16:
             continue
@@ -114,14 +120,15 @@ def weather(latitude: float, longitude: float) -> dict:
             }
         )
     daily = data.get("daily", {})
+    no_humidity = [None] * len(daily.get("time", []))  # in case Open-Meteo leaves daily humidity out
     days = [
         {
             "date": d,
             "sky": WEATHER_CODES.get(daily["weather_code"][i], "unknown"),
             "high_c": _r(daily["temperature_2m_max"][i]),
             "low_c": _r(daily["temperature_2m_min"][i]),
-            "humidity_low_pct": (daily.get("relative_humidity_2m_min") or [None] * (i + 1))[i],
-            "humidity_high_pct": (daily.get("relative_humidity_2m_max") or [None] * (i + 1))[i],
+            "humidity_low_pct": (daily.get("relative_humidity_2m_min") or no_humidity)[i],
+            "humidity_high_pct": (daily.get("relative_humidity_2m_max") or no_humidity)[i],
             "chance_of_rain_pct": daily["precipitation_probability_max"][i],
             "rain_mm": _r(daily["precipitation_sum"][i]),
             "max_wind_kmh": _r(daily["wind_speed_10m_max"][i], 0),
@@ -165,6 +172,7 @@ def weatherai_prediction(registry: ModelRegistry, latitude: float, longitude: fl
         return {"available": False, "reason": str(exc)}
     metrics = registry.metrics(name)
     rows = []
+    # Every third hour is enough for an answer and keeps the lookup small.
     for i, t in enumerate(pred.times):
         if (i + 1) % 3:
             continue
@@ -179,7 +187,7 @@ def weatherai_prediction(registry: ModelRegistry, latitude: float, longitude: fl
     level = metrics["interval"]["level"]
     label, detail = model_coverage.describe(region, located)
     expected = model_coverage.expected_error(registry, name, located)
-    return {
+    out = {
         "available": True,
         "place_kind": f"{label}. {detail}",
         "source": f"Wetcast's own {registry.display_name(name)} model (machine-learning forecast, not an official forecast)",
@@ -191,9 +199,11 @@ def weatherai_prediction(registry: ModelRegistry, latitude: float, longitude: fl
         "expected_error_here": {
             t: f"{v:.2f} {TARGET_UNITS[t]} average error ({expected['basis']})" for t, v in expected["mae"].items() if v is not None
         },
-        **(rain_chance_summary(pred, predictor) if pred.rain_chance is not None else {}),
-        "forecast_every_3_hours": rows,
     }
+    if pred.rain_chance is not None:
+        out["chance_of_rain"] = rain_chance_summary(pred, predictor)
+    out["forecast_every_3_hours"] = rows
+    return out
 
 
 def rain_chance_summary(pred, predictor) -> dict:
@@ -202,18 +212,17 @@ def rain_chance_summary(pred, predictor) -> dict:
     table = predictor.rain_chance
     score = table["scores"]["test"]
     return {
-        "chance_of_rain": {
-            "highest_in_next_24h_pct": round(float(pred.rain_chance[i]) * 100),
-            "at": pred.times[i].tz_convert(IST).strftime("%Y-%m-%dT%H:%M"),
-            "meaning": f"chance of at least {table['wet_mm']} mm of rain in one hour (not over the whole day)",
-            "reliability": "On the 2026 test period these chances were close to how often it rained (it rained slightly more often "
-            f"than they said); their Brier score was {score['brier']:.3f}, against {score['climatology_brier']:.3f} for always "
-            "forecasting the usual rain frequency (lower is better).",
-        }
+        "highest_in_next_24h_pct": round(float(pred.rain_chance[i]) * 100),
+        "at": pred.times[i].tz_convert(IST).strftime("%Y-%m-%dT%H:%M"),
+        "meaning": f"chance of at least {table['wet_mm']} mm of rain in one hour (not over the whole day)",
+        "reliability": "On the 2026 test period these chances were close to how often it rained (it rained slightly more often "
+        f"than they said); their Brier score was {score['brier']:.3f}, against {score['climatology_brier']:.3f} for always "
+        "forecasting the usual rain frequency (lower is better).",
     }
 
 
 def official_alerts_at(session: Session, latitude: float, longitude: float, country_code: str | None) -> dict:
+    """Official warnings in effect at a point (at most five, most severe first), with their source."""
     coverage = official_alerts.coverage_for(latitude, longitude, country_code)
     if coverage == "none":
         return {"covered": False, "note": "Wetcast has no official warning feed for this country. Point people to their national weather service."}
@@ -267,7 +276,7 @@ def model_accuracy(session: Session, registry: ModelRegistry) -> dict:
     return {
         "source": "Wetcast's evaluation (test period Jan-Oct 2026, never used in training) and its live track record",
         "most_accurate_on_test_period": best_on_test,
-        "test_mean_absolute_error": {"units": {t: TARGET_UNITS[t] for t in TARGETS}, **models},
+        "test_mean_absolute_error": {"units": {t: TARGET_UNITS[t] for t in TARGETS}} | models,
         "persistence_baseline": baseline,
         "persistence_means": "predicting the same hour as the day before; a useful model should beat it",
         "live_track_record_last_30_days_temperature_best_first": live or "Nothing scored yet.",

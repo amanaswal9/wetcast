@@ -1,12 +1,10 @@
-/**
- * Desktop-aware help for the browser's speech features (voice search and read-aloud), kept free of
- * React so it can be tested. Works the same on Windows, macOS and Linux; the messages only name the
- * right settings for the computer in use.
- */
+// Desktop-aware help for the browser's speech features (voice search and read-aloud), kept free of
+// React so it can be tested. Works the same on Windows, macOS and Linux; the messages only name the
+// right settings for the computer in use.
 
 export type VoiceError = 'blocked' | 'no-mic' | 'service' | 'no-speech' | 'network' | 'other'
 
-/** Web Speech API error codes -> what the person can do about it. */
+// Web Speech API error codes -> what the person can do about it.
 export function toVoiceError(code: string): VoiceError {
   if (code === 'not-allowed') return 'blocked'
   if (code === 'audio-capture') return 'no-mic' // common on desktop PCs without a microphone
@@ -34,6 +32,7 @@ const MIC_SETTINGS: Record<Computer, string> = {
   other: '',
 }
 
+// What to tell the viewer when voice input fails, with settings advice for their system.
 export function voiceErrorMessage(error: VoiceError, userAgent: string): string {
   const computer = computerOf(userAgent)
   switch (error) {
@@ -63,11 +62,9 @@ export interface VoiceLike {
 // macOS ships joke voices (bells, whispering, singing) that some browsers pick for plain "en".
 const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Junior|Ralph|Fred|Kathy|Deranged|Hysterical|Pipe Organ)\b/
 
-/**
- * An English voice for read-aloud: the computer's own default if it is English, else one matching the
- * browser's language (en-IN, en-GB...), else Indian, British or American English. Null while the
- * browser is still loading its voices; the browser then chooses.
- */
+// An English voice for read-aloud: the computer's own default if it is English, else one matching the
+// browser's language (en-IN, en-GB...), else Indian, British or American English. Null while the
+// browser is still loading its voices; the browser then chooses.
 export function pickVoice<V extends VoiceLike>(voices: readonly V[], language: string): V | null {
   const english = voices.filter((v) => /^en([-_]|$)/i.test(v.lang) && !NOVELTY.test(v.name))
   if (english.length === 0) return null

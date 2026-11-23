@@ -47,6 +47,7 @@ def main() -> None:
     members = {n: Member(n, root, ds) for n in names}
 
     def slice_preds(name: str, member_names: list[str], lookback: int, bad: np.ndarray) -> dict:
+        """(window ends, predictions) for each slice, read from the cache when its windows still match."""
         out = {}
         for s, (split, role) in SLICES.items():
             ends = window_ends(ds, split, lookback=lookback, extra_bad=bad, cities=ds.city_indices(role))
@@ -74,11 +75,21 @@ def main() -> None:
         return out
 
     def rewrite(name: str, preds: dict) -> None:
+        """Replace the `interval` block of a model's metrics.json with freshly calibrated ranges."""
+
         def part(s):
             ends, pred = preds[s]
             return ends, ds.targets[future_index(ends)], pred
 
-        block = interval_block(ds, *part("val_train"), *part("test_train"), *(part("test_hold") if len(preds["test_hold"][0]) else (None, None, None)))
+        val_ends, val_true, val_pred = part("val_train")
+        test_ends, test_true, test_pred = part("test_train")
+        unseen_ends = unseen_true = unseen_pred = None
+        if len(preds["test_hold"][0]):
+            unseen_ends, unseen_true, unseen_pred = part("test_hold")
+        block = interval_block(
+            ds, val_ends, val_true, val_pred, test_ends, test_true, test_pred,
+            unseen_ends, unseen_true, unseen_pred,
+        )
         path = root / name / "metrics.json"
         metrics = json.loads(path.read_text())
         before = metrics["interval"].get("test_coverage", {})

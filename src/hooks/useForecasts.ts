@@ -7,11 +7,11 @@ import { useResource } from './useResource'
 export interface PlaceForecast {
   place: Place
   forecast: Forecast | null
-  /** Set when this one place failed; the others still show. */
+  // Set when this one place failed; the others still show.
   error: string | null
 }
 
-/** Forecasts for several places at once. One failing city doesn't fail the rest. */
+// Forecasts for several places at once. One failing city doesn't fail the rest.
 export function useForecasts(places: Place[]) {
   const key = places.map(coordKey).join('|')
   return useResource<PlaceForecast[]>(

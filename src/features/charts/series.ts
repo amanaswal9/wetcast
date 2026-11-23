@@ -1,4 +1,4 @@
-/** Fields any hourly series needs to be charted. */
+// Fields any hourly series needs to be charted.
 export interface ChartPoint {
   time: string
   isPast: boolean
@@ -11,18 +11,19 @@ import type { Format } from '../../lib/units'
 
 export type Mode = 'temperature' | 'rain' | 'wind'
 
+// The quantities the hourly chart can show, in tab order.
 export const MODES: { id: Mode; label: string }[] = [
   { id: 'temperature', label: 'Temperature' },
   { id: 'rain', label: 'Rain' },
   { id: 'wind', label: 'Wind' },
 ]
 
-/** The unit shown for a mode, in the viewer's chosen units. */
+// The unit shown for a mode, in the viewer's chosen units.
 export function modeUnit(mode: Mode, fmt: Format): string {
   return mode === 'temperature' ? fmt.tempUnit : mode === 'wind' ? fmt.speedUnit : '%'
 }
 
-/** A point's value for a mode, converted to the viewer's chosen units. */
+// A point's value for a mode, converted to the viewer's chosen units.
 function pickFor(mode: Mode, fmt: Format): (h: ChartPoint) => number | null {
   if (mode === 'temperature') return (h) => (h.temperature === null ? null : fmt.temp(h.temperature))
   if (mode === 'wind') return (h) => (h.windSpeed === null ? null : fmt.speed(h.windSpeed))
@@ -37,6 +38,7 @@ export interface Row {
   forecast: number | null
 }
 
+// Chart rows for one mode, converted to the viewer's units.
 export function buildRows(points: ChartPoint[], mode: Mode, nowTime: string | null, fmt: Format): Row[] {
   const pick = pickFor(mode, fmt)
   const joinLines = mode !== 'rain'
@@ -53,7 +55,7 @@ export function buildRows(points: ChartPoint[], mode: Mode, nowTime: string | nu
   })
 }
 
-/** The last hour at or before the current reading, if it is in the series. */
+// The last hour at or before the current reading, if it is in the series.
 export function findNowTime(points: ChartPoint[]): string | null {
   for (let i = points.length - 1; i >= 0; i--) if (points[i].isPast) return points[i].time
   return null

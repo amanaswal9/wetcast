@@ -12,10 +12,8 @@ import type {
 import { fetchJson } from './http'
 import { arr, num, numOrNull, obj, series, str, strOrNull, strOrUndefined } from './validate'
 
-/**
- * Open-Meteo client. Free for non-commercial use, no API key required.
- * Docs: https://open-meteo.com/en/docs
- */
+// Open-Meteo client. Free for non-commercial use, no API key required.
+// Docs: https://open-meteo.com/en/docs
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
 const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search'
 const AIR_QUALITY_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality'
@@ -50,10 +48,11 @@ const DAILY_VARS = [
   'precipitation_probability_max',
 ]
 
+// The hourly view shows the past 12 hours and the current hour plus the next 24.
 export const PAST_HOURS = 12
 export const FORECAST_HOURS = 25
 
-/** Round coordinates so nearby requests share a cache entry (~1 km). */
+// Round coordinates so nearby requests share a cache entry (~1 km).
 function coord(value: number): string {
   return value.toFixed(2)
 }
@@ -63,6 +62,7 @@ interface RequestOptions {
   fresh?: boolean
 }
 
+// Open-Meteo URL for the dashboard forecast.
 export function buildForecastUrl(place: Pick<Place, 'latitude' | 'longitude'>): string {
   const params = new URLSearchParams({
     latitude: coord(place.latitude),
@@ -78,6 +78,7 @@ export function buildForecastUrl(place: Pick<Place, 'latitude' | 'longitude'>): 
   return `${FORECAST_URL}?${params}`
 }
 
+// Check and reshape the dashboard forecast response.
 export function parseForecast(raw: unknown, fetchedAt: number): Forecast {
   const root = obj(raw, 'response')
   const timezone = str(root.timezone, 'timezone')
@@ -144,6 +145,7 @@ export function parseForecast(raw: unknown, fetchedAt: number): Forecast {
   return { timezone, current, hourly, daily, fetchedAt }
 }
 
+// Dashboard forecast for a place, cached for ten minutes.
 export async function getForecast(place: Place, { signal, fresh }: RequestOptions = {}): Promise<Forecast> {
   const raw = await fetchJson(buildForecastUrl(place), { signal, fresh, ttlMs: 10 * MINUTE })
   return parseForecast(raw, Date.now())
@@ -158,6 +160,7 @@ const WEEK_DAILY_VARS = [
   'wind_direction_10m_dominant',
 ]
 
+// Open-Meteo URL for the seven-day forecast with hourly detail.
 export function buildWeekUrl(place: Pick<Place, 'latitude' | 'longitude'>): string {
   const params = new URLSearchParams({
     latitude: coord(place.latitude),
@@ -171,6 +174,7 @@ export function buildWeekUrl(place: Pick<Place, 'latitude' | 'longitude'>): stri
   return `${FORECAST_URL}?${params}`
 }
 
+// Check and reshape the seven-day forecast response.
 export function parseWeek(raw: unknown, fetchedAt: number): WeekForecast {
   const root = obj(raw, 'response')
   const timezone = str(root.timezone, 'timezone')
@@ -232,6 +236,7 @@ export function parseWeek(raw: unknown, fetchedAt: number): WeekForecast {
   return { timezone, utcOffsetSeconds, currentTime, hourly, daily, fetchedAt }
 }
 
+// Seven-day forecast for a place, cached for ten minutes.
 export async function getWeekForecast(place: Place, { signal, fresh }: RequestOptions = {}): Promise<WeekForecast> {
   const raw = await fetchJson(buildWeekUrl(place), { signal, fresh, ttlMs: 10 * MINUTE })
   return parseWeek(raw, Date.now())
@@ -247,7 +252,7 @@ export interface HistoryDay {
   precipitationSum: number | null
 }
 
-/** Daily history from Open-Meteo's ERA5 archive, which runs about 5 days behind today. */
+// Daily history from Open-Meteo's ERA5 archive, which runs about 5 days behind today.
 export async function getDailyHistory(place: Place, days: number, { signal }: RequestOptions = {}): Promise<HistoryDay[]> {
   const end = new Date(Date.now() - 6 * 86_400_000)
   const start = new Date(end.getTime() - (days - 1) * 86_400_000)
@@ -274,6 +279,7 @@ export async function getDailyHistory(place: Place, days: number, { signal }: Re
   }))
 }
 
+// Check and reshape geocoding results into places.
 export function parsePlaces(raw: unknown): Place[] {
   const root = obj(raw, 'response')
   // Open-Meteo omits "results" entirely when nothing matches.
@@ -292,6 +298,7 @@ export function parsePlaces(raw: unknown): Place[] {
   })
 }
 
+// Places matching a name. Queries shorter than two letters return nothing.
 export async function searchPlaces(query: string, { signal }: RequestOptions = {}): Promise<Place[]> {
   const name = query.trim()
   if (name.length < 2) return []
@@ -300,6 +307,7 @@ export async function searchPlaces(query: string, { signal }: RequestOptions = {
   return parsePlaces(raw)
 }
 
+// Check and reshape the air quality response.
 export function parseAirQuality(raw: unknown): AirQuality {
   const root = obj(raw, 'response')
   const c = obj(root.current, 'current')
@@ -311,6 +319,7 @@ export function parseAirQuality(raw: unknown): AirQuality {
   }
 }
 
+// Current air quality for a place, cached for half an hour.
 export async function getAirQuality(place: Place, { signal, fresh }: RequestOptions = {}): Promise<AirQuality> {
   const params = new URLSearchParams({
     latitude: coord(place.latitude),

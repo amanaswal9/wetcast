@@ -3,7 +3,7 @@ import { writeString } from '../lib/storage'
 
 export type Theme = 'light' | 'dark'
 
-/** index.html sets data-theme before first paint; this hook reads and changes it. */
+// index.html sets data-theme before first paint; this hook reads and changes it.
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() =>
     document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',

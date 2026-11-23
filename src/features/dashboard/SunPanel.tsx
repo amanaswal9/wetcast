@@ -10,6 +10,7 @@ const BASE = 62
 const RX = 88
 const RY = 52
 
+// Sunrise, sunset and the sun's position along today's arc.
 export function SunPanel({ forecast }: { forecast: Forecast }) {
   const fmt = useFormat()
   const today = forecast.daily[0]

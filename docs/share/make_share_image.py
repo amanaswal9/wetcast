@@ -55,7 +55,7 @@ def main() -> None:
 
         favicon = (PUBLIC / "favicon.svg").read_text(encoding="utf-8")
         inner = favicon[favicon.index(">") + 1 : favicon.rindex("</svg>")]
-        icons = {"favicon-32": (inner, 32), **{f"shortcut-{k}": (v, 96) for k, v in SHORTCUT_ICONS.items()}}
+        icons = {"favicon-32": (inner, 32)} | {f"shortcut-{k}": (v, 96) for k, v in SHORTCUT_ICONS.items()}
         for name, (body, size) in icons.items():
             small = browser.new_page(viewport={"width": size, "height": size}, device_scale_factor=1)
             small.set_content(svg_page(body, size))

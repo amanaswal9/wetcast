@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import { ChartSkeleton, GroupBox, TextSkeleton } from '../components/retro'
 import { loaders } from './pageLoaders'
 
+// Each page is its own chunk, loaded the first time it is opened.
 export const Dashboard = lazy(() => loaders.dashboard().then((m) => ({ default: m.Dashboard })))
 export const ForecastPage = lazy(() => loaders.forecast().then((m) => ({ default: m.ForecastPage })))
 export const MapPage = lazy(() => loaders.map().then((m) => ({ default: m.MapPage })))
@@ -11,7 +12,7 @@ export const ModelsPage = lazy(() => loaders.models().then((m) => ({ default: m.
 export const LocationsPage = lazy(() => loaders.locations().then((m) => ({ default: m.LocationsPage })))
 export const AboutPage = lazy(() => loaders.about().then((m) => ({ default: m.AboutPage })))
 
-/** Shown for the moment a page's code is downloading. */
+// Shown for the moment a page's code is downloading.
 export function PageLoading() {
   return (
     <div aria-busy="true">

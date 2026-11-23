@@ -8,22 +8,22 @@ A 57-second tour recorded from the running app with live data ([MP4, 1280×720](
 Only the title card, captions and pointer are drawn on top. Re-record it with `docs/demo/record_demo.py`
 (needs the dev servers, Playwright with Chromium, and ffmpeg).
 
-- **Dashboard**: current conditions, readings, air quality, sun, hourly chart and table, read-aloud summary.
-- **Official warnings** (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
+- Dashboard: current conditions, readings, air quality, sun, hourly chart and table, read-aloud summary.
+- Official warnings (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
   (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
-- **Ask** (optional: a free local model through Ollama, or Hosted with an Hosted API key): Javed, a weather assistant that answers questions using
+- Ask (optional: a free local model through Ollama, or Hosted with an Hosted API key): Javed, a weather assistant that answers questions using
   only data it looks up (Open-Meteo, Wetcast's models, official warnings), with its sources under each answer.
-- **Map**: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
+- Map: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
   points, with the cities Wetcast's own models cover marked.
-- **Forecast**: 7-day strip and per-day detail, plus Wetcast's own predictions (LSTM, GRU, CNN-LSTM,
+- Forecast: 7-day strip and per-day detail, plus Wetcast's own predictions (LSTM, GRU, CNN-LSTM,
   ST-Transformer, LightGBM and their ensemble)
   for the next 24 hours with error ranges, side by side with Open-Meteo's forecast.
-- **Analytics**: actual vs predicted on the held-out test period, error by city, and historical trends for any place.
-- **Models**: test-set MAE, RMSE and R², a persistence baseline, error-range coverage, a check against real
-  weather stations, and inference time. All numbers come from `ml/artifacts/*/metrics.json`.
-- **Locations**: up to 8 saved places, a home location, and a 2 to 4 city comparison.
+- Analytics: actual vs predicted on the held-out test period, error by city, and historical trends for any place.
+- Models: test-set MAE, RMSE and R², a persistence baseline, error-range coverage, a check against real
+  weather stations, and inference time. All numbers come from the `metrics.json` file in each folder of `ml/artifacts/`.
+- Locations: up to 8 saved places, a home location, and a 2 to 4 city comparison.
 
-- **About**: the project in plain words, how the forecasts are made, how to read the charts, data sources
+- About: the project in plain words, how the forecasts are made, how to read the charts, data sources
   and licences, known limits, and the technology used. Its results line is read live from the API.
 
 ### Saved places
@@ -50,7 +50,7 @@ ml/tests/       Pipeline, leakage and prediction tests (pytest)
 e2e/            Browser journeys, screenshots and accessibility (pytest + Playwright, recorded network)
 scripts/        check-bundle.mjs: bundle-size budget
 ml/artifacts/   Trained models: model.keras, preprocessor.json, metrics.json, evaluation.json
-deploy/, docker-compose.yml, backend/Dockerfile, Dockerfile.web   Container deployment
+deploy/ (web Dockerfile, nginx), docker-compose.yml, backend/Dockerfile   Container deployment
 ```
 
 ## Browser and device support
@@ -168,13 +168,13 @@ so they are offline and deterministic. Synthetic data is never used for training
 | Output | Next 24 hours of temperature, humidity and rain at the city |
 | Architectures | Two-layer LSTM, two-layer GRU, causal CNN + LSTM, a spatio-temporal Transformer (`ml/weatherai_ml/models.py`), LightGBM gradient-boosted trees (`ml/weatherai_ml/gbm.py`), and an equal-weight ensemble (`ml/weatherai_ml/ensemble.py`) |
 
-**LightGBM** turns each forecast into 24 table rows (one per hour ahead) built from the current features, the
+LightGBM turns each forecast into 24 table rows (one per hour ahead) built from the current features, the
 city's last 24 hours (lags 1, 3, 6, 12, 24) and the value 24 hours before each predicted hour, predicting the
 day-on-day change like the version 2 networks. One booster per target, early-stopped on the validation year.
 It has the best single-model humidity (test MAE 5.95 %), runs a forecast in about 2 ms, and its feature
 importance is shown on the Models page; its rain MAE is weaker than the networks'.
 
-**The ST-Transformer** (spatio-temporal Transformer, 150k parameters) cuts each of the five points' 48 hours
+The ST-Transformer (spatio-temporal Transformer, 150k parameters) cuts each of the five points' 48 hours
 into 6-hour patches, giving 40 tokens (5 points × 8 patches). Each token carries that point's weather for those
 hours plus the time and location features; learned position embeddings say which point and which patch it is.
 Two pre-norm Transformer blocks (4-head self-attention, width 64) attend across all tokens at once, so the
@@ -188,7 +188,7 @@ for LightGBM). Scored once on the 2026 test period it is the best single model f
 ahead of LightGBM's 1.153) and rain (0.114 mm), and second for humidity (6.18 %); its validation lead over
 LightGBM mostly shrank on the test period, so treat the two as close. It forecasts in about 45 ms.
 
-**The ensemble** averages member predictions with equal weights. Its members are chosen on the validation year
+The ensemble averages member predictions with equal weights. Its members are chosen on the validation year
 between candidate sets fixed in advance: the three recurrent networks, plus each combination of the later
 additions (LightGBM; the ST-Transformer, added before its test results were seen). All five won on validation
 and give the best test temperature MAE, 1.118 °C (it was 1.132 °C without the Transformer), with humidity
@@ -212,10 +212,10 @@ cd ml
 ### Model selection (version 2)
 
 Version 1 predicted each value directly and barely beat persistence on temperature. Version 2 predicts, for
-temperature and humidity, the **change from the same hour the day before** and adds it back (rain stays
-direct), and uses a Huber loss. Settings were chosen with `--experiment` runs that score **only the 2025
-validation year**; the 2026 test set was evaluated once, after the choice was fixed. Results are in
-`ml/experiments/*.json`; version 1 test metrics are kept in `ml/experiments/v1_artifacts/`.
+temperature and humidity, the change from the same hour the day before and adds it back (rain stays
+direct), and uses a Huber loss. Settings were chosen with `--experiment` runs that score only the 2025
+validation year; the 2026 test set was evaluated once, after the choice was fixed. Results are in
+the JSON files in `ml/experiments/`; version 1 test metrics are kept in `ml/experiments/v1_artifacts/`.
 
 | Validation 2025, CNN-LSTM | Temp MAE °C | Humidity MAE % | Rain MAE mm |
 | --- | --- | --- | --- |
@@ -224,7 +224,7 @@ validation year**; the 2026 test set was evaluated once, after the choice was fi
 | Residual, 72 h | 1.066 | 5.935 | 0.1294 |
 | Residual, 72 h, sample every 2 h | 1.075 | 5.912 | 0.1346 |
 | Residual, 72 h, every 2 h, Huber | 1.052 | 5.880 | 0.1108 |
-| **Residual, 48 h, Huber (chosen)** | **1.051** | **5.814** | **0.1096** |
+| Residual, 48 h, Huber (chosen) | 1.051 | 5.814 | 0.1096 |
 | Persistence baseline | 1.203 | 6.625 | – |
 
 Test period (Jan–Oct 2026), evaluated once after the choice. Version 1 → version 2, MAE:
@@ -232,7 +232,7 @@ Test period (Jan–Oct 2026), evaluated once after the choice. Version 1 → ver
 | Model | Temperature °C | Humidity % | Rain mm |
 | --- | --- | --- | --- |
 | LSTM | 1.326 → 1.224 | 6.446 → 6.630 | 0.125 → 0.118 |
-| GRU | 1.305 → **1.178** | 6.220 → 6.372 | 0.128 → 0.116 |
+| GRU | 1.305 → 1.178 | 6.220 → 6.372 | 0.128 → 0.116 |
 | CNN-LSTM | 1.374 → 1.196 | 6.431 → 6.449 | 0.129 → 0.117 |
 | Persistence | 1.383 | 7.592 | 0.183 |
 
@@ -244,7 +244,7 @@ hours). Tuning further against these test numbers would leak the test set into m
 ### All-India model (in progress)
 
 A second region, `india`, covers every state and union territory: 40 training cities (each capital, or the
-nearest large city to a new capital, plus the original ten) and 8 **held-out** cities that are never trained on
+nearest large city to a new capital, plus the original ten) and 8 held-out cities that are never trained on
 (Aurangabad, Nagpur, Coimbatore, Visakhapatnam, Jodhpur, Indore, Gorakhpur, Mangaluru), each at least 150 km from
 every training city. The list is built from Open-Meteo geocoding by `weatherai_ml/build_india_cities.py` and stored
 in `weatherai_ml/regions/india.json`.
@@ -266,23 +266,23 @@ whole training job (about 4 hours on an ordinary CPU).
 
 ### How leakage is prevented
 
-- **Chronological split**: train 2023–2024, validation 2025, test Jan–Oct 2026. No shuffling across time.
-- **Whole windows only**: a sample counts only if all 48 input hours and all 24 target hours fall inside one split
+- Chronological split: train 2023–2024, validation 2025, test Jan–Oct 2026. No shuffling across time.
+- Whole windows only: a sample counts only if all 48 input hours and all 24 target hours fall inside one split
   and one city, so nothing straddles a boundary (`dataset.window_ends`, covered by tests).
-- **Scaler fitted on training rows only** (`preprocess.Preprocessor.fit`), then saved with the model.
-- **Same pipeline at inference**: the API calls the same `features.build_frames` and loads the saved
+- Scaler fitted on training rows only (`preprocess.Preprocessor.fit`), then saved with the model.
+- Same pipeline at inference: the API calls the same `features.build_frames` and loads the saved
   `preprocessor.json`, which refuses to run if the feature columns or their order differ.
-- **No silent gap filling**: gaps of up to 3 hours are interpolated; longer gaps make the window invalid.
+- No silent gap filling: gaps of up to 3 hours are interpolated; longer gaps make the window invalid.
 
 ### Honest evaluation
 
 - Every metric is on the 2026 test period, which training never saw.
-- A **persistence baseline** (same hour yesterday) is reported next to every model.
-- **Error ranges** use split conformal prediction calibrated on the validation year, with separate ranges for
+- A persistence baseline (same hour yesterday) is reported next to every model.
+- Error ranges use split conformal prediction calibrated on the validation year, with separate ranges for
   each calendar month because errors change with the season (wider in spring). The Models page shows how often
   test values actually fell inside them, at the training and the held-out cities.
   `python -m weatherai_ml.recalibrate --region india` recomputes them for saved models without retraining.
-- **Chance of rain:** the models' rain amounts run low, so the Ensemble also gives the chance of at least 0.1 mm
+- Chance of rain: the models' rain amounts run low, so the Ensemble also gives the chance of at least 0.1 mm
   in each hour, calibrated on the validation year (`python -m weatherai_ml.rain_chance --region india`, after
   `recalibrate`). Since 2026-11-21 a small LightGBM classifier gives it, taking Open-Meteo's own forecast for the
   hour (made about a day earlier, from the free Previous Runs API) as one more input
@@ -290,26 +290,26 @@ whole training job (about 4 hours on an ordinary CPU).
   `python -m weatherai_ml.chance_model --region india`). On the test period its Brier score is 0.097 (0.107 from
   the models alone, 0.104 when the forecast can't be fetched), against 0.174 for always forecasting the usual
   rain frequency; the Models page shows how often it rained when it said 20%, 50% and so on.
-- **Rain amounts:** the Ensemble's are corrected to the expected amount by a small LightGBM model fitted on the
+- Rain amounts: the Ensemble's are corrected to the expected amount by a small LightGBM model fitted on the
   validation year (`python -m weatherai_ml.rain_amount --region india`, after `rain_chance`). On the test period
   R² rose from 0.114 to 0.183 and RMSE fell from 0.755 to 0.725 mm; mean absolute error rose from 0.177 to 0.211 mm,
   because that measure rewards forecasting almost no rain. Open-Meteo's forecast as an input added too little here
   to keep (`--outlook` turns it on). LightGBM's own rain model learns with a Tweedie loss
   (`python -m weatherai_ml.gbm --region india --only precipitation`).
-- **NASA satellite rain check (2026-11-23):** `python -m weatherai_ml.imerg --region india` downloads GPM IMERG
+- NASA satellite rain check (2026-11-23): `python -m weatherai_ml.imerg --region india` downloads GPM IMERG
   Late Run rain at the 48 cities for 2023 to October 2026 (free; needs a NASA Earthdata token), and
   `python -m weatherai_ml.imerg_check` tests it. As an input to the rain correction it did not help, even
   without its 14-hour delay, so the app does not use it. As an independent judge on the 2026 test period, the
   Ensemble's rain matches the satellite better (correlation 0.29) than Open-Meteo's own day-old forecast (0.22).
-- A **station check** compares test predictions with Meteostat weather-station measurements, and scores
+- A station check compares test predictions with Meteostat weather-station measurements, and scores
   Open-Meteo's own data against the same stations to show the data source's error floor.
-- **Where the models predict:** anywhere in India within 310 km of a training city (the farthest a held-out
+- Where the models predict: anywhere in India within 310 km of a training city (the farthest a held-out
   city lies from one). Each forecast says whether the place is a training city, a held-out city or an untrained
   location, with the error measured for that kind of place. Elsewhere the API answers `unsupported_location`.
-- **Held-out cities** (Aurangabad, Nagpur, Coimbatore, Visakhapatnam, Jodhpur, Indore, Gorakhpur, Mangaluru)
+- Held-out cities (Aurangabad, Nagpur, Coimbatore, Visakhapatnam, Jodhpur, Indore, Gorakhpur, Mangaluru)
   never touch training, scaling or validation, and are each at least 150 km from every training city.
 - Training targets are Open-Meteo model data, not observations; live inputs come from the same model family.
-- A **live track record** keeps scoring the models after training (below).
+- A live track record keeps scoring the models after training (below).
 
 ### Live track record
 
@@ -319,10 +319,10 @@ from every model, saves the city centre's past hours as observations, and scores
 hour has passed. Forecasts people open for those cities on the Forecast page are stored and scored the same
 way; forecasts for other points are not kept. Each stored forecast records which model set made it.
 
-- **What happened** is Open-Meteo's record of past hours at the city centre: the same kind of data the models
+- What happened is Open-Meteo's record of past hours at the city centre: the same kind of data the models
   were trained and tested on, not a weather-station reading. An hour is saved only once it is 6 hours old,
   so newer model runs no longer change it, and it is never overwritten.
-- **Baseline:** each scored value also stores persistence (the same hour a day earlier), so models and the
+- Baseline: each scored value also stores persistence (the same hour a day earlier), so models and the
   baseline are compared on exactly the same hours. The share of values inside the 80% range is reported too.
 - A forecast can be scored about 30 hours after it is issued. Older unscored forecasts (up to 90 days) are
   backfilled with one centre-only request.
@@ -367,27 +367,27 @@ The Map page (`src/features/map/MapPage.tsx`, grid logic in `src/lib/api/mapGrid
 for the next 48 hours at evenly spaced points over the visible area, as coloured squares (temperature, rain) or
 arrows pointing where the wind blows. Values between points are not interpolated, and the page says so.
 
-- **Grid:** spacing is chosen per axis from 0.1° to 20° so squares stay at least 40 px on screen, with at most
+- Grid: spacing is chosen per axis from 0.1° to 20° so squares stay at least 40 px on screen, with at most
   160 points. Points sit on multiples of the spacing, so panning reuses points already fetched (cached 30 minutes).
-- **Free-tier limits:** Open-Meteo counts each point as one call (600 a minute per visitor). The map keeps itself
+- Free-tier limits: Open-Meteo counts each point as one call (600 a minute per visitor). The map keeps itself
   to 400 points in any rolling minute and shows a short wait instead of going over; a limit hit anyway is
   explained in plain words.
-- **Base map:** OpenStreetMap's standard tiles through Leaflet, shown in greyscale (inverted for high contrast).
+- Base map: OpenStreetMap's standard tiles through Leaflet, shown in greyscale (inverted for high contrast).
   They need no key; OpenStreetMap's tile policy allows light use with attribution. A busy public deployment should
   switch to a tile provider sized for it. (CARTO's basemaps were tried first, but they now require an API key.)
 - The scroll wheel zooms only after the map is clicked or focused, so the page scrolls past it normally.
 
 ## Weather assistant (optional)
 
-The **Ask** page's assistant, Javed, answers weather questions with one of two models, chosen by `WEATHERAI_ASSISTANT_PROVIDER`
+The Ask page's assistant, Javed, answers weather questions with one of two models, chosen by `WEATHERAI_ASSISTANT_PROVIDER`
 (default `auto`: Hosted if an Hosted key is set, otherwise the local model if Ollama is running with it
 installed, otherwise off):
 
-- **Free, local:** a small open model (default `qwen3:4b-instruct`, about 2.5 GB) run by [Ollama](https://ollama.com/) on
+- Free, local: a small open model (default `qwen3:4b-instruct`, about 2.5 GB) run by [Ollama](https://ollama.com/) on
   the same computer as the API (`backend/app/assistant_local.py`). Nothing is billed and questions don't leave
   the machine (only the tools' own lookups do). It is slower and makes more mistakes than Hosted, and the Ask
   page says so.
-- **Hosted (Hosted), paid:** every answer is an API call.
+- Hosted (Hosted), paid: every answer is an API call.
 
 How it answers (`backend/app/assistant.py`, data tools in `backend/app/assistant_data.py`):
 

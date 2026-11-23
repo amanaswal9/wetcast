@@ -135,6 +135,7 @@ def to_hours(rows: list[tuple[pd.Timestamp, str, float, float]]) -> pd.DataFrame
 
 
 def folder(region: str) -> Path:
+    """Where a region's monthly IMERG files are kept."""
     return raw_dir(region) / "imerg"
 
 

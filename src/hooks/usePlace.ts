@@ -5,7 +5,7 @@ import { readHome } from './useSavedPlaces'
 
 const KEY = 'weatherai.place'
 
-/** Shown on first visit until someone searches or uses their location. */
+// Shown on first visit until someone searches or uses their location.
 export const DEFAULT_PLACE: Place = {
   id: '2643743',
   name: 'London',
@@ -29,6 +29,7 @@ function isPlace(value: unknown): value is Place {
   )
 }
 
+// The place being viewed, remembered in this browser.
 export function usePlace() {
   // Open on the home location when one is set, otherwise the last place viewed.
   const [place, setPlaceState] = useState<Place>(() => readHome() ?? readJson(KEY, DEFAULT_PLACE, isPlace))

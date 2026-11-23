@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-/** Current time, updated at the start of every minute. */
+// Current time, updated at the start of every minute.
 export function useClock(): Date {
   const [now, setNow] = useState(() => new Date())
 

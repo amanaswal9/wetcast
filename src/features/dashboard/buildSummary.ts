@@ -3,11 +3,9 @@ import type { Format } from '../../lib/units'
 import { describeWeather } from '../../lib/weatherCodes'
 import type { Forecast, Place } from '../../types/weather'
 
-/**
- * Plain-language summary built only from the forecast data. Rule-based on
- * purpose: no language model, so it can't invent conditions, and the wording
- * says "likely"/"chance" because these are forecasts, not certainties.
- */
+// Plain-language summary built only from the forecast data. Rule-based on
+// purpose: no language model, so it can't invent conditions, and the wording
+// says "likely"/"chance" because these are forecasts, not certainties.
 export function buildSummary(place: Place, forecast: Forecast, fmt: Format): string {
   const { current, hourly, daily } = forecast
   const parts: string[] = []
@@ -34,6 +32,7 @@ export function buildSummary(place: Place, forecast: Forecast, fmt: Format): str
   return parts.join(' ')
 }
 
+// Heading for the summary, also used when it is read aloud.
 export function summaryTitle(place: Place): string {
   return `Weather for ${placeShortLabel(place)}`
 }

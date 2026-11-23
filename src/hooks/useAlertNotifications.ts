@@ -5,10 +5,8 @@ import type { Place } from '../types/weather'
 
 const CHECK_MS = 10 * 60_000 // the server reads the official feed every 10 minutes
 
-/**
- * While notifications are on, check the viewed place's official warnings every 10 minutes
- * (whichever page is open) and notify about any not announced before.
- */
+// While notifications are on, check the viewed place's official warnings every 10 minutes
+// (whichever page is open) and notify about any not announced before.
 export function useAlertNotifications(place: Place): void {
   const enabled = useAlertNotificationsEnabled()
   const { latitude, longitude, countryCode, name } = place

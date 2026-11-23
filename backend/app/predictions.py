@@ -36,6 +36,8 @@ class UpstreamError(RuntimeError):
 
 @dataclass
 class CacheEntry:
+    """Recent features for one city, reused until `expires` (a time.monotonic value)."""
+
     expires: float
     features: pd.DataFrame
     hours: int  # how many past hours were requested
@@ -79,6 +81,7 @@ def recent_features(registry: ModelRegistry, city: City, lookback: int) -> pd.Da
     return features
 
 
+# Finished forecasts per (city, model), reused until a newer hour of data arrives.
 _predictions: dict[tuple[str, str], Prediction] = {}
 _predictions_lock = threading.Lock()
 
@@ -87,8 +90,9 @@ _outlooks: dict[str, tuple[pd.Timestamp, np.ndarray | None]] = {}
 
 
 def rain_outlook(city: City, issued: pd.Timestamp, hours: int) -> np.ndarray | None:
-    """(hours,) Open-Meteo's forecast rain after `issued`, or None if it can't be fetched. Optional:
-    the ensemble's rain correction does without it (it was fitted to), so a failure is only logged."""
+    """Open-Meteo's forecast rain for each of the `hours` after `issued`, or None if it can't be
+    fetched. It is optional: the ensemble's rain correction was fitted to work without it, so a
+    failure is only logged."""
     with _predictions_lock:
         hit = _outlooks.get(city.id)
     if hit is not None and hit[0] == issued:

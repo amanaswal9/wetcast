@@ -12,11 +12,12 @@ from .config import get_settings
 
 
 def utcnow() -> datetime:
+    """The time now, timezone-aware, for created_at and fetched_at columns."""
     return datetime.now(timezone.utc)
 
 
 class Base(DeclarativeBase):
-    pass
+    """Parent of every table below; Alembic reads the schema from it."""
 
 
 class PredictionRun(Base):
@@ -37,6 +38,8 @@ class PredictionRun(Base):
 
 
 class PredictionPoint(Base):
+    """One hour of one target (temperature, humidity or rain) in a stored forecast, with its range."""
+
     __tablename__ = "prediction_points"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -132,7 +135,6 @@ class Alert(Base):
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-
 class AssistantUsage(Base):
     """How many questions one visitor asked the assistant on one UTC day. Kept in the database so the
     daily limits (app/assistant.py) hold when the API restarts; rows older than a week are removed."""
@@ -144,26 +146,33 @@ class AssistantUsage(Base):
     questions: Mapped[int] = mapped_column(Integer, default=0)
 
 
+# Made on first use, so importing this module never connects to anything.
 _engine = None
 _SessionLocal: sessionmaker[Session] | None = None
 
 
 def init_engine(url: str | None = None) -> None:
+    """Connect to the database in settings, or to `url` (tests use a throwaway SQLite file)."""
     global _engine, _SessionLocal
     url = url or get_settings().database_url
-    kwargs = {"connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {"pool_pre_ping": True}
-    _engine = create_engine(url, **kwargs)
+    if url.startswith("sqlite"):
+        # FastAPI may use a session on a different thread from the one that opened it.
+        _engine = create_engine(url, connect_args={"check_same_thread": False})
+    else:
+        # Check each pooled connection first, so a restarted PostgreSQL doesn't fail one request.
+        _engine = create_engine(url, pool_pre_ping=True)
     _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
 
 
 def engine():
+    """The shared engine, connecting first if needed."""
     if _engine is None:
         init_engine()
     return _engine
 
 
 def new_session() -> Session:
-    """A session for background jobs (close it, e.g. `with new_session() as s:`)."""
+    """A session for background jobs. Close it when done, for example with `with new_session() as s:`."""
     if _SessionLocal is None:
         init_engine()
     assert _SessionLocal is not None
@@ -171,6 +180,7 @@ def new_session() -> Session:
 
 
 def get_session() -> Iterator[Session]:
+    """FastAPI dependency: one session per request, closed afterwards."""
     if _SessionLocal is None:
         init_engine()
     assert _SessionLocal is not None

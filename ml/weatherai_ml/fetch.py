@@ -21,6 +21,7 @@ from .openmeteo import fetch_history
 
 
 def now() -> str:
+    """Current UTC time for log lines."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
@@ -35,7 +36,7 @@ def reuse_north_india(target_dir, manifest: dict) -> None:
         src, dst = RAW_DIR / f"{city_id}.parquet", target_dir / f"{city_id}.parquet"
         if src.exists() and not dst.exists() and meta["start"] == DATA_START and meta["end"] == DATA_END:
             shutil.copy2(src, dst)
-            manifest[city_id] = {**meta, "reused_from": "north_india"}
+            manifest[city_id] = meta | {"reused_from": "north_india"}
             print(f"{city_id}: reused existing North India download")
 
 

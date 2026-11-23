@@ -13,6 +13,7 @@ Run (the TopoJSON file comes from `npm pack world-atlas@2.0.2`):
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -34,11 +35,14 @@ def simplify(points: list[tuple[float, float]], tolerance: float = TOLERANCE_DEG
         a, b = stack.pop()
         (x1, y1), (x2, y2) = points[a], points[b]
         dx, dy = x2 - x1, y2 - y1
-        length = (dx * dx + dy * dy) ** 0.5
+        length = math.sqrt(dx * dx + dy * dy)
         best, index = 0.0, -1
         for i in range(a + 1, b):
             px, py = points[i]
-            d = abs(dy * (px - x1) - dx * (py - y1)) / length if length else ((px - x1) ** 2 + (py - y1) ** 2) ** 0.5
+            if length:
+                d = abs(dy * (px - x1) - dx * (py - y1)) / length
+            else:  # both ends are the same point: use the plain distance to it
+                d = math.sqrt(pow(px - x1, 2) + pow(py - y1, 2))
             if d > best:
                 best, index = d, i
         if best > tolerance:
@@ -61,6 +65,7 @@ def encode(points: list[tuple[float, float]]) -> list[int]:
 
 
 def build(topo: dict) -> dict:
+    """The simplified outline of every country, ready to write as JSON."""
     arcs = [simplify(a) for a in decode_arcs(topo)]
     land = []
     for g in topo["objects"]["countries"]["geometries"]:

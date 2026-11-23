@@ -1,10 +1,8 @@
 import type { MapLayer } from '../../lib/mapScales'
 
-/*
- * 16 x 16 pixel tool icons for the map's layer palette, drawn here in the spirit of a classic
- * paint program's toolbox. B = outline (follows the text colour, so it works in high
- * contrast), W = white, R = red, N = navy, C = light blue.
- */
+// 16 x 16 pixel tool icons for the map's layer palette, drawn here in the spirit of a classic
+// paint program's toolbox. B = outline (follows the text colour, so it works in high
+// contrast), W = white, R = red, N = navy, C = light blue.
 const ICONS: Record<MapLayer, string[]> = {
   temperature: [
     '......BBB.......',
@@ -64,6 +62,7 @@ const ICONS: Record<MapLayer, string[]> = {
 
 const COLORS: Record<string, string> = { B: 'currentColor', W: '#ffffff', R: '#ff0000', N: '#000080', C: '#4aa3ff' }
 
+// Draws one toolbox icon from its character grid, one SVG path per colour.
 export function ToolIcon({ layer, size = 32 }: { layer: MapLayer; size?: number }) {
   const paths: Record<string, string> = {}
   ICONS[layer].forEach((row, y) => {

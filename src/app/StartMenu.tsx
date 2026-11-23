@@ -15,7 +15,7 @@ interface StartMenuProps {
 
 const preload = (id: PageId) => void loaders[id]().catch(() => undefined)
 
-/** Underlined shortcut letter for each item; press it while the menu is open. */
+// Underlined shortcut letter for each item; press it while the menu is open.
 const PAGE_KEYS: Record<PageId, string> = {
   dashboard: 'd',
   forecast: 'f',
@@ -27,7 +27,7 @@ const PAGE_KEYS: Record<PageId, string> = {
   about: 'b',
 }
 
-/** The label with its shortcut letter underlined, as in classic menus. */
+// The label with its shortcut letter underlined, as in classic menus.
 function KeyLabel({ text, letter }: { text: string; letter: string }) {
   const i = text.toLowerCase().indexOf(letter)
   if (i < 0) return <>{text}</>
@@ -40,11 +40,9 @@ function KeyLabel({ text, letter }: { text: string; letter: string }) {
   )
 }
 
-/**
- * The taskbar's Start button and its menu: every page plus high contrast. On phones it
- * replaces the menu bar, so the header stays short. A disclosure (button + list of links),
- * not an ARIA menu, because its items are ordinary page links.
- */
+// The taskbar's Start button and its menu: every page plus high contrast. On phones it
+// replaces the menu bar, so the header stays short. A disclosure (button + list of links),
+// not an ARIA menu, because its items are ordinary page links.
 export function StartMenu({ page, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: StartMenuProps) {
   const [open, setOpen] = useState(false)
   const [unitsOpen, setUnitsOpen] = useState(false)
@@ -195,8 +193,8 @@ export function StartMenu({ page, highContrast, onToggleContrast, warningNotific
           </button>
         </div>
       </div>
-      {/* Outside the menu panel: the menu is hidden while the dialog is open. */}
       <UnitsDialog
+        // Rendered outside the menu panel, because the menu is hidden while the dialog is open.
         open={unitsOpen}
         onClose={() => {
           setUnitsOpen(false)

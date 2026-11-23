@@ -46,6 +46,7 @@ def ring(arcs: list[list[tuple[float, float]]], indexes: list[int]) -> list[tupl
 
 
 def _polygon_arcs(geometry: dict) -> list[list[list[int]]]:
+    """A geometry's polygons as lists of arc-index rings; points and lines have none."""
     if geometry["type"] == "MultiPolygon":
         return geometry["arcs"]
     if geometry["type"] == "Polygon":

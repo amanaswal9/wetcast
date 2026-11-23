@@ -1,23 +1,23 @@
-/**
- * Colour bands for the weather map. Discrete steps (not a smooth gradient) so a
- * colour on the map maps to one legend entry, read the same way in both themes.
- */
+// Colour bands for the weather map. Discrete steps (not a smooth gradient) so a
+// colour on the map maps to one legend entry, read the same way in both themes.
 
 export type MapLayer = 'temperature' | 'rain' | 'wind'
 
 export interface Band {
-  /** Values from `min` (inclusive) up to the next band's `min`. */
+  // Values from `min` (inclusive) up to the next band's `min`.
   min: number
   color: string
   label: string
 }
 
+// Name, unit and description for each map layer.
 export const LAYER_INFO: Record<MapLayer, { label: string; unit: string; description: string }> = {
   temperature: { label: 'Temperature', unit: '°C', description: 'Air temperature 2 m above ground' },
   rain: { label: 'Rain', unit: 'mm', description: 'Rain, showers and snow (as water) in the hour' },
   wind: { label: 'Wind', unit: 'km/h', description: 'Wind 10 m above ground; arrows point where the wind blows to' },
 }
 
+// Colour bands by temperature in °C.
 export const TEMPERATURE_BANDS: Band[] = [
   { min: -Infinity, color: '#4b0082', label: 'below −20' },
   { min: -20, color: '#3a2fb8', label: '−20 to −10' },
@@ -33,7 +33,7 @@ export const TEMPERATURE_BANDS: Band[] = [
   { min: 40, color: '#7b0d1e', label: '40 and above' },
 ]
 
-/** Below 0.1 mm the map is left clear: no rain to show. */
+// Below 0.1 mm the map is left clear: no rain to show.
 export const RAIN_BANDS: Band[] = [
   { min: 0.1, color: '#a6d8f0', label: '0.1 to 0.5' },
   { min: 0.5, color: '#5aa9e6', label: '0.5 to 1' },
@@ -43,6 +43,7 @@ export const RAIN_BANDS: Band[] = [
   { min: 10, color: '#c2185b', label: '10 and above' },
 ]
 
+// Colour bands by wind speed in km/h.
 export const WIND_BANDS: Band[] = [
   { min: 0, color: '#7a7a7a', label: 'below 10 (light)' },
   { min: 10, color: '#2a8f4a', label: '10 to 20' },
@@ -51,12 +52,11 @@ export const WIND_BANDS: Band[] = [
   { min: 60, color: '#b00020', label: '60 and above (gale)' },
 ]
 
+// Bands for each layer.
 export const BANDS: Record<MapLayer, Band[]> = { temperature: TEMPERATURE_BANDS, rain: RAIN_BANDS, wind: WIND_BANDS }
 
-/**
- * A band's legend text in the viewer's units. Colours are always chosen on the metric value;
- * only the limits shown are converted. `convert` maps °C or km/h to the shown unit (rain stays mm).
- */
+// A band's legend text in the viewer's units. Colours are always chosen on the metric value;
+// only the limits shown are converted. `convert` maps °C or km/h to the shown unit (rain stays mm).
 export function bandLabel(layer: MapLayer, index: number, convert: (value: number) => number): string {
   const bands = BANDS[layer]
   const band = bands[index]
@@ -72,7 +72,7 @@ export function bandLabel(layer: MapLayer, index: number, convert: (value: numbe
   return `${show(band.min)} to ${show(next)}${note}`
 }
 
-/** The band a value falls in, or null when there is nothing to draw. */
+// The band a value falls in, or null when there is nothing to draw.
 export function bandFor(layer: MapLayer, value: number | null): Band | null {
   if (value === null || !Number.isFinite(value)) return null
   const bands = BANDS[layer]
@@ -82,10 +82,8 @@ export function bandFor(layer: MapLayer, value: number | null): Band | null {
   return found
 }
 
-/**
- * Direction the wind blows towards, in degrees. Weather data gives the
- * direction it comes from (a "north wind", 0°, blows towards the south).
- */
+// Direction the wind blows towards, in degrees. Weather data gives the
+// direction it comes from (a "north wind", 0°, blows towards the south).
 export function blowingTowards(fromDegrees: number): number {
   return (fromDegrees + 180) % 360
 }

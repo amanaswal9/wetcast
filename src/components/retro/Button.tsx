@@ -4,7 +4,7 @@ type ButtonProps = ComponentProps<'button'> & {
   icon?: ReactNode
 }
 
-/** Bevelled push button. Pressed state comes from :active or aria-pressed. */
+// Bevelled push button. Pressed state comes from :active or aria-pressed.
 export function Button({ className = '', icon, children, type = 'button', ...rest }: ButtonProps) {
   return (
     <button type={type} className={`r-btn ${className}`} {...rest}>

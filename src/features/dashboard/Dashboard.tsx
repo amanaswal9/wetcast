@@ -48,6 +48,7 @@ function DashboardSkeleton() {
   )
 }
 
+// Dashboard page. Shows a loading or error state until the forecast arrives.
 export function Dashboard({ place, forecast, air, summary, theme, speech }: DashboardProps) {
   if (!forecast.data) {
     if (forecast.status === 'error') {

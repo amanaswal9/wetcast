@@ -24,7 +24,7 @@ from .registry import ModelRegistry
 
 log = logging.getLogger("weatherai.assistant.local")
 
-STATUS_TTL_SECONDS = 30
+STATUS_TTL_SECONDS = 30  # how long a check that Ollama is up is trusted
 CALL_TIMEOUT_SECONDS = 180  # a 4B model on a small graphics card can take a while on a long tool result
 
 # Extra instructions for small models, which tend to answer from memory unless told firmly.
@@ -35,13 +35,15 @@ Rules for this conversation (follow them exactly):
 - If the question is about a place other than the one in [App context], call find_place first, then use its latitude and longitude.
 - Use only figures that appear in the tool results. If the figure asked for is not there, say Wetcast doesn't have it. Never estimate or round into a range of your own.
 - Answer the question asked; don't repeat earlier answers.
-- After the tools answer, reply in plain English sentences. Do not show JSON, tool names or your reasoning."""
+- After the tools answer, reply in plain English sentences. Do not show JSON, tool names or your reasoning.
+- Never use asterisks or markdown. For a list, put each item on its own line starting with "- "."""
 
 _status_lock = threading.Lock()
 _status: tuple[float, bool, bool] | None = None  # (checked at, reachable, model installed)
 
 
 def _base() -> str:
+    """Ollama's address without a trailing slash."""
     return get_settings().ollama_url.rstrip("/")
 
 
@@ -67,6 +69,7 @@ def status(force: bool = False) -> tuple[bool, bool]:
 
 
 def is_available() -> bool:
+    """True when Ollama is running and has the configured model."""
     reachable, installed = status()
     return reachable and installed
 
@@ -85,8 +88,10 @@ _THINK = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
 def _clean(text: str) -> str:
-    """Drop any reasoning a model prints despite think=false."""
-    return _THINK.sub("", text or "").strip()
+    """Drop any reasoning a model prints despite think=false, then any markdown."""
+    from .assistant import plain_text
+
+    return plain_text(_THINK.sub("", text or ""))
 
 
 def weather_text(out: dict) -> str:
@@ -110,6 +115,7 @@ def weather_text(out: dict) -> str:
         return f"{prefix}{weekday} ({d})"
 
     def v(x, unit=""):
+        # A value with its unit, or "unknown" so the model never fills a gap itself.
         return "unknown" if x is None else f"{x}{unit}"
 
     now = out.get("now", {})
@@ -135,6 +141,8 @@ def weather_text(out: dict) -> str:
 
 
 def answer(conversation: list[dict], place: dict, session: Session, registry: ModelRegistry, http: httpx.Client | None = None):
+    """Answer the last user message with the local model. Same loop as the Hosted version:
+    the model asks for lookups, gets their results, and answers from them."""
     from .assistant import MAX_ROUNDS, SOURCE_LABELS, SYSTEM_PROMPT, AssistantUnavailable, Reply, context_message, run_tool
 
     settings = get_settings()
@@ -142,8 +150,8 @@ def answer(conversation: list[dict], place: dict, session: Session, registry: Mo
     messages: list[dict] = [
         {"role": "system", "content": SYSTEM_PROMPT + LOCAL_RULES},
         {"role": "user", "content": context_message(place)},
-        *({"role": m["role"], "content": m["content"]} for m in conversation),
     ]
+    messages += [{"role": m["role"], "content": m["content"]} for m in conversation]
     tools = ollama_tools()
     reply = Reply(text="", sources=[], model=model)
     own_client = http is None

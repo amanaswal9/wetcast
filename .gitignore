@@ -1,47 +1,35 @@
-# Logs
-logs
+# Installed packages and build output
+node_modules/
+dist/
+dist-ssr/
+
+# Logs (the API writes backend/api.log; training runs write their own)
+logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# Editors and operating systems
+.vscode/
+.idea/
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
 # Python
 .venv/
 __pycache__/
-*.egg-info/
 .pytest_cache/
+ml/weatherai_ml.egg-info/
 
-# Secrets and local databases (never commit)
+# Secrets and local databases: never commit these
 .env
+.env.local
 backend/.env
 backend/.secrets.local
-*.db
+backend/tests/test.db
 
-# Training data is re-downloadable; model artifacts are committed except bulky predictions
+# Training data can be downloaded again. Trained models are committed, apart from
+# their bulky test predictions and the calibration cache.
 ml/data/
-ml/artifacts/*/test_predictions.npz
-ml/artifacts/india/*/test_predictions.npz
+test_predictions.npz
+ml/artifacts/india/calibration/
 
-# Browser tests: images from a failed screenshot comparison
-e2e/screenshots/**/*.actual.png
-dist-*
-ml/artifacts/calibration/
-ml/artifacts/*/calibration/
+# Browser tests: screenshots from a failed comparison, kept only to look at
+e2e/screenshots-failed/

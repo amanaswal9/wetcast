@@ -15,7 +15,7 @@ function Link({ href, children }: { href: string; children: ReactNode }) {
   )
 }
 
-/** One-line summary of the live evaluation results, read from the API. */
+// One-line summary of the live evaluation results, read from the API.
 function ResultsLine({ models }: { models: ModelMetrics[] }) {
   const best = [...models].sort((a, b) => a.test.temperature.mae - b.test.temperature.mae)[0]
   const t = best.test.temperature
@@ -39,6 +39,7 @@ function Swatch({ children }: { children: ReactNode }) {
   )
 }
 
+// About page: how the forecasts are made, where the data comes from and their limits.
 export function AboutPage({ theme }: { theme: Theme }) {
   const models = useResource('models', ({ signal }) => getModels(signal))
   const colors = CHART_COLORS[theme]

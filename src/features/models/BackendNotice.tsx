@@ -1,6 +1,6 @@
 import { Button, MessageBox } from '../../components/retro'
 
-/** Shown when the FastAPI backend can't be reached. */
+// Shown when the FastAPI backend can't be reached.
 export function BackendNotice({ message, onRetry }: { message?: string; onRetry: () => void }) {
   return (
     <MessageBox kind="warning" role="alert" title="Model results aren't available right now" actions={<Button onClick={onRetry}>Try again</Button>}>

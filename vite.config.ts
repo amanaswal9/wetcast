@@ -36,10 +36,17 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Pre-cache the app shell. The build output is flat apart from these three folders, so each
+        // folder is listed by name. A new folder under public/ needs adding here too.
+        globPatterns: [
+          '*.{js,css,html,svg,png,woff2}',
+          'assets/*.{js,css,html,svg,png,woff2}',
+          'art/*.{js,css,html,svg,png,woff2}',
+          'icons/*.{js,css,html,svg,png,woff2}',
+        ],
         // Fonts for alphabets the app doesn't show load on demand instead of being pre-cached.
         // The link-preview image is for other sites' crawlers, not the offline app.
-        globIgnores: ['**/*-cyrillic-*', '**/*-vietnamese-*', '**/*-greek-*', 'og-image.png'],
+        globIgnores: ['assets/*-cyrillic-*', 'assets/*-vietnamese-*', 'assets/*-greek-*', 'og-image.png'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [

@@ -10,6 +10,7 @@ from .config import POINTS
 
 
 def synthetic_long_frame(hours: int, end: pd.Timestamp | None = None, seed: int = 0) -> pd.DataFrame:
+    """`hours` hours of made-up weather at all five points, ending at `end` (default: now)."""
     rng = np.random.default_rng(seed)
     end = (end or pd.Timestamp.now(tz="UTC")).floor("h")
     times = pd.date_range(end=end, periods=hours, freq="h", tz="UTC")

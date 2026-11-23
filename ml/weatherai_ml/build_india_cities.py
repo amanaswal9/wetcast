@@ -84,17 +84,20 @@ DISPLAY_NAMES = {"delhi": "Delhi", "panaji": "Panaji", "mangaluru": "Mangaluru"}
 
 
 def km(a: dict, b: dict) -> float:
+    """Great-circle distance between two geocoded cities, in kilometres (haversine)."""
     p1, p2 = math.radians(a["latitude"]), math.radians(b["latitude"])
     dp, dl = p2 - p1, math.radians(b["longitude"] - a["longitude"])
-    h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    h = pow(math.sin(dp / 2), 2) + math.cos(p1) * math.cos(p2) * pow(math.sin(dl / 2), 2)
     return 2 * 6371 * math.asin(math.sqrt(h))
 
 
 def norm(s: str) -> str:
+    """Lower case, letters and digits only, so "Jammu & Kashmir" matches "Jammu and Kashmir"-style names."""
     return "".join(ch for ch in s.lower() if ch.isalnum())
 
 
 def lookup(client: httpx.Client, name: str, state: str) -> dict:
+    """The best Open-Meteo geocoding match for a city name in the given state."""
     r = client.get(GEOCODE, params={"name": name, "count": 10, "language": "en", "format": "json", "countryCode": "IN"})
     r.raise_for_status()
     results = r.json().get("results", [])
@@ -107,6 +110,7 @@ def lookup(client: httpx.Client, name: str, state: str) -> dict:
 
 
 def main() -> None:
+    # Geocode every city, then warn about any held-out city that sits too close to a training one.
     out = []
     with httpx.Client(timeout=30) as client:
         for cid, name, state, role in CITIES:

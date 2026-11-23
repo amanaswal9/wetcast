@@ -15,6 +15,7 @@ MAX_GAP_HOURS = 3
 
 
 def _point_features(df: pd.DataFrame) -> pd.DataFrame:
+    """The seven model inputs for one grid point, from its raw Open-Meteo columns."""
     direction = np.deg2rad(df["wind_direction_10m"].astype(float))
     speed = df["wind_speed_10m"].astype(float)
     return pd.DataFrame(
@@ -46,6 +47,7 @@ def _fill_short_gaps(frame: pd.DataFrame, max_gap: int) -> pd.DataFrame:
 
 
 def _hourly_index(long_df: pd.DataFrame) -> pd.DatetimeIndex:
+    """Every hour from the first to the last timestamp, so missing hours show up as NaN rows."""
     times = pd.to_datetime(long_df["time"], utc=True)
     return pd.date_range(times.min(), times.max(), freq="h", tz="UTC")
 

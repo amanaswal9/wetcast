@@ -1,12 +1,10 @@
-/**
- * Domain types for weather data.
- *
- * Every value carries an implicit source. On the Dashboard all data comes from
- * Open-Meteo's numerical forecast models: "past hours" are model estimates for
- * hours that have already happened, not station observations. Station
- * observations (Meteostat) and Wetcast's own model predictions arrive in
- * later stages and get their own types.
- */
+// Domain types for weather data.
+//
+// Every value carries an implicit source. On the Dashboard all data comes from
+// Open-Meteo's numerical forecast models: "past hours" are model estimates for
+// hours that have already happened, not station observations. Station
+// observations (Meteostat) and Wetcast's own model predictions arrive in
+// later stages and get their own types.
 
 export interface Place {
   id: string
@@ -19,7 +17,7 @@ export interface Place {
 }
 
 export interface CurrentWeather {
-  /** Location-local ISO time without offset, e.g. "2026-11-19T13:15". */
+  // Location-local ISO time without offset, e.g. "2026-11-19T13:15".
   time: string
   temperature: number
   apparentTemperature: number
@@ -42,7 +40,7 @@ export interface HourlyPoint {
   precipitationProbability: number | null
   precipitation: number | null
   windSpeed: number | null
-  /** True for hours at or before the current reading. */
+  // True for hours at or before the current reading.
   isPast: boolean
 }
 
@@ -63,11 +61,11 @@ export interface Forecast {
   current: CurrentWeather
   hourly: HourlyPoint[]
   daily: DailySummary[]
-  /** Epoch ms when this response was fetched. */
+  // Epoch ms when this response was fetched.
   fetchedAt: number
 }
 
-/** One hour of the 7-day forecast (Forecast page). */
+// One hour of the 7-day forecast (Forecast page).
 export interface WeekHour {
   time: string
   temperature: number | null
@@ -75,7 +73,7 @@ export interface WeekHour {
   precipitation: number | null
   windSpeed: number | null
   weatherCode: number | null
-  /** Hours before the current reading; Open-Meteo model estimates. */
+  // Hours before the current reading; Open-Meteo model estimates.
   isPast: boolean
 }
 

@@ -13,7 +13,7 @@ import { TrackRecordPanel } from './TrackRecord'
 
 const TARGETS: Target[] = ['temperature', 'humidity', 'precipitation']
 
-/** Plain-language names for LightGBM's input features. */
+// Plain-language names for LightGBM's input features.
 function featureLabel(name: string): string {
   const point: Record<string, string> = { c: 'city', n: 'north point', s: 'south point', e: 'east point', w: 'west point' }
   const what: Record<string, string> = {
@@ -141,7 +141,7 @@ function HorizonChart({ evaluations, models, target, theme }: { evaluations: Eva
   )
 }
 
-/** One line per architecture, in plain words. */
+// One line per architecture, in plain words.
 const ARCHITECTURES: Record<string, string> = {
   lstm: 'two layers of long short-term memory cells reading the 48 hours in order.',
   gru: 'like the LSTM, with simpler gated recurrent units.',
@@ -156,6 +156,7 @@ function minutes(seconds: number): string {
   return seconds < 90 ? `${Math.round(seconds)} s` : `${(seconds / 60).toFixed(1)} min`
 }
 
+// Models page: test scores, the live track record, error ranges and how the models were built.
 export function ModelsPage({ theme }: { theme: Theme }) {
   const models = useResource('models', ({ signal }) => getModels(signal))
   const names = models.data?.map((m) => m.model).join(',') ?? null

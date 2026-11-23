@@ -21,12 +21,10 @@ function clock(iso: string | null | undefined): string {
 
 const fieldStyle = { whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', height: 'auto' } as const
 
-/**
- * A short status in the same sunken style as the status bar. On phones it is one line
- * (`short`) that opens to the full text, so it doesn't push the weather down; wider
- * screens show the full text. Either way it keeps the same height while checking and
- * when done, so the weather below doesn't jump when the answer arrives.
- */
+// A short status in the same sunken style as the status bar. On phones it is one line
+// (`short`) that opens to the full text, so it doesn't push the weather down; wider
+// screens show the full text. Either way it keeps the same height while checking and
+// when done, so the weather below doesn't jump when the answer arrives.
 function StatusLine({ short, children }: { short?: string; children: ReactNode }) {
   if (!short) {
     return (
@@ -126,6 +124,7 @@ function Body({ result }: { result: AlertsResult }) {
   )
 }
 
+// Official weather warnings for the place, refreshed every ten minutes.
 export function AlertsPanel({ place }: { place: Place }) {
   const key = `alerts:${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}:${place.countryCode ?? ''}`
   const result = useResource(key, ({ signal }) => getAlerts(place.latitude, place.longitude, place.countryCode, signal), REFRESH_MS)

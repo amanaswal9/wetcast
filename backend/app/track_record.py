@@ -60,6 +60,8 @@ def utc_naive(value: datetime | pd.Timestamp) -> datetime:
 
 @dataclass
 class CycleSummary:
+    """What one cycle did, for the log."""
+
     cities: int = 0
     runs_stored: int = 0
     observations_saved: int = 0
@@ -94,13 +96,23 @@ def save_observations(session: Session, city: City, centre: pd.DataFrame, now: d
             continue
         if values["precipitation"] is not None:
             values["precipitation"] = max(values["precipitation"], 0.0)
-        session.add(Observation(city_id=city.id, valid_at=row.key.replace(tzinfo=timezone.utc), source=SOURCE, **values))
+        session.add(
+            Observation(
+                city_id=city.id,
+                valid_at=row.key.replace(tzinfo=timezone.utc),
+                source=SOURCE,
+                temperature=values["temperature"],
+                humidity=values["humidity"],
+                precipitation=values["precipitation"],
+            )
+        )
         added += 1
     session.commit()
     return added
 
 
 def oldest_unscored(session: Session, city: City, now: datetime) -> datetime | None:
+    """Valid time of the oldest stored point that is settled but not scored yet, if any."""
     cutoff = utc_naive(now) - timedelta(hours=SETTLE_HOURS)
     floor = utc_naive(now) - timedelta(days=MAX_AGE_DAYS)
     value = session.scalar(
@@ -181,6 +193,7 @@ def score_city(session: Session, city: City, now: datetime) -> int:
 
 
 def issue_forecasts(session: Session, registry: ModelRegistry, city: City, features: pd.DataFrame) -> int:
+    """Store a forecast from every model for this city; return how many were new."""
     try:
         # Shared with /api/predictions, so these also answer the next visitor for this city instantly.
         forecasts = predict_models(registry, city, registry.names, features)
@@ -191,6 +204,7 @@ def issue_forecasts(session: Session, registry: ModelRegistry, city: City, featu
 
 
 def run_city(session: Session, registry: ModelRegistry, city: City, now: datetime, summary: CycleSummary) -> None:
+    """One city's part of a cycle: fetch, forecast, save observations, score."""
     with httpx.Client(timeout=30) as client:
         long_df, elevation = fetch_inputs(client, city, past_hours=FETCH_HOURS)
         backfill = needs_backfill(session, city, now)
@@ -208,6 +222,7 @@ def run_city(session: Session, registry: ModelRegistry, city: City, now: datetim
 
 
 def run_cycle(registry: ModelRegistry | None = None, now: datetime | None = None, cities: list[City] | None = None) -> CycleSummary:
+    """Run every tracked city (or the given ones) once; a failing city is logged and skipped."""
     registry = registry or get_registry()
     now = now or datetime.now(timezone.utc)
     summary = CycleSummary()

@@ -1,7 +1,7 @@
 import { MessageBox } from '../components/retro'
 import type { PageInfo } from './pages'
 
-/** Honest placeholder for pages that are not built yet. No sample data. */
+// Honest placeholder for pages that are not built yet. No sample data.
 export function PlannedPage({ page }: { page: PageInfo }) {
   return (
     <div className="r-group">

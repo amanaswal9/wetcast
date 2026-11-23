@@ -103,10 +103,10 @@ body {
 }
 
 /*
- * Pixel-exact bevels: --px is the CSS length of a whole number of screen pixels closest to
- * 1px (0.8px at 125% scaling, 1.333px at 150%). index.html sets it before first paint and
- * when the zoom or screen changes. Bevels and dither tiles use these, so they stay sharp.
- */
+  Pixel-exact bevels: --px is the CSS length of a whole number of screen pixels closest to
+  1px (0.8px at 125% scaling, 1.333px at 150%). index.html sets it before first paint and
+  when the zoom or screen changes. Bevels and dither tiles use these, so they stay sharp.
+*/
 :root {
   --px: 1px;
   --p1: var(--px);
@@ -1180,11 +1180,11 @@ body {
 }
 
 /*
- * Feedback that answers what the person did, in NT's own vocabulary: menus slide open from
- * where they were opened, controls press in, and the pointer shows an hourglass while weather
- * is loading. No hover animations or entrance effects. The slides are off with reduced motion;
- * pressing in is not motion, so it stays.
- */
+  Feedback that answers what the person did, in NT's own vocabulary: menus slide open from
+  where they were opened, controls press in, and the pointer shows an hourglass while weather
+  is loading. No hover animations or entrance effects. The slides are off with reduced motion;
+  pressing in is not motion, so it stays.
+*/
 @keyframes r-slide-up {
   from {
     clip-path: inset(100% 0 0 0);

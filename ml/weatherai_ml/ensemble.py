@@ -37,6 +37,8 @@ from .train import REGION_LABELS, evaluate, predict, split_metrics
 
 
 class Member:
+    """One trained model loaded for ensemble selection: a Keras network or the LightGBM forecaster."""
+
     def __init__(self, name: str, root, ds):
         self.name = name
         folder = root / name
@@ -54,11 +56,13 @@ class Member:
         self.ds = ds
 
     def predict_ends(self, ends: np.ndarray) -> np.ndarray:
+        """Forecasts in physical units for the windows ending at the given rows."""
         if self.name == GBM_NAME:
             return self.gbm.predict_ends(self.ds, ends)
         return predict(self.model, self.pre, self.ds, self.X, ends)
 
     def forecast_once(self, end: int) -> None:
+        """Run a single forecast and throw it away; used only to time the model."""
         if self.name == GBM_NAME:
             self.gbm.predict_ends(self.ds, np.array([end]))
         else:
@@ -66,6 +70,7 @@ class Member:
 
 
 def selection_score(metrics: dict, baseline: dict) -> float:
+    """Mean over the targets of MAE relative to persistence. Lower is better; below 1 beats persistence."""
     return float(np.mean([metrics[t]["mae"] / baseline[t]["mae"] for t in TARGETS]))
 
 
@@ -82,14 +87,15 @@ def main() -> None:
     members = {n: Member(n, root, ds) for n in available}
     base = [n for n in RNN_NAMES if n in members]
     extras = [n for n in (GBM_NAME, TRANSFORMER_NAME) if n in members]
-    candidates = [base + [e for i, e in enumerate(extras) if mask >> i & 1] for mask in range(2 ** len(extras))]
+    # The recurrent networks always, plus every subset of the extras (each bit of `mask` picks one).
+    candidates = [base + [e for i, e in enumerate(extras) if mask >> i & 1] for mask in range(1 << len(extras))]
 
     extra_bad = np.zeros(len(ds.times), dtype=bool)
     if any(m.target_mode == "residual24" for m in members.values()):
         extra_bad |= np.isnan(residual_targets(ds, RESIDUAL_INDICES)).any(axis=1)
     lookback = max(m.lookback for m in members.values())
 
-    # --- choose members on the validation year only ---------------------------------
+    # Choose the members on the validation year only, never on the test period.
     val_ends = window_ends(ds, "val", lookback=lookback, extra_bad=extra_bad, cities=ds.city_indices("train"))
     val_preds = {n: m.predict_ends(val_ends) for n, m in members.items()}
     selection = []
@@ -151,8 +157,7 @@ def main() -> None:
                 "seconds": round(time.perf_counter() - started, 1),
                 "note": "no training of its own; averages the members",
             },
-            "data": {
-                **first["data"],
+            "data": first["data"] | {
                 "region": REGION_LABELS[args.region],
                 "region_id": args.region,
                 "splits": SPLITS,

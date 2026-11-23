@@ -23,21 +23,19 @@ const WORLD: L.LatLngBoundsExpression = [
   [85, 180],
 ]
 
-/**
- * Basemap: OpenStreetMap's standard tiles (no key; fine for light use with attribution,
- * see https://operations.osmfoundation.org/policies/tiles/). Shown in greyscale by CSS
- * (.r-map) so the weather colours stand out. (CARTO's grey basemaps now need an API key, and
- * Esri's an ArcGIS account, so neither fits a free, account-free app.)
- */
+// Basemap: OpenStreetMap's standard tiles (no key; fine for light use with attribution,
+// see https://operations.osmfoundation.org/policies/tiles/). Shown in greyscale by CSS
+// (.r-map) so the weather colours stand out. (CARTO's grey basemaps now need an API key, and
+// Esri's an ArcGIS account, so neither fits a free, account-free app.)
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 const ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Weather: <a href="https://open-meteo.com/">Open-Meteo</a>'
-/** Land drawn at once under the tiles (the sea is the map's own background, see .r-map in index.css). */
+// Land drawn at once under the tiles (the sea is the map's own background, see .r-map in index.css).
 const OUTLINE_STYLE: Record<Theme, L.PathOptions> = {
   light: { color: '#a3a3a3', weight: 1, fillColor: '#efefef', fillOpacity: 1 },
   dark: { color: '#5e5e5e', weight: 1, fillColor: '#2c2c2c', fillOpacity: 1 },
 }
-/** The sea: the map's own background, with land drawn over it at once and the tiles over both. */
+// The sea: the map's own background, with land drawn over it at once and the tiles over both.
 const SEA: Record<Theme, string> = { light: '#d4d8db', dark: '#141a1f' }
 const FIELD_OPACITY = 0.62
 
@@ -57,7 +55,7 @@ function valueAt(f: PointForecast, layer: MapLayer, hour: number): number | null
   return f.windSpeed[hour] ?? null
 }
 
-/** An arrow from the point's centre towards where the wind blows, longer for stronger wind. */
+// An arrow from the point's centre towards where the wind blows, longer for stronger wind.
 function windArrow(p: GridPoint, grid: Grid, speed: number, fromDegrees: number): L.LatLngExpression[][] {
   const cosLat = Math.max(Math.cos((p.latitude * Math.PI) / 180), 0.2)
   // Lengths are in degrees of latitude (equal distance in every direction); fit the smaller cell side.
@@ -107,6 +105,7 @@ interface MapPageProps {
   onSelectPlace: (place: Place) => void
 }
 
+// Weather map: a Leaflet base map with a coloured forecast layer and an hour slider.
 export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPageProps) {
   const fmt = useFormat()
   const reduceMotion = useReducedMotion()
@@ -410,8 +409,12 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
           </span>
         </div>
         <div className="flex min-w-0 gap-2 max-sm:flex-col">
-          {/* Layer tools, like a paint program's toolbox: beside the map, or above it on phones. */}
-          <div className="r-toolbox" role="group" aria-label="Map layer">
+          <div
+            // Layer tools, like a paint program's toolbox: beside the map, or above it on phones.
+            className="r-toolbox"
+            role="group"
+            aria-label="Map layer"
+          >
             <div className="r-toolbox-tools">
               {LAYERS.map((l) => (
                 <button

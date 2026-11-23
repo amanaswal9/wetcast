@@ -5,28 +5,27 @@ import { log } from '../lib/log'
 import { readJson, readString, writeJson, writeString } from '../lib/storage'
 import type { Place } from '../types/weather'
 
-/**
- * Saved places and the home location.
- *
- * PostgreSQL (through /api/places) is the source of truth. This browser keeps a
- * copy so the app opens instantly, works when the server is down, and knows the
- * home city before anything loads. Places are filed under an anonymous random
- * id created in this browser; there are no accounts.
- *
- * Sync rules:
- *  - On load, take the server's list, unless this browser has changes the
- *    server hasn't received yet ("dirty"), or has never synced and the server
- *    is empty (first run: migrate the places saved before the server existed).
- *    In those cases the browser's list is sent up instead.
- *  - Every change is applied here at once, then sent as a full replacement.
- *    Sends run one at a time and always carry the latest state, so a slow
- *    request can't overwrite a newer one.
- *  - If the server can't be reached, changes stay here, marked dirty, and are
- *    sent on the next change, the next load or when the browser comes back online.
- */
+// Saved places and the home location.
+//
+// PostgreSQL (through /api/places) is the source of truth. This browser keeps a
+// copy so the app opens instantly, works when the server is down, and knows the
+// home city before anything loads. Places are filed under an anonymous random
+// id created in this browser; there are no accounts.
+//
+// Sync rules:
+//  - On load, take the server's list, unless this browser has changes the
+//    server hasn't received yet ("dirty"), or has never synced and the server
+//    is empty (first run: migrate the places saved before the server existed).
+//    In those cases the browser's list is sent up instead.
+//  - Every change is applied here at once, then sent as a full replacement.
+//    Sends run one at a time and always carry the latest state, so a slow
+//    request can't overwrite a newer one.
+//  - If the server can't be reached, changes stay here, marked dirty, and are
+//    sent on the next change, the next load or when the browser comes back online.
 const KEY = 'weatherai.saved'
 const META_KEY = 'weatherai.saved.meta'
 const CLIENT_KEY = 'weatherai.clientId'
+// Most places a viewer can save.
 export const MAX_SAVED = 8
 
 interface SavedState {
@@ -65,7 +64,7 @@ function randomId(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-/** Anonymous id for this browser, created once. */
+// Anonymous id for this browser, created once.
 export function getClientId(): string {
   const existing = readString(CLIENT_KEY)
   if (existing && /^[A-Za-z0-9-]{8,64}$/.test(existing)) return existing
@@ -99,12 +98,12 @@ function fromServer(rows: ServerPlace[]): SavedState {
   }
 }
 
-/** Same place if the ids match or the coordinates are within ~1 km. */
+// Same place if the ids match or the coordinates are within ~1 km.
 export function samePlace(a: Place, b: Place): boolean {
   return a.id === b.id || (Math.abs(a.latitude - b.latitude) < 0.01 && Math.abs(a.longitude - b.longitude) < 0.01)
 }
 
-/** Home location from this browser's copy, readable before any network request. */
+// Home location from this browser's copy, readable before any network request.
 export function readHome(): Place | null {
   const state = readJson<SavedState>(KEY, EMPTY, isSavedState)
   return state.places.find((p) => p.id === state.homeId) ?? null
@@ -132,7 +131,7 @@ export function useSavedPlaces() {
     writeJson(KEY, next)
   }, [])
 
-  /** Send the latest state. Calls are serialised; each one reads state when it runs. */
+  // Send the latest state. Calls are serialised; each one reads state when it runs.
   const pushLatest = useCallback(() => {
     queue.current = queue.current.then(async () => {
       const sending = stateRef.current
@@ -150,7 +149,7 @@ export function useSavedPlaces() {
     })
   }, [clientId, saveMeta])
 
-  /** Load the server's list and reconcile it with this browser's copy. */
+  // Load the server's list and reconcile it with this browser's copy.
   const syncWithServer = useCallback(
     (signal?: AbortSignal) => {
       const editsAtStart = edits.current

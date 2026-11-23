@@ -38,7 +38,7 @@ NWS_ALERTS = "https://api.weather.gov/alerts/active"
 NWS_HOME = "https://www.weather.gov/"
 # A generic client name (no personal contact details), as NWS asks clients to identify themselves.
 USER_AGENT = "Wetcast/0.1 (open-source portfolio weather app)"
-CAP = {"cap": "urn:oasis:names:tc:emergency:cap:1.2"}
+CAP = {"cap": "urn:oasis:names:tc:emergency:cap:1.2"}  # XML namespace of CAP 1.2 messages
 
 KEEP_AFTER_EXPIRY = timedelta(days=7)
 MAX_NEW_PER_POLL = 150
@@ -56,11 +56,13 @@ class AlertSourceError(RuntimeError):
     """An alert source could not be read."""
 
 
-# ---- parsing --------------------------------------------------------------------------
+# Parsing the feed and its messages.
 
 
 @dataclass
 class RssItem:
+    """One entry in the Sachet RSS feed, pointing to a CAP message."""
+
     guid: str
     link: str
     author: str | None
@@ -69,6 +71,8 @@ class RssItem:
 
 @dataclass
 class CapMessage:
+    """The parts of a CAP 1.2 alert message that Wetcast stores and shows."""
+
     identifier: str | None
     status: str | None
     msg_type: str | None
@@ -89,6 +93,7 @@ class CapMessage:
 
 
 def parse_time(value: str | None) -> datetime | None:
+    """An ISO time from a feed as an aware datetime (UTC when no offset is given), or None."""
     if not value:
         return None
     try:
@@ -99,6 +104,7 @@ def parse_time(value: str | None) -> datetime | None:
 
 
 def _text(element: Element | None, path: str) -> str | None:
+    """Trimmed text of a child element in the CAP namespace, or None when missing or empty."""
     if element is None:
         return None
     found = element.find(path, CAP)
@@ -108,6 +114,7 @@ def _text(element: Element | None, path: str) -> str | None:
 
 
 def parse_rss(content: bytes) -> list[RssItem]:
+    """The items of the Sachet feed. The sender's name is taken from the brackets in <author>."""
     root = SafeET.fromstring(content)
     items = []
     for item in root.iter("item"):
@@ -129,6 +136,7 @@ def parse_rss(content: bytes) -> list[RssItem]:
 def parse_cap(content: bytes) -> CapMessage:
     """One CAP 1.2 message. Uses the English <info> block when there is one."""
     root = SafeET.fromstring(content)
+    # References look like "sender,identifier,sent"; only the identifier is needed.
     references = []
     for ref in (_text(root, "cap:references") or "").split():
         parts = ref.split(",")
@@ -165,15 +173,16 @@ def parse_cap(content: bytes) -> CapMessage:
 
 
 def parse_polygon_file(content: bytes) -> list[str]:
-    """Sachet's polygon files: <alert><polygon>lat,lon lat,lon ...</polygon>...</alert>."""
+    """The rings in one of Sachet's polygon files, each written as "lat,lon lat,lon" pairs."""
     root = SafeET.fromstring(content)
     return [p.text.strip() for p in root.iter() if p.tag.split("}")[-1] == "polygon" and p.text and p.text.strip()]
 
 
-# ---- geometry -------------------------------------------------------------------------
+# Geometry: is a point inside an alert's area?
 
 
 def parse_ring(text: str) -> list[tuple[float, float]]:
+    """A ring of "lat,lon" pairs as (lat, lon) tuples; malformed pairs are skipped."""
     points = []
     for pair in text.split():
         lat, _, lon = pair.partition(",")
@@ -185,6 +194,7 @@ def parse_ring(text: str) -> list[tuple[float, float]]:
 
 
 def bounding_box(rings: list[str]) -> tuple[float, float, float, float] | None:
+    """(min lat, max lat, min lon, max lon) around all rings, used as a quick database filter."""
     points = [p for ring in rings for p in parse_ring(ring)]
     if not points:
         return None
@@ -207,16 +217,19 @@ def in_ring(lat: float, lon: float, ring: list[tuple[float, float]]) -> bool:
 
 
 def covers(polygons: str | None, lat: float, lon: float) -> bool:
+    """True when the point lies inside any of the stored rings."""
     if not polygons:
         return False
     return any(in_ring(lat, lon, parse_ring(ring)) for ring in polygons.split("|") if ring)
 
 
-# ---- polling Sachet -------------------------------------------------------------------
+# Polling the Sachet feed.
 
 
 @dataclass
 class PollState:
+    """When the feed was last read, shown on the API so a stale feed is visible."""
+
     last_attempt: datetime | None = None
     last_ok: datetime | None = None
     last_error: str | None = None
@@ -282,6 +295,7 @@ def poll_sachet(session: Session, client: httpx.Client, now: datetime | None = N
 
 
 def poll_once() -> None:
+    """Read the feed once with its own session and client; errors are logged, not raised."""
     try:
         with new_session() as session, httpx.Client(timeout=20, headers={"User-Agent": USER_AGENT}) as client:
             poll_sachet(session, client)
@@ -291,13 +305,14 @@ def poll_once() -> None:
 
 
 async def scheduler(minutes: int, first_delay_seconds: float = 10) -> None:
+    """Read the feed shortly after startup and then every `minutes` minutes."""
     await asyncio.sleep(first_delay_seconds)
     while True:
         await asyncio.to_thread(poll_once)
         await asyncio.sleep(minutes * 60)
 
 
-# ---- answering a place ----------------------------------------------------------------
+# Answering for a place.
 
 
 def coverage_for(latitude: float, longitude: float, country: str | None) -> str:
@@ -314,6 +329,8 @@ def coverage_for(latitude: float, longitude: float, country: str | None) -> str:
 
 
 def active_sachet_alerts(session: Session, latitude: float, longitude: float, now: datetime | None = None) -> list[Alert]:
+    """Stored Sachet alerts in effect now whose area contains the point. The bounding box narrows
+    the query; the polygon test then decides."""
     now = now or datetime.now(timezone.utc)
     rows = session.scalars(
         select(Alert).where(
@@ -384,6 +401,7 @@ def fetch_nws(latitude: float, longitude: float, client: httpx.Client | None = N
 
 
 def _iso(value: datetime | None) -> str | None:
+    """ISO time in UTC; SQLite hands back naive datetimes, which are UTC."""
     if value is None:
         return None
     if value.tzinfo is None:
@@ -392,6 +410,7 @@ def _iso(value: datetime | None) -> str | None:
 
 
 def alert_out(a: Alert) -> dict:
+    """A stored alert in the same shape as an NWS one, for the API."""
     return {
         "id": a.identifier or a.guid,
         "event": a.event,
@@ -410,4 +429,5 @@ def alert_out(a: Alert) -> dict:
 
 
 def sort_alerts(alerts: list[dict]) -> list[dict]:
+    """Most severe first, then the ones that end soonest."""
     return sorted(alerts, key=lambda a: (SEVERITY_ORDER.get(a.get("severity") or "", 9), a.get("expires") or ""))

@@ -14,10 +14,8 @@ const CHOICES = [
   { key: 'clock', legend: 'Clock', options: [{ value: '24', label: '24-hour (13:15)' }, { value: '12', label: '12-hour (1:15 pm)' }] },
 ] as [Choice<'temp'>, Choice<'speed'>, Choice<'clock'>]
 
-/**
- * Units dialog, NT "Properties" style: changes apply on OK, Cancel or Escape leaves them as
- * they were. A native <dialog> keeps focus inside while it is open.
- */
+// Units dialog, NT "Properties" style: changes apply on OK, Cancel or Escape leaves them as
+// they were. A native <dialog> keeps focus inside while it is open.
 export function UnitsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()

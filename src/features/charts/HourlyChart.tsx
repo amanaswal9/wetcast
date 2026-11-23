@@ -21,6 +21,7 @@ function ChartTooltip({ row, unit }: { row: Row; unit: string }) {
   )
 }
 
+// Legend under the hourly chart. Line samples match the chart, so it works without colour.
 export function ChartLegend({ colors, mode, showPast }: { colors: ChartColors; mode: Mode; showPast: boolean }) {
   const isBars = mode === 'rain'
   return (
@@ -58,7 +59,7 @@ interface HourlyChartProps {
   nowTime: string | null
 }
 
-/** "Lowest 14 °C at 06:00, highest 24 °C at 15:00." (or the busiest hour for rain) */
+// "Lowest 14 °C at 06:00, highest 24 °C at 15:00." (or the busiest hour for rain)
 function summarise(rows: Row[], mode: Mode, unit: string, time: (t: string) => string): string | undefined {
   const known = rows.filter((r): r is Row & { value: number } => r.value !== null)
   if (known.length === 0) return undefined
@@ -69,6 +70,7 @@ function summarise(rows: Row[], mode: Mode, unit: string, time: (t: string) => s
   return `${span} Lowest ${round(low.value)} ${unit} at ${time(low.time)}, highest ${round(high.value)} ${unit} at ${time(high.time)}.`
 }
 
+// Hourly chart for one quantity, with a marker at the current hour.
 export function HourlyChart({ rows, mode, unit, colors, nowTime }: HourlyChartProps) {
   const wide = useMediaQuery('(min-width: 640px)')
   const fmt = useFormat()

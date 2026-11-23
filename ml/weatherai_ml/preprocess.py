@@ -7,7 +7,7 @@ to run if the incoming feature columns differ from the saved order.
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
 import numpy as np
@@ -27,6 +27,8 @@ class FeatureOrderError(ValueError):
 
 @dataclass
 class Preprocessor:
+    """Feature and target scaling for one model, plus the shapes it was trained with."""
+
     feature_order: list[str]
     feature_mean: list[float]
     feature_std: list[float]
@@ -43,9 +45,9 @@ class Preprocessor:
 
     @property
     def residual_indices(self) -> tuple[int, ...]:
+        """Targets predicted as a change from the day before (none in direct mode)."""
         return RESIDUAL_INDICES if self.target_mode == "residual24" else ()
 
-    # ---- fitting -----------------------------------------------------------------
     @classmethod
     def fit(
         cls, features: np.ndarray, targets: np.ndarray, lookback: int = LOOKBACK_HOURS, target_mode: str = "direct"
@@ -72,19 +74,22 @@ class Preprocessor:
             target_mode=target_mode,
         )
 
-    # ---- transforms --------------------------------------------------------------
     def check_columns(self, frame: pd.DataFrame) -> None:
+        """Refuse a frame whose columns are not exactly the trained feature order."""
         if list(frame.columns) != self.feature_order:
             raise FeatureOrderError("Feature columns or their order differ from the trained pipeline.")
 
     def transform_features(self, features: np.ndarray) -> np.ndarray:
+        """Standardise physical features with the training mean and spread."""
         return ((features - np.asarray(self.feature_mean)) / np.asarray(self.feature_std)).astype(np.float32)
 
     def transform_frame(self, frame: pd.DataFrame) -> np.ndarray:
+        """`transform_features` for a DataFrame, after checking its columns."""
         self.check_columns(frame)
         return self.transform_features(frame.to_numpy(dtype=float))
 
     def transform_targets(self, targets: np.ndarray) -> np.ndarray:
+        """Physical targets to the scaled values the network is trained on."""
         t = _forward_targets(targets)
         return ((t - np.asarray(self.target_mean)) / np.asarray(self.target_std)).astype(np.float32)
 
@@ -104,14 +109,29 @@ class Preprocessor:
         t[..., HUMIDITY_INDEX] = np.clip(t[..., HUMIDITY_INDEX], 0, 100)
         return t
 
-    # ---- persistence -------------------------------------------------------------
     def save(self, path: Path) -> None:
+        """Write the pipeline as JSON next to the model."""
         path.write_text(json.dumps(asdict(self), indent=2))
 
     @classmethod
     def load(cls, path: Path) -> "Preprocessor":
+        """Read a saved pipeline and check it matches this code's feature order."""
         data = json.loads(path.read_text())
-        pre = cls(**data)
+        unknown = sorted(set(data) - {f.name for f in fields(cls)})
+        if unknown:
+            raise TypeError(f"{path} has unexpected keys: {', '.join(unknown)}")
+        pre = cls(
+            feature_order=data["feature_order"],
+            feature_mean=data["feature_mean"],
+            feature_std=data["feature_std"],
+            target_names=data["target_names"],
+            target_mean=data["target_mean"],
+            target_std=data["target_std"],
+            lookback=data["lookback"],
+            horizon=data["horizon"],
+            pipeline_version=data["pipeline_version"],
+            target_mode=data.get("target_mode", "direct"),  # older files predate residual targets
+        )
         if pre.feature_order != list(FEATURE_ORDER):
             raise FeatureOrderError(f"{path} was trained with a different feature order than this code.")
         return pre

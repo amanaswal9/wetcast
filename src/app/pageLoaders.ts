@@ -1,8 +1,6 @@
-/**
- * Each page is its own JavaScript file, downloaded the first time it's opened,
- * so the first screen loads less code (noticeable on phones). After the first
- * page is up, the rest are fetched in the background so switching stays instant.
- */
+// Each page is its own JavaScript file, downloaded the first time it's opened,
+// so the first screen loads less code (noticeable on phones). After the first
+// page is up, the rest are fetched in the background so switching stays instant.
 export const loaders = {
   dashboard: () => import('../features/dashboard/Dashboard'),
   forecast: () => import('../features/forecast/ForecastPage'),
@@ -16,7 +14,7 @@ export const loaders = {
 
 let preloaded = false
 
-/** Fetch every page's code once the browser is idle. Failures are ignored: the page loads on demand anyway. */
+// Fetch every page's code once the browser is idle. Failures are ignored: the page loads on demand anyway.
 export function preloadPages(): void {
   if (preloaded) return
   preloaded = true

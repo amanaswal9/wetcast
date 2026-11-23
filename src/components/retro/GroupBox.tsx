@@ -6,7 +6,7 @@ interface GroupBoxProps {
   children: ReactNode
 }
 
-/** Etched frame with its caption on the top edge. Renders a labelled section. */
+// Etched frame with its caption on the top edge. Renders a labelled section.
 export function GroupBox({ title, className = '', children }: GroupBoxProps) {
   const id = useId()
   return (

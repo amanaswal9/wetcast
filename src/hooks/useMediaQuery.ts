@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
+// True while the CSS media query matches; re-renders when it changes.
 export function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
     (onChange) => {

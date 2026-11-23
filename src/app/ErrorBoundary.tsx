@@ -3,7 +3,7 @@ import { Button, ErrorStack } from '../components/retro'
 import { log } from '../lib/log'
 
 interface Props {
-  /** Changing this (for example the page id) clears a previous error. */
+  // Changing this (for example the page id) clears a previous error.
   resetKey: string
   children: ReactNode
 }
@@ -13,7 +13,7 @@ interface State {
   key: string
 }
 
-/** Keeps one broken page from taking down the whole window. */
+// Keeps one broken page from taking down the whole window.
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null, key: this.props.resetKey }
 

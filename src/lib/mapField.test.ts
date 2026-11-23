@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { renderField } from './mapField'
 import { bandFor, RAIN_BANDS, TEMPERATURE_BANDS } from './mapScales'
 
-/** A 3×3 grid, 1° apart, around (20, 78). */
+// A 3×3 grid, 1° apart, around (20, 78).
 const POINTS = [21, 20, 19].flatMap((latitude) => [77, 78, 79].map((longitude) => ({ latitude, longitude, key: `${latitude},${longitude}` })))
 
 function pixelAt(field: NonNullable<ReturnType<typeof renderField>>, fx: number, fy: number) {

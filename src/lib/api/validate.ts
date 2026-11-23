@@ -1,16 +1,16 @@
 import { ApiError } from './http'
 
-/**
- * Minimal runtime checks for third-party JSON. If a provider changes its
- * response shape we fail loudly with a clear message instead of rendering
- * wrong numbers.
- */
+// Minimal runtime checks for third-party JSON. If a provider changes its
+// response shape we fail loudly with a clear message instead of rendering
+// wrong numbers.
 type Json = Record<string, unknown>
 
 function invalid(path: string): ApiError {
   return new ApiError('invalid', `The weather service sent data Wetcast couldn't read (${path}).`)
 }
 
+// Each helper returns the value with its type, or throws naming the field that was wrong.
+// The OrNull and OrUndefined versions return a fallback instead of throwing.
 export function obj(value: unknown, path: string): Json {
   if (value !== null && typeof value === 'object' && !Array.isArray(value)) return value as Json
   throw invalid(path)
@@ -43,7 +43,7 @@ export function strOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
-/** Read a parallel array from an Open-Meteo hourly/daily block, tolerating a missing series. */
+// Read a parallel array from an Open-Meteo hourly/daily block, tolerating a missing series.
 export function series(block: Json, key: string, length: number): unknown[] {
   const value = block[key]
   if (value === undefined) return new Array<unknown>(length).fill(null)

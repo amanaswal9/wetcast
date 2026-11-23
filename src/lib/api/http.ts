@@ -2,7 +2,7 @@ import { log } from '../log'
 
 export type ApiErrorKind = 'network' | 'timeout' | 'http' | 'invalid'
 
-/** An error with a message that is safe and useful to show to people. */
+// An error with a message that is safe and useful to show to people.
 export class ApiError extends Error {
   readonly kind: ApiErrorKind
   readonly status?: number
@@ -15,11 +15,13 @@ export class ApiError extends Error {
   }
 }
 
+// Turn anything thrown into an ApiError with a message fit to show.
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error
   return new ApiError('network', "Something went wrong while loading weather data. Try again.")
 }
 
+// True when a request was cancelled on purpose, which is not worth reporting.
 export function isAbort(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
 }
@@ -33,18 +35,16 @@ const cache = new Map<string, CacheEntry>()
 
 export interface FetchJsonOptions {
   signal?: AbortSignal
-  /** Keep the response in memory for this long. 0 disables caching. */
+  // Keep the response in memory for this long. 0 disables caching.
   ttlMs?: number
-  /** Skip the cache and fetch again (used by the Refresh button). */
+  // Skip the cache and fetch again (used by the Refresh button).
   fresh?: boolean
   timeoutMs?: number
 }
 
-/**
- * fetch() wrapper with a timeout, an in-memory TTL cache and friendly errors.
- * Caller cancellation is re-thrown as the original AbortError so components
- * can ignore it.
- */
+// fetch() wrapper with a timeout, an in-memory TTL cache and friendly errors.
+// Caller cancellation is re-thrown as the original AbortError so components
+// can ignore it.
 export async function fetchJson(url: string, options: FetchJsonOptions = {}): Promise<unknown> {
   const { signal, ttlMs = 0, fresh = false, timeoutMs = 12_000 } = options
 
@@ -95,7 +95,7 @@ export async function fetchJson(url: string, options: FetchJsonOptions = {}): Pr
   }
 }
 
-/** Test helper. */
+// Test helper.
 export function clearHttpCache(): void {
   cache.clear()
 }

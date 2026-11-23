@@ -69,6 +69,7 @@ interface LocationsPageProps {
   onOpen: (place: Place) => void
 }
 
+// Locations page: saved places, the home place and the comparison chart.
 export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: LocationsPageProps) {
   const fmt = useFormat()
   const forecasts = useForecasts(saved.places)

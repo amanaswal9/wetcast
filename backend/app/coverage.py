@@ -31,14 +31,17 @@ COAST_KM = 10.0  # slack along the coast, where the 1:50m outline can cut off co
 
 @dataclass(frozen=True)
 class Located:
+    """Where a requested point falls relative to the models' cities."""
+
     city: City  # what the forecast is computed for: a known city, or a grid point
-    kind: str  # "trained" | "held_out" | "untrained"
+    kind: str  # "trained", "held_out" or "untrained"
     nearest: City  # nearest training city
     nearest_km: float
 
 
 @lru_cache
 def _outline() -> dict:
+    """India's outline (polygons with holes) and coastline, from Natural Earth via the ml package."""
     data = json.loads((REGIONS_DIR / "india_outline.json").read_text(encoding="utf-8"))
     return {
         "polygons": [[[(float(x), float(y)) for x, y in r] for r in polygon] for polygon in data["polygons"]],
@@ -47,6 +50,7 @@ def _outline() -> dict:
 
 
 def _in_ring(lon: float, lat: float, ring: list[tuple[float, float]]) -> bool:
+    """Ray casting; ring points are (lon, lat) as in the outline file."""
     inside = False
     j = len(ring) - 1
     for i in range(len(ring)):
@@ -85,18 +89,22 @@ def in_india(latitude: float, longitude: float, country: str | None = None) -> b
 
 @lru_cache
 def cities(region: str) -> tuple[City, ...]:
+    """All of a region's cities, training and held out."""
     return region_cities(region)
 
 
 def training_cities(region: str) -> list[City]:
+    """The cities the models trained on."""
     return [c for c in cities(region) if c.role == "train"]
 
 
 def held_out_cities(region: str) -> list[City]:
+    """The cities kept out of training to measure accuracy at new places."""
     return [c for c in cities(region) if c.role == "holdout"]
 
 
 def _nearest(latitude: float, longitude: float, among: list[City]) -> tuple[City, float]:
+    """The closest city in `among` and its distance in km."""
     return min(((c, haversine_km(latitude, longitude, c.latitude, c.longitude)) for c in among), key=lambda x: x[1])
 
 
@@ -120,6 +128,7 @@ def locate(region: str, latitude: float, longitude: float, country: str | None =
         return Located(known, kind, nearest, km)
     if km > reach_km(region) or region != "india" or not in_india(latitude, longitude, country):
         return None
+    # Snap to the grid, so requests a few hundred metres apart share one cached forecast.
     lat = round(round(latitude / GRID_DEG) * GRID_DEG, 2)
     lon = round(round(longitude / GRID_DEG) * GRID_DEG, 2)
     point = City(f"pt{lat:+.2f}{lon:+.2f}", f"{abs(lat):.2f}°{'N' if lat >= 0 else 'S'}, {abs(lon):.2f}°{'E' if lon >= 0 else 'W'}", lat, lon)
@@ -127,6 +136,7 @@ def locate(region: str, latitude: float, longitude: float, country: str | None =
 
 
 def unsupported_detail(region: str) -> str:
+    """The message for a place the models don't cover."""
     if region == "india":
         return (
             f"Wetcast's models cover India: anywhere within {reach_km(region):.0f} km of the "

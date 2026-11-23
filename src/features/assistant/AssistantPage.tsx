@@ -7,7 +7,7 @@ import { askAssistant, getAssistantStatus, type AssistantTurn } from '../../lib/
 import { placeShortLabel } from '../../lib/format'
 import type { Place } from '../../types/weather'
 
-/** The server keeps no chat history; the page sends the recent turns with each question. */
+// The server keeps no chat history; the page sends the recent turns with each question.
 const HISTORY_TURNS = 10
 const MAX_QUESTION = 500
 
@@ -25,6 +25,7 @@ function suggestions(place: Place): string[] {
   ]
 }
 
+// Ask page: a chat with the weather assistant about the current place.
 export function AssistantPage({ place }: { place: Place }) {
   const status = useResource('assistant-status', ({ signal }) => getAssistantStatus(signal))
   const [chat, setChat] = useState<ChatEntry[]>([])

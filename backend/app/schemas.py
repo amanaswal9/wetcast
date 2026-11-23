@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from datetime import datetime
-
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 
 class CityOut(BaseModel):
+    """A city the models know."""
+
     id: str
     name: str
     latitude: float
@@ -19,6 +20,8 @@ class CityOut(BaseModel):
 
 
 class ExpectedErrorOut(BaseModel):
+    """How accurate the forecast has been at this kind of place."""
+
     mae: dict[str, float | None] = Field(description="Mean absolute error per target, in its unit")
     basis: str
     temperature_range: list[float] | None = Field(
@@ -27,6 +30,8 @@ class ExpectedErrorOut(BaseModel):
 
 
 class CoverageOut(BaseModel):
+    """Which kind of place was asked about, and the accuracy that goes with it."""
+
     kind: Literal["trained", "held_out", "untrained"]
     label: str
     detail: str
@@ -37,6 +42,8 @@ class CoverageOut(BaseModel):
 
 
 class PredictionPointOut(BaseModel):
+    """One forecast hour: each target with the lower and upper end of its range."""
+
     time: datetime
     lead_hours: int
     temperature: float
@@ -53,12 +60,16 @@ class PredictionPointOut(BaseModel):
 
 
 class ModelPredictionOut(BaseModel):
+    """The 24 forecast hours from one model."""
+
     model: str
     display_name: str
     points: list[PredictionPointOut]
 
 
 class PredictionsOut(BaseModel):
+    """The response of /api/predictions."""
+
     city: CityOut
     issued_at: datetime = Field(description="Last input hour (UTC). Predictions start one hour later.")
     interval_level: float
@@ -69,12 +80,16 @@ class PredictionsOut(BaseModel):
 
 
 class UnsupportedLocation(BaseModel):
+    """The 404 body for a place outside the models' reach, listing the nearest cities they cover."""
+
     code: str = "unsupported_location"
     detail: str
     supported: list[CityOut]
 
 
 class PlaceIn(BaseModel):
+    """A place to save, as the app's place search describes it."""
+
     place_id: str = Field(min_length=1, max_length=64)
     name: str = Field(min_length=1, max_length=120)
     admin1: str | None = Field(default=None, max_length=120)
@@ -84,6 +99,8 @@ class PlaceIn(BaseModel):
 
 
 class PlaceOut(PlaceIn):
+    """A saved place, with whether it is the home place."""
+
     is_home: bool
 
 
@@ -95,17 +112,23 @@ class PlacesReplace(BaseModel):
 
 
 class HealthOut(BaseModel):
+    """The response of /api/health."""
+
     status: str
     database: str
     models: list[str]
 
 
 class AssistantTurn(BaseModel):
+    """One message in the visible chat."""
+
     role: Literal["user", "assistant"]
     content: str = Field(min_length=1, max_length=2000)
 
 
 class AssistantPlace(BaseModel):
+    """The place on screen when the question was asked."""
+
     name: str = Field(min_length=1, max_length=120)
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
@@ -120,12 +143,16 @@ class AssistantIn(BaseModel):
 
 
 class AssistantOut(BaseModel):
+    """Javed's answer in plain text, with the sources it looked up."""
+
     reply: str
     sources: list[str]
     model: str
 
 
 class AssistantStatus(BaseModel):
+    """Whether the Ask page works, and who answers."""
+
     configured: bool
     # "hosted" (Hosted, paid), "local" (free model on this computer) or None when off.
     provider: str | None = None

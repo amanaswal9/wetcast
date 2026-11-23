@@ -17,7 +17,8 @@
         --dark: #000;
         --title: #000080;
       }
-      * {
+      html,
+      body :not(svg) {
         box-sizing: border-box;
       }
       html,
@@ -87,7 +88,6 @@
         content: '';
         position: absolute;
       }
-      /* Minimise: a bar at the bottom. Maximise: a box with a thick top edge. */
       .tb span:first-child::after {
         left: 9px;
         top: 17px;

@@ -27,6 +27,8 @@ import { Taskbar } from './Taskbar'
 
 const MINUTE = 60_000
 
+// The whole app: one desktop-style window with the menu bar, the current page and the taskbar.
+// Forecast, air quality and server health are loaded here once and shared by the pages.
 export default function App() {
   const page = usePage()
   const unknownPage = useUnknownPage()
@@ -210,8 +212,8 @@ export default function App() {
       </a>
       <div style={safeArea}>
       <div className={`min-h-dvh ${frame}`}>
-        {/* No animation on first load: the page's static frame is already showing. */}
         <div
+          // No animation on first load: the page's static frame is already showing.
           hidden={hiddenAway}
           inert={minimized}
           data-state={minimized ? 'closing' : 'open'}
@@ -238,8 +240,11 @@ export default function App() {
               </>
             }
           >
-            {/* On phones the taskbar's Start menu and quick launch take over, keeping the header short. */}
-            <nav aria-label="Pages" className="r-menubar max-sm:hidden">
+            <nav
+              // On phones the taskbar's Start menu and quick launch take over, keeping the header short.
+              aria-label="Pages"
+              className="r-menubar max-sm:hidden"
+            >
               {PAGES.map((p) => (
                 <a
                   key={p.id}
@@ -264,8 +269,10 @@ export default function App() {
                   window.location.hash = `#/${next}`
                 }}
               />
-              {/* Icon-only on phones, so search and these fit on one row. */}
-              <div className="r-toolbar flex flex-wrap gap-1.5">
+              <div
+                // Icon-only buttons on phones, so search and these fit on one row.
+                className="r-toolbar flex flex-wrap gap-1.5"
+              >
                 <Button onClick={locate} aria-busy={locating} icon={<LocateFixed size={14} />}>
                   <span className="max-sm:sr-only">{locating ? 'Locating…' : 'My location'}</span>
                 </Button>

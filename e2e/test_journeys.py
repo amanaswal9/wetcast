@@ -92,7 +92,7 @@ def test_map_layers_and_pin(desktop):
     expect(desktop.locator(".r-map-pointer")).to_be_visible()
     tools.get_by_role("button", name="Rain").click()
     expect(tools.get_by_role("button", name="Rain")).to_have_attribute("aria-pressed", "true")
-    expect(desktop.get_by_text(re.compile(r"Rain, showers and snow .*\(mm\)"))).to_be_visible()
+    expect(desktop.get_by_text("Rain, showers and snow (as water) in the hour (mm).")).to_be_visible()
 
 
 def test_unknown_address_says_not_found(desktop):

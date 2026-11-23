@@ -8,20 +8,24 @@ import numpy as np
 
 
 def mae(y: np.ndarray, p: np.ndarray) -> float:
+    """Mean absolute error."""
     return float(np.mean(np.abs(y - p)))
 
 
 def rmse(y: np.ndarray, p: np.ndarray) -> float:
-    return float(np.sqrt(np.mean((y - p) ** 2)))
+    """Root mean squared error."""
+    return float(np.sqrt(np.mean(np.square(y - p))))
 
 
 def r2(y: np.ndarray, p: np.ndarray) -> float:
-    ss_res = float(np.sum((y - p) ** 2))
-    ss_tot = float(np.sum((y - np.mean(y)) ** 2))
+    """Coefficient of determination; NaN when the observations are all the same."""
+    ss_res = float(np.sum(np.square(y - p)))
+    ss_tot = float(np.sum(np.square(y - np.mean(y))))
     return 1.0 - ss_res / ss_tot if ss_tot > 0 else float("nan")
 
 
 def summary(y: np.ndarray, p: np.ndarray) -> dict[str, float]:
+    """MAE, RMSE, R2 and the number of pairs, skipping any pair with a missing value."""
     y = np.asarray(y, dtype=float).ravel()
     p = np.asarray(p, dtype=float).ravel()
     keep = np.isfinite(y) & np.isfinite(p)
@@ -30,9 +34,8 @@ def summary(y: np.ndarray, p: np.ndarray) -> dict[str, float]:
 
 
 def conformal_halfwidth(abs_residuals: np.ndarray, level: float) -> float:
-    """Split-conformal quantile: with n calibration residuals, the
-    ceil((n+1)*level)/n empirical quantile gives >= `level` coverage on
-    exchangeable data."""
+    """Split-conformal quantile. With n calibration residuals, the k-th smallest, where
+    k = ceil((n + 1) times level), covers at least `level` of new cases on exchangeable data."""
     r = np.sort(np.asarray(abs_residuals, dtype=float).ravel())
     n = r.size
     if n == 0:

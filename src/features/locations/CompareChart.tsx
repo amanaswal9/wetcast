@@ -11,10 +11,8 @@ export interface CompareSeries {
   forecast: Forecast
 }
 
-/**
- * Next 24 hours of temperature from "now" in each city. Cities sit in
- * different time zones, so the x-axis is hours from now, not clock time.
- */
+// Next 24 hours of temperature from "now" in each city. Cities sit in
+// different time zones, so the x-axis is hours from now, not clock time.
 function next24(forecast: Forecast, fmt: Format): (number | null)[] {
   const firstFuture = forecast.hourly.findIndex((h) => !h.isPast)
   const start = firstFuture > 0 ? firstFuture - 1 : 0
@@ -46,6 +44,7 @@ function CompareTooltip({ row, names }: { row: CompareRow; names: string[] }) {
   )
 }
 
+// The next 24 hours for several saved places on one chart.
 export function CompareChart({ series, theme }: { series: CompareSeries[]; theme: Theme }) {
   const wide = useMediaQuery('(min-width: 640px)')
   const colors = CHART_COLORS[theme]

@@ -17,6 +17,7 @@ interface TaskbarProps {
   onToggleNotifications: () => void
 }
 
+// The bar along the bottom of the screen: Start menu, quick launch, the window button and the clock.
 export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: TaskbarProps) {
   const now = useClock()
   const fmt = useFormat()
@@ -36,8 +37,11 @@ export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, 
         warningNotifications={warningNotifications}
         onToggleNotifications={onToggleNotifications}
       />
-      {/* Quick launch: the three most-used pages, one tap away on phones (the menu bar covers wider screens). */}
-      <nav aria-label="Quick launch" className="flex shrink-0 gap-0.5 sm:hidden">
+      <nav
+        // Quick launch: the three most-used pages, one tap away on phones. The menu bar covers wider screens.
+        aria-label="Quick launch"
+        className="flex shrink-0 gap-0.5 sm:hidden"
+      >
         {QUICK_LAUNCH.map((id) => {
           const Icon = PAGE_ICONS[id]
           const label = PAGES.find((p) => p.id === id)?.label ?? id

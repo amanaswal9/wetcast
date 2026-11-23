@@ -218,8 +218,8 @@ def test_chance_of_rain_is_scored(client):
         s.commit()
     rc = client.get("/api/track-record", params={"days": 30}).json()["rain_chance"]
     assert rc["n"] == 3  # the point without a stored chance is left out
-    assert rc["brier"] == pytest.approx((0.2**2 + 0.2**2 + 0.05**2) / 3, abs=1e-5)
-    assert rc["usual_brier"] == pytest.approx(((1 - usual) ** 2 * 2 + usual**2) / 3, abs=1e-5)
+    assert rc["brier"] == pytest.approx((pow(0.2, 2) + pow(0.2, 2) + pow(0.05, 2)) / 3, abs=1e-5)
+    assert rc["usual_brier"] == pytest.approx((pow(1 - usual, 2) * 2 + pow(usual, 2)) / 3, abs=1e-5)
     assert rc["yesterday_brier"] == pytest.approx(1 / 3, abs=1e-5)  # yesterday dry, dry, wet; today wet, dry, wet: one miss
     assert rc["rain_share"] == pytest.approx(2 / 3, abs=1e-4)
     assert [r["band"] for r in rc["reliability"]] == ["10-30%", "70-90%", "90-100%"]
