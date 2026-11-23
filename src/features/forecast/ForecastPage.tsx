@@ -98,21 +98,28 @@ function DayDetailPanel({ week, day, index, theme }: { week: WeekForecast; day: 
   )
 }
 
-function ForecastSkeleton() {
+// Stand-in while the week loads. It has the real titles, the note under the strip and a detail box
+// about as tall as the real one (phones, tablets, desktops), so the page doesn't jump when the week arrives.
+function ForecastSkeleton({ place }: { place: Place }) {
   return (
     <div aria-busy="true" className="flex flex-col gap-3">
       <p className="sr-only" role="status">
         Loading the 7-day forecast
       </p>
-      <GroupBox title="Next 7 days">
-        <div className="r-day-strip flex gap-1 overflow-hidden md:grid md:grid-cols-7">
+      <GroupBox title={`Next 7 days in ${placeShortLabel(place)}`} className="r-group-eager">
+        <div className="r-day-strip flex min-h-[165px] gap-1 overflow-hidden pb-1 md:grid md:min-h-[156px] md:grid-cols-7">
           {Array.from({ length: 7 }, (_, i) => (
             <Skeleton key={i} height={150} className="shrink-0 md:w-auto" />
           ))}
         </div>
+        <p className="m-0 mt-2 text-[0.92em] text-[var(--text-muted)]">
+          Open-Meteo forecast. The bar under each day shows its temperature range within the week.
+        </p>
       </GroupBox>
-      <GroupBox title="Day detail">
-        <ChartSkeleton height={300} />
+      <GroupBox title="Day detail" className="r-group-eager">
+        <div className="min-h-[687px] md:min-h-[524px] lg:min-h-[503px]">
+          <ChartSkeleton height={300} />
+        </div>
       </GroupBox>
     </div>
   )
@@ -145,7 +152,7 @@ export function ForecastPage({ place, theme, refreshToken, onSelectPlace }: Fore
         </div>
       )
     }
-    return <ForecastSkeleton />
+    return <ForecastSkeleton place={place} />
   }
 
   const data = week.data
@@ -164,7 +171,7 @@ export function ForecastPage({ place, theme, refreshToken, onSelectPlace }: Fore
         </MessageBox>
       )}
       <TabsRoot value={activeDate} onValueChange={setSelected} className="flex min-w-0 flex-col gap-3">
-        <GroupBox title={`Next 7 days in ${placeShortLabel(place)}`}>
+        <GroupBox title={`Next 7 days in ${placeShortLabel(place)}`} className="r-group-eager">
           <TabsList aria-label="Choose a day" className="r-day-strip flex snap-x gap-1 overflow-x-auto pb-1 md:grid md:grid-cols-7 md:overflow-visible">
             {days.map((day, i) => (
               <DayButton key={day.date} day={day} index={i} weekMin={weekMin} weekMax={weekMax} />
@@ -176,7 +183,7 @@ export function ForecastPage({ place, theme, refreshToken, onSelectPlace }: Fore
         </GroupBox>
         {days.map((day, i) => (
           <TabsContent key={day.date} value={day.date} className="outline-none">
-            <GroupBox title={`${dayName(day.date, i, 'long')}, ${shortDate(day.date)}`}>
+            <GroupBox title={`${dayName(day.date, i, 'long')}, ${shortDate(day.date)}`} className="r-group-eager">
               <DayDetailPanel week={data} day={day} index={i} theme={theme} />
             </GroupBox>
           </TabsContent>
