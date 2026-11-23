@@ -2,8 +2,8 @@ import type { CSSProperties } from 'react'
 
 // Personal desktop art, made on this computer by docs/share/make_wallpaper_ascii.py and kept out
 // of git. When the file isn't there (a fresh copy of the project), the desktop stays plain.
-// WALLPAPER is drawn in dark ink for the light desktop; photos also bring WALLPAPER_LIGHT, drawn
-// in light ink for the dark themes so a face doesn't look like a negative.
+// WALLPAPER is drawn in dark ink (line art on the light desktop); photos also bring
+// WALLPAPER_LIGHT, drawn in light ink in every theme so a face reads the right way round.
 const local = import.meta.glob<string[]>('../local/wallpaper.ts', { eager: true })
 const file = Object.values(local)[0] as unknown as { WALLPAPER?: string[]; WALLPAPER_LIGHT?: string[] } | undefined
 const INK = file?.WALLPAPER

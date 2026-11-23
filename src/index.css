@@ -1389,14 +1389,21 @@ html[data-busy] * {
   color: var(--desk-ink);
 }
 
-/* Photos come with a light-ink version for the dark themes; only one of the two shows. */
+/* Photos come with a light-ink version, where bright parts (a face) are drawn densely. It reads
+   best in every theme, on the teal desktop too, so it replaces the dark-ink version there. */
 .r-desktop-art .r-picture-light,
-:root:is([data-theme='night'], [data-theme='dark']) .r-desktop-art[data-light-version] .r-picture-ink {
+.r-desktop-art[data-light-version] .r-picture-ink {
   display: none;
 }
 
-:root:is([data-theme='night'], [data-theme='dark']) .r-desktop-art .r-picture-light {
+.r-desktop-art .r-desktop-picture.r-picture-light {
   display: block;
+  color: var(--desk-ink);
+}
+
+/* The dark mode's desktop ink is deliberately muted; the picture needs a little more light. */
+:root[data-theme='night'] .r-desktop-art .r-desktop-picture.r-picture-light {
+  color: #a3c6c7;
 }
 
 @media (max-width: 640px) {
