@@ -140,6 +140,7 @@ def folder(region: str) -> Path:
 
 
 def main() -> None:
+    """Download every month not on disk yet, then write the manifest (safe to rerun after a break)."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", choices=REGION_NAMES, default="north_india")
     parser.add_argument("--start", default=DATA_START)

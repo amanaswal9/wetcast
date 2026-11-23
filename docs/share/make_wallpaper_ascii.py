@@ -207,6 +207,7 @@ def convert(picture: Path, columns: int, crop, mask, photo: bool, sharpen: float
 
 
 def main() -> None:
+    """Read the options, convert the picture and write src/local/wallpaper.ts."""
     parser = argparse.ArgumentParser()
     parser.add_argument("picture", type=Path)
     parser.add_argument("--columns", type=int, default=140)

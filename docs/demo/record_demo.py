@@ -5,7 +5,7 @@ Chromium, and ffmpeg. From the repository root:
 
     python docs/demo/record_demo.py --ffmpeg PATH_TO_FFMPEG [--base http://localhost:5175]
 
-Writes docs/demo/weatherai-demo.mp4 (1280x720) and docs/demo/weatherai-demo.gif.
+Writes docs/demo/wetcast-demo.mp4 (1280x720) and docs/demo/wetcast-demo.gif.
 Everything on screen is live: Open-Meteo data, Wetcast's model predictions and the
 committed test results. Only the title card, end card, captions and the mouse pointer
 are drawn on top (Playwright's recordings don't show the pointer).
@@ -292,8 +292,8 @@ def record(video_dir: Path) -> tuple[Path, float]:
 
 
 def encode(ffmpeg: str, raw: Path, trim_from: float, trim_to: float) -> None:
-    mp4 = OUT / "weatherai-demo.mp4"
-    gif = OUT / "weatherai-demo.gif"
+    mp4 = OUT / "wetcast-demo.mp4"
+    gif = OUT / "wetcast-demo.gif"
     start = max(trim_from - 0.2, 0)
     subprocess.run(
         [ffmpeg, "-y", "-ss", f"{start:.2f}", "-t", f"{trim_to - start:.2f}", "-i", str(raw), "-vf", "fps=30,format=yuv420p", "-c:v", "libx264",

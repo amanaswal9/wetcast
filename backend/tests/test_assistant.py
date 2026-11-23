@@ -51,7 +51,9 @@ def test_looks_up_data_then_answers(client, monkeypatch, stub_lookups):
         chat("There are no official warnings for Pune right now."),
     ])
     http = fake.client()
-    monkeypatch.setattr(httpx, "Client", lambda **kwargs: http)
+    # Every httpx.Client the code makes during this test is the fake one (the app only ever passes
+    # timeout, headers and follow_redirects).
+    monkeypatch.setattr(httpx, "Client", lambda timeout=None, headers=None, follow_redirects=None: http)
     with db.new_session() as session:
         reply = assistant.answer([{"role": "user", "content": "Any warnings in Pune?"}], PLACE, session, get_registry())
     assert reply.text == "There are no official warnings for Pune right now."

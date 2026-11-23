@@ -16,6 +16,7 @@ logs/
 .venv/
 __pycache__/
 .pytest_cache/
+.ruff_cache/
 ml/weatherai_ml.egg-info/
 
 # Secrets and local databases: never commit these
