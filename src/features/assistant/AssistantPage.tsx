@@ -19,9 +19,9 @@ function suggestions(place: Place): string[] {
   const here = placeShortLabel(place)
   return [
     `Will it rain in ${here} tomorrow?`,
-    `What does WeatherAI's own model expect in ${here} over the next 24 hours?`,
+    `What does Wetcast's own model expect in ${here} over the next 24 hours?`,
     `Are there any official weather warnings for ${here}?`,
-    'How accurate are WeatherAI’s models?',
+    'How accurate are Wetcast’s models?',
   ]
 }
 
@@ -89,10 +89,10 @@ export function AssistantPage({ place }: { place: Place }) {
     <div className="flex min-w-0 flex-col gap-3">
       <GroupBox title="Ask Javed">
         <p className="m-0 mb-2 max-w-[75ch]">
-          Ask about the weather in {placeShortLabel(place)} or anywhere else. Javed is WeatherAI&apos;s AI weather assistant: for every question it looks up Open-Meteo&apos;s forecast,
-          WeatherAI&apos;s own models and official warnings, and answers only from what it finds.{' '}
+          Ask about the weather in {placeShortLabel(place)} or anywhere else. Javed is Wetcast&apos;s AI weather assistant: for every question it looks up Open-Meteo&apos;s forecast,
+          Wetcast&apos;s own models and official warnings, and answers only from what it finds.{' '}
           {status.data?.provider === 'local'
-            ? `It runs on ${status.data.model}, a small free model on WeatherAI's own computer, so it is slower and makes more mistakes than a large model: check the numbers against the Dashboard. `
+            ? `It runs on ${status.data.model}, a small free model on Wetcast's own computer, so it is slower and makes more mistakes than a large model: check the numbers against the Dashboard. `
             : status.data?.provider === 'hosted'
               ? 'It runs on Hosted, made by Hosted. '
               : ''}
@@ -102,14 +102,14 @@ export function AssistantPage({ place }: { place: Place }) {
         {status.status === 'loading' && <TextSkeleton lines={3} />}
         {status.status === 'error' && (
           <MessageBox kind="warning" title="Javed isn't reachable">
-            WeatherAI&apos;s server isn&apos;t responding, so questions can&apos;t be answered right now.
+            Wetcast&apos;s server isn&apos;t responding, so questions can&apos;t be answered right now.
           </MessageBox>
         )}
         {status.data && !configured && (
           <div className="r-sunken" style={{ background: 'var(--face)' }}>
             <MessageBox kind="info" title="Javed isn't switched on on this server">
               It needs either a free local model (Ollama running on the server&apos;s computer) or an Hosted API key, where each answer costs
-              a small amount. Everything else in WeatherAI works without it. The README explains how to switch it on.
+              a small amount. Everything else in Wetcast works without it. The README explains how to switch it on.
             </MessageBox>
           </div>
         )}
@@ -192,8 +192,8 @@ export function AssistantPage({ place }: { place: Place }) {
             <p className="m-0 mt-2 text-[0.92em] text-[var(--text-muted)]">
               Up to {status.data?.daily_limit_per_visitor} questions a day.{' '}
               {status.data?.provider === 'hosted'
-                ? "Your questions go to WeatherAI's server and to Hosted to be answered; the chat is not saved."
-                : "Your questions go only to WeatherAI's server, where Javed answers them; the chat is not saved."}
+                ? "Your questions go to Wetcast's server and to Hosted to be answered; the chat is not saved."
+                : "Your questions go only to Wetcast's server, where Javed answers them; the chat is not saved."}
             </p>
           </>
         )}

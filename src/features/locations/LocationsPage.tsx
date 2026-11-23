@@ -127,7 +127,7 @@ export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: Loc
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[0.92em]">
           <span className="r-status-field">
-            {saved.syncStatus === 'synced' && 'Saved on the WeatherAI server'}
+            {saved.syncStatus === 'synced' && 'Saved on the Wetcast server'}
             {saved.syncStatus === 'saving' && 'Saving…'}
             {saved.syncStatus === 'connecting' && 'Connecting to the server…'}
             {saved.syncStatus === 'offline' && 'Saved in this browser only'}
@@ -156,7 +156,7 @@ export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: Loc
             <MessageBox kind="info" title="Save the places you check most">
               <p className="m-0">
                 Search for a city above to add it. Saved places load together here, can be compared side by side, and
-                one can be your home location that WeatherAI opens with.
+                one can be your home location that Wetcast opens with.
               </p>
             </MessageBox>
           </div>

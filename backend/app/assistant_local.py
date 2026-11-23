@@ -1,4 +1,4 @@
-"""Javed, the WeatherAI assistant, on a free local model, run by Ollama on this computer.
+"""Javed, the Wetcast assistant, on a free local model, run by Ollama on this computer.
 
 Same rules, tools and data as the Hosted version (assistant.py): the model may only answer
 from what the read-only tools return. Nothing leaves the machine except the tools' own
@@ -33,7 +33,7 @@ LOCAL_RULES = """
 Rules for this conversation (follow them exactly):
 - Before giving any number about weather, call a tool. If you have not called a tool in this conversation, call one now.
 - If the question is about a place other than the one in [App context], call find_place first, then use its latitude and longitude.
-- Use only figures that appear in the tool results. If the figure asked for is not there, say WeatherAI doesn't have it. Never estimate or round into a range of your own.
+- Use only figures that appear in the tool results. If the figure asked for is not there, say Wetcast doesn't have it. Never estimate or round into a range of your own.
 - Answer the question asked; don't repeat earlier answers.
 - After the tools answer, reply in plain English sentences. Do not show JSON, tool names or your reasoning."""
 

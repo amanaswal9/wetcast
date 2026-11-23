@@ -2,7 +2,7 @@
 
     python -m weatherai_ml.outlook --region india     # download 2025-2026 for every city (resumable)
 
-WeatherAI's targets are Open-Meteo's archived hourly weather, so the best outside hint about the next
+Wetcast's targets are Open-Meteo's archived hourly weather, so the best outside hint about the next
 24 hours' rain is what Open-Meteo itself forecast for those hours. The Previous Runs API keeps that
 forecast as `precipitation_previous_day1`: the value for an hour as forecast about a day before it.
 For every hour of a 24-hour forecast that run already exists at issue time, so training and live use

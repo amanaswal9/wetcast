@@ -15,7 +15,7 @@ function whenIdle(task: () => void): () => void {
 
 /**
  * Quietly fetch what the Forecast page needs for a place (the 7-day forecast and
- * WeatherAI's predictions), so opening it is instant. Both are cached by their API
+ * Wetcast's predictions), so opening it is instant. Both are cached by their API
  * clients; failures are ignored here because the page loads them again on its own.
  * Returns a function that cancels a prefetch that hasn't started yet.
  */

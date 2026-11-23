@@ -1,8 +1,8 @@
-# WeatherAI
+# Wetcast
 
 Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop interface.
 
-![WeatherAI demo: the Dashboard for Delhi with its LCD readout, searching Jaipur, opening the Forecast from the Start menu, WeatherAI's model forecasts next to Open-Meteo, the weather map's temperature and wind tools, the test-period results, and switching to Fahrenheit in the Units dialog](docs/demo/weatherai-demo.gif)
+![Wetcast demo: the Dashboard for Delhi with its LCD readout, searching Jaipur, opening the Forecast from the Start menu, Wetcast's model forecasts next to Open-Meteo, the weather map's temperature and wind tools, the test-period results, and switching to Fahrenheit in the Units dialog](docs/demo/weatherai-demo.gif)
 
 A 57-second tour recorded from the running app with live data ([MP4, 1280×720](docs/demo/weatherai-demo.mp4)).
 Only the title card, captions and pointer are drawn on top. Re-record it with `docs/demo/record_demo.py`
@@ -12,10 +12,10 @@ Only the title card, captions and pointer are drawn on top. Re-record it with `d
 - **Official warnings** (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
   (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
 - **Ask** (optional: a free local model through Ollama, or Hosted with an Hosted API key): Javed, a weather assistant that answers questions using
-  only data it looks up (Open-Meteo, WeatherAI's models, official warnings), with its sources under each answer.
+  only data it looks up (Open-Meteo, Wetcast's models, official warnings), with its sources under each answer.
 - **Map**: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
-  points, with the cities WeatherAI's own models cover marked.
-- **Forecast**: 7-day strip and per-day detail, plus WeatherAI's own predictions (LSTM, GRU, CNN-LSTM,
+  points, with the cities Wetcast's own models cover marked.
+- **Forecast**: 7-day strip and per-day detail, plus Wetcast's own predictions (LSTM, GRU, CNN-LSTM,
   ST-Transformer, LightGBM and their ensemble)
   for the next 24 hours with error ranges, side by side with Open-Meteo's forecast.
 - **Analytics**: actual vs predicted on the held-out test period, error by city, and historical trends for any place.
@@ -77,7 +77,7 @@ Safari support it; Firefox doesn't, so the button is hidden there. It needs http
 permission. Phrases like "weather in Jaipur", "will it rain in Mumbai this week" or "open the models page" are
 parsed by fixed rules in `src/lib/voice.ts` (tested in `voice.test.ts`); if the top search result matches the
 spoken city exactly, it opens directly and says which place it chose. Chrome and Edge process the audio on their
-makers' servers and Safari on Apple's; WeatherAI only receives the recognised words.
+makers' servers and Safari on Apple's; Wetcast only receives the recognised words.
 
 To open the development server from a phone on the same Wi-Fi, run `npm run dev -- --host` and visit the
 address Vite prints (Windows may ask to allow Node through the firewall). For real use, deploy it (see Deployment).
@@ -392,7 +392,7 @@ installed, otherwise off):
 How it answers (`backend/app/assistant.py`, data tools in `backend/app/assistant_data.py`):
 
 - Both models get the same five read-only tools: `find_place`, `get_weather` (Open-Meteo: now, next 48 hours, 7 days),
-  `get_weatherai_prediction` (WeatherAI's ensemble with 80% ranges, covered cities only), `get_official_alerts`
+  `get_weatherai_prediction` (Wetcast's ensemble with 80% ranges, covered cities only), `get_official_alerts`
   (NDMA Sachet / US NWS) and `get_model_accuracy` (test results and the live track record). Tool schemas are
   strict, and the tools only read data.
 - The instructions tell it to answer only from what the tools return, to say when data isn't available, to name
@@ -401,7 +401,7 @@ How it answers (`backend/app/assistant.py`, data tools in `backend/app/assistant
 - At most 5 model calls per answer. The fixed instructions and tool definitions are prompt-cached. For models
   that support it, Hosted's server-side fallback (`fallbacks: "default"`) answers if the main model declines.
 - The page sends the last 10 turns with each question; the server keeps no chat history. Questions go to
-  WeatherAI's server and to Hosted.
+  Wetcast's server and to Hosted.
 
 Switch on the free local model:
 
@@ -469,7 +469,7 @@ How it works (`backend/app/alerts.py`):
 | --- | --- | --- |
 | Current conditions, past hours | Open-Meteo forecast models | "Open-Meteo model estimate" / solid line |
 | Forecast | Open-Meteo forecast | "Open-Meteo forecast" / dashed line |
-| WeatherAI predictions | Our LSTM, GRU, CNN-LSTM, ST-Transformer, LightGBM, ensemble | Model colour, dithered error range |
+| Wetcast predictions | Our LSTM, GRU, CNN-LSTM, ST-Transformer, LightGBM, ensemble | Model colour, dithered error range |
 | Historical trends | Open-Meteo archive (ERA5) | Named under the chart |
 | Station check | Meteostat | Models page |
 | Official warnings | NDMA Sachet (India), US National Weather Service | Source named under the warnings |

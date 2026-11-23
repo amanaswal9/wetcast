@@ -6,7 +6,7 @@ Chromium, and ffmpeg. From the repository root:
     python docs/demo/record_demo.py --ffmpeg PATH_TO_FFMPEG [--base http://localhost:5175]
 
 Writes docs/demo/weatherai-demo.mp4 (1280x720) and docs/demo/weatherai-demo.gif.
-Everything on screen is live: Open-Meteo data, WeatherAI's model predictions and the
+Everything on screen is live: Open-Meteo data, Wetcast's model predictions and the
 committed test results. Only the title card, end card, captions and the mouse pointer
 are drawn on top (Playwright's recordings don't show the pointer).
 """
@@ -77,13 +77,13 @@ CARD_HTML = """
 """
 
 TITLE_BODY = """
-<div style="font:700 56px 'Pixelify Sans',monospace;line-height:1">WeatherAI</div>
+<div style="font:700 56px 'Pixelify Sans',monospace;line-height:1">Wetcast</div>
 <div style="font:22px Tahoma;margin-top:16px;line-height:1.35">Weather forecasts from its own trained models,<br>shown next to a professional forecast, and checked honestly.</div>
 <div style="font:16px Tahoma;margin-top:18px;color:#3b3b3b">LSTM · GRU · CNN-LSTM · ST-Transformer · LightGBM · Ensemble</div>
 """
 
 END_BODY = """
-<div style="font:700 44px 'Pixelify Sans',monospace;line-height:1">WeatherAI</div>
+<div style="font:700 44px 'Pixelify Sans',monospace;line-height:1">Wetcast</div>
 <div style="font:20px Tahoma;margin-top:14px;line-height:1.4">React · FastAPI · TensorFlow · LightGBM · PostgreSQL · Ollama</div>
 <div style="font:16px Tahoma;margin-top:14px;color:#3b3b3b;line-height:1.45">Weather data: Open-Meteo. Map: © OpenStreetMap contributors.<br>Warnings: NDMA Sachet and the US National Weather Service.<br>Run it locally: see the README.</div>
 """
@@ -117,7 +117,7 @@ def choose_city(page: Page, name: str, region: str) -> None:
     option = page.get_by_role("option").filter(has_text=name).filter(has_text=region).first
     option.wait_for(timeout=15_000)
     option.click()
-    page.get_by_text(f"WeatherAI – {name}").first.wait_for(timeout=15_000)  # the window title shows the new place
+    page.get_by_text(f"Wetcast – {name}").first.wait_for(timeout=15_000)  # the window title shows the new place
 
 
 def wait_map_ready(page: Page, timeout_s: float = 150) -> None:
@@ -193,7 +193,7 @@ def record(video_dir: Path) -> tuple[Path, float]:
         page.wait_for_timeout(1200)
 
         # 1. Hook: title card over the live Dashboard.
-        card(page, "WeatherAI", TITLE_BODY)
+        card(page, "Wetcast", TITLE_BODY)
         trim_from = time.monotonic() - started
         page.wait_for_timeout(3400)
         card(page, None)
@@ -212,14 +212,14 @@ def record(video_dir: Path) -> tuple[Path, float]:
         page.get_by_role("heading", name="Now").wait_for(timeout=30_000)
         page.wait_for_timeout(1300)
 
-        # 3. The magic moment: WeatherAI's own models against Open-Meteo (opened from the Start menu).
+        # 3. The magic moment: Wetcast's own models against Open-Meteo (opened from the Start menu).
         caption(page, "Every page is in the Start menu")
         start_menu(page, "Forecast")
         caption(page, None)
-        page.get_by_role("heading", name="WeatherAI model prediction, next 24 hours").wait_for(timeout=30_000)
+        page.get_by_role("heading", name="Wetcast model prediction, next 24 hours").wait_for(timeout=30_000)
         page.get_by_role("tab", name="Ensemble", exact=True).wait_for(timeout=30_000)
-        scroll_to_heading(page, "WeatherAI model prediction")
-        caption(page, "WeatherAI's own models next to Open-Meteo, with 80% error ranges")
+        scroll_to_heading(page, "Wetcast model prediction")
+        caption(page, "Wetcast's own models next to Open-Meteo, with 80% error ranges")
         page.wait_for_timeout(1500)
         glide(page, page.get_by_role("tab", name="ST-Transformer", exact=True))
         page.wait_for_timeout(1800)
@@ -280,7 +280,7 @@ def record(video_dir: Path) -> tuple[Path, float]:
 
         # 7. End card.
         caption(page, None)
-        card(page, "WeatherAI", END_BODY)
+        card(page, "Wetcast", END_BODY)
         page.wait_for_timeout(3200)
         # The file keeps recording while the browser closes; cut it here.
         trim_to = time.monotonic() - started

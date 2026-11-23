@@ -1,4 +1,4 @@
-"""Key journeys through WeatherAI, checked in a real browser against recorded data."""
+"""Key journeys through Wetcast, checked in a real browser against recorded data."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def test_start_menu_by_keyboard_then_pick_a_day(desktop):
     expect(days).to_have_count(7)
     days.nth(2).click()
     expect(days.nth(2)).to_have_attribute("aria-selected", "true")
-    expect(desktop.get_by_text("WeatherAI model prediction, next 24 hours")).to_be_visible()
+    expect(desktop.get_by_text("Wetcast model prediction, next 24 hours")).to_be_visible()
     # Delhi is a training city: the panel says so, with the error measured there.
     note = desktop.locator('[data-coverage="trained"]')
     expect(note).to_contain_text("Trained city.")
@@ -97,7 +97,7 @@ def test_map_layers_and_pin(desktop):
 
 def test_unknown_address_says_not_found(desktop):
     goto(desktop, "radar")
-    alert = desktop.get_by_role("alert", name="WeatherAI")
+    alert = desktop.get_by_role("alert", name="Wetcast")
     expect(alert).to_contain_text("Not found.")
     expect(alert).to_contain_text('"radar"')
     expect_screenshot(desktop, "not-found-desktop")

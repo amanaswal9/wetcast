@@ -70,16 +70,16 @@ export default function App() {
   const health = useResource('health', ({ signal }) => getHealth(signal), 5 * MINUTE)
   const modelStatus = health.data
     ? health.data.models.length > 0
-      ? `WeatherAI models: ${health.data.models.length} ready`
-      : 'WeatherAI models: none trained'
+      ? `Wetcast models: ${health.data.models.length} ready`
+      : 'Wetcast models: none trained'
     : health.status === 'error'
-      ? 'WeatherAI models: offline'
-      : 'WeatherAI models: checking…'
+      ? 'Wetcast models: offline'
+      : 'Wetcast models: checking…'
 
-  const title = `WeatherAI – ${placeShortLabel(place)}`
+  const title = `Wetcast – ${placeShortLabel(place)}`
 
   useEffect(() => {
-    document.title = page === 'dashboard' ? title : `${pageInfo.label} – WeatherAI`
+    document.title = page === 'dashboard' ? title : `${pageInfo.label} – Wetcast`
   }, [page, pageInfo.label, title])
 
   useEffect(() => {
@@ -126,7 +126,7 @@ export default function App() {
     )
     setNotice(
       result === 'on'
-        ? `Warning notifications on for ${place.name}, while WeatherAI is open. Official warnings are connected for India and the US.`
+        ? `Warning notifications on for ${place.name}, while Wetcast is open. Official warnings are connected for India and the US.`
         : result === 'off'
           ? 'Warning notifications off.'
           : result === 'blocked'
@@ -286,7 +286,7 @@ export default function App() {
               <Suspense fallback={<PageLoading />}>
               {unknownPage !== null && (
                 <ErrorStack
-                  caption="WeatherAI"
+                  caption="Wetcast"
                   kind="info"
                   title="Not found."
                   actions={

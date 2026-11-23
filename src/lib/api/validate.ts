@@ -8,7 +8,7 @@ import { ApiError } from './http'
 type Json = Record<string, unknown>
 
 function invalid(path: string): ApiError {
-  return new ApiError('invalid', `The weather service sent data WeatherAI couldn't read (${path}).`)
+  return new ApiError('invalid', `The weather service sent data Wetcast couldn't read (${path}).`)
 }
 
 export function obj(value: unknown, path: string): Json {

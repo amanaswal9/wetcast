@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (!this.state.error) return this.props.children
     return (
       <ErrorStack
-        caption="WeatherAI"
+        caption="Wetcast"
         title="This page stopped working"
         actions={<Button onClick={() => this.setState({ error: null })}>Try again</Button>}
       >

@@ -343,7 +343,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
       pointerRef.current = L.marker([selectedLat, selectedLon], { icon: pointerIcon(theme), interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(map)
   }, [selectedLat, selectedLon, theme])
 
-  // Mark the cities WeatherAI's own models cover.
+  // Mark the cities Wetcast's own models cover.
   useEffect(() => {
     const group = citiesRef.current
     if (!group) return
@@ -479,7 +479,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
                 <svg width="12" height="12" aria-hidden="true">
                   <circle cx="6" cy="6" r="4.5" fill="var(--field)" stroke="var(--dark)" strokeWidth="2" />
                 </svg>
-                A city WeatherAI's own models trained on.
+                A city Wetcast's own models trained on.
               </p>
               {coverage.data?.some((c) => c.role === 'holdout') && (
                 <>
@@ -526,7 +526,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
         <p className="m-0 max-w-[75ch]">
           The colours come from Open-Meteo's forecasts at evenly spaced points, blended smoothly in between. This is weather-model data, not
           measurements, and the blending can miss a shower or a hill that falls between two points. The points get closer together as you
-          zoom in. This map uses third-party forecasts; WeatherAI's own models only cover the marked cities and are on the Forecast page.
+          zoom in. This map uses third-party forecasts; Wetcast's own models only cover the marked cities and are on the Forecast page.
         </p>
       </GroupBox>
     </div>
