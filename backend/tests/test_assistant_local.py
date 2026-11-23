@@ -134,3 +134,22 @@ def test_endpoint_reports_local_failures(client, monkeypatch):
     r = client.post("/api/assistant", json={"messages": [{"role": "user", "content": "Hi"}], "place": PLACE}, headers=CLIENT)
     assert r.status_code == 502 and "Start Ollama" in r.json()["detail"]
     assert assistant.LIMITS.used(CLIENT["X-Client-Id"]) == 0  # the failed question isn't counted
+
+
+@pytest.mark.parametrize("body", ["<html>not Ollama</html>", '{"message": ', "[1, 2, 3]"])
+def test_a_reply_that_isnt_a_json_object_is_a_clear_error(body):
+    # Something else on the port, or a reply cut off mid-way: a clear 502, never a crash.
+    import httpx
+
+    broken = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, text=body)))
+    with pytest.raises(assistant.AssistantUnavailable) as err:
+        assistant_local.answer([{"role": "user", "content": "Hi"}], PLACE, None, get_registry(), http=broken)
+    assert err.value.status == 502
+
+
+def test_an_old_env_that_chose_hosted_still_starts(monkeypatch):
+    # The paid option is gone; an old .env saying "hosted" falls back to the local model.
+    from app.config import Settings
+
+    monkeypatch.setenv("WEATHERAI_ASSISTANT_PROVIDER", "hosted")
+    assert Settings().assistant_provider == "auto"

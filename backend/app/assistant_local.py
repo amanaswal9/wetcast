@@ -167,10 +167,17 @@ def answer(conversation: list[dict], place: dict, session: Session, registry: Mo
             if response.status_code != 200:
                 log.warning("ollama returned %s: %s", response.status_code, response.text[:300])
                 raise AssistantUnavailable("upstream", "The local model couldn't answer right now. Try again.", 502)
-            body = response.json()
+            try:
+                body = response.json()
+            except ValueError:
+                body = None
+            if not isinstance(body, dict):
+                # Something other than Ollama answered, or it broke off mid-reply.
+                log.warning("ollama sent a reply that isn't a JSON object: %s", response.text[:300])
+                raise AssistantUnavailable("upstream", "The local model couldn't answer right now. Try again.", 502)
             reply.input_tokens += int(body.get("prompt_eval_count") or 0)
             reply.output_tokens += int(body.get("eval_count") or 0)
-            message = body.get("message") or {}
+            message = body.get("message") if isinstance(body.get("message"), dict) else {}
             calls = message.get("tool_calls") or []
             if not calls:
                 text = _clean(message.get("content", ""))

@@ -12,5 +12,7 @@
   }
   // color-mix() in CSS: Chrome and Edge 111, Firefox 113.
   if (!(window.CSS && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red, blue)'))) ok = false
+  // CSS.registerProperty (registered custom properties, which Tailwind uses): Firefox 128, Safari 16.4, Chrome 78.
+  if (!(window.CSS && typeof CSS.registerProperty === 'function')) ok = false
   if (!ok) document.getElementById('unsupported').hidden = false
 })()

@@ -4,6 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -29,6 +30,12 @@ class Settings(BaseSettings):
     # The Ask page. "auto" and "local" both mean the free local model, used when Ollama is running
     # with it installed ("auto" is kept so older .env files still load). "off" turns the page off.
     assistant_provider: Literal["auto", "local", "off"] = "auto"
+
+    @field_validator("assistant_provider", mode="before")
+    @classmethod
+    def _old_provider(cls, value: object) -> object:
+        # "hosted" was a choice before the paid option was removed; an old .env still starts.
+        return "auto" if isinstance(value, str) and value.strip().lower() == "hosted" else value
     ollama_url: str = "http://127.0.0.1:11434"
     # The Instruct edition answers directly; the plain "qwen3:4b" tag is the thinking edition, which
     # reasons at length before every answer (far too slow on a small graphics card).
