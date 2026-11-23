@@ -1382,11 +1382,21 @@ html[data-busy] * {
   /* Fits the width (about 140 columns), the height above the taskbar (by row count), and 13px at most. */
   font-size: min(1.05vw, calc((100dvh - 110px) / var(--rows, 80)), 13px);
   line-height: 1;
-  color: #012a2a;
+  color: #001a1a;
 }
 
 :root:is([data-theme='night'], [data-theme='dark']) .r-desktop-art .r-desktop-picture {
   color: var(--desk-ink);
+}
+
+/* Photos come with a light-ink version for the dark themes; only one of the two shows. */
+.r-desktop-art .r-picture-light,
+:root:is([data-theme='night'], [data-theme='dark']) .r-desktop-art[data-light-version] .r-picture-ink {
+  display: none;
+}
+
+:root:is([data-theme='night'], [data-theme='dark']) .r-desktop-art .r-picture-light {
+  display: block;
 }
 
 @media (max-width: 640px) {
