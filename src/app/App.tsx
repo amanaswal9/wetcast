@@ -85,9 +85,12 @@ export default function App() {
     document.title = page === 'dashboard' ? title : `${pageInfo.label} – Wetcast`
   }, [page, pageInfo.label, title])
 
+  // The other pages' code downloads once the opening weather is in (or has failed), so on a slow
+  // connection it doesn't hold up the first screen.
+  const firstWeatherSettled = forecast.data !== undefined || forecast.status === 'error'
   useEffect(() => {
-    preloadPages()
-  }, [])
+    if (firstWeatherSettled) preloadPages()
+  }, [firstWeatherSettled])
 
   // Hourglass pointer while the weather is loading or refreshing (see html[data-busy] in index.css).
   const busy = forecast.status === 'loading' || forecast.refreshing || locating

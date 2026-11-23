@@ -42,9 +42,23 @@ export interface FetchJsonOptions {
   timeoutMs?: number
 }
 
-// fetch() wrapper with a timeout, an in-memory TTL cache and friendly errors.
-// Caller cancellation is re-thrown as the original AbortError so components
-// can ignore it.
+// A request on its way, shared by everyone asking for the same address at the same time (the early
+// start in main.tsx and the page that wants the answer, for example). It is cancelled only when every
+// caller has given up.
+interface Pending {
+  promise: Promise<unknown>
+  controller: AbortController
+  callers: number
+}
+
+const pending = new Map<string, Pending>()
+
+function cancelled(): DOMException {
+  return new DOMException('Request cancelled', 'AbortError')
+}
+
+// fetch() wrapper with a timeout, an in-memory TTL cache, shared requests and friendly errors.
+// Caller cancellation is re-thrown as the original AbortError so components can ignore it.
 export async function fetchJson(url: string, options: FetchJsonOptions = {}): Promise<unknown> {
   const { signal, ttlMs = 0, fresh = false, timeoutMs = 12_000 } = options
 
@@ -53,15 +67,54 @@ export async function fetchJson(url: string, options: FetchJsonOptions = {}): Pr
     log.debug('cache hit', url)
     return hit.value
   }
+  if (signal?.aborted) throw cancelled()
 
-  const controller = new AbortController()
+  let entry = fresh ? undefined : pending.get(url)
+  if (!entry) {
+    const controller = new AbortController()
+    const started: Pending = { promise: request(url, controller, ttlMs, timeoutMs), controller, callers: 0 }
+    pending.set(url, started)
+    const forget = () => {
+      if (pending.get(url) === started) pending.delete(url)
+    }
+    started.promise.then(forget, forget)
+    entry = started
+  } else {
+    log.debug('joined a request already on its way', url)
+  }
+
+  const shared = entry
+  shared.callers++
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      shared.callers--
+      if (shared.callers === 0) {
+        if (pending.get(url) === shared) pending.delete(url)
+        shared.controller.abort()
+      }
+      reject(cancelled())
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+    shared.promise.then(
+      (value) => {
+        signal?.removeEventListener('abort', onAbort)
+        resolve(value)
+      },
+      (error: unknown) => {
+        signal?.removeEventListener('abort', onAbort)
+        reject(error)
+      },
+    )
+  })
+}
+
+// The fetch itself. It is cancelled through `controller` once nobody wants the answer any more.
+async function request(url: string, controller: AbortController, ttlMs: number, timeoutMs: number): Promise<unknown> {
   let timedOut = false
   const timer = setTimeout(() => {
     timedOut = true
     controller.abort()
   }, timeoutMs)
-  const forwardAbort = () => controller.abort()
-  signal?.addEventListener('abort', forwardAbort, { once: true })
 
   const started = performance.now()
   try {
@@ -85,17 +138,17 @@ export async function fetchJson(url: string, options: FetchJsonOptions = {}): Pr
     return value
   } catch (error) {
     if (error instanceof ApiError) throw error
-    if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError')
     if (timedOut) throw new ApiError('timeout', 'The weather service took too long to respond. Try again.')
+    if (controller.signal.aborted) throw cancelled()
     log.warn('network error', url, error)
     throw new ApiError('network', "Can't reach the weather service. Check your connection and try again.")
   } finally {
     clearTimeout(timer)
-    signal?.removeEventListener('abort', forwardAbort)
   }
 }
 
 // Test helper.
 export function clearHttpCache(): void {
   cache.clear()
+  pending.clear()
 }

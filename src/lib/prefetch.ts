@@ -1,4 +1,4 @@
-import { getWeekForecast } from './api/openMeteo'
+import { getAirQuality, getForecast, getWeekForecast } from './api/openMeteo'
 import { getPredictions } from './api/weatherai'
 import { log } from './log'
 import type { Place } from '../types/weather'
@@ -22,4 +22,11 @@ export function prefetchPlace(place: Place): () => void {
     getWeekForecast(place).catch((e: unknown) => log.debug('prefetch week failed', e))
     getPredictions(place.latitude, place.longitude, undefined, false, place.countryCode).catch((e: unknown) => log.debug('prefetch predictions failed', e))
   })
+}
+
+// Ask for the opening place's weather as soon as the code has loaded, before the first render. The
+// app's own requests join these when they start, so the weather arrives sooner and is fetched once.
+export function prefetchOpeningWeather(place: Place): void {
+  getForecast(place).catch((e: unknown) => log.debug('early forecast failed', e))
+  getAirQuality(place).catch((e: unknown) => log.debug('early air quality failed', e))
 }
