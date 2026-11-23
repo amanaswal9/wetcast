@@ -53,7 +53,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
           <DitherPicture caption="sky.png" className="shrink-0 self-start" />
           <div className="min-w-0 max-w-[68ch]">
             <h2 id="about-title" className="m-0 font-pixel text-[32px] leading-none font-normal">
-              WeatherAI
+              Wetcast
             </h2>
             <p className="m-0 mt-1 text-[var(--text-muted)]">Version {APP_VERSION}, models version 2</p>
             <p className="m-0 mt-3 text-[1.08em]">
@@ -61,7 +61,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
               predict, what a professional forecast says, and how often each turned out right.
             </p>
             <p className="m-0 mt-2">
-              Everyday weather comes from Open-Meteo for any city in the world. WeatherAI&apos;s own models (LSTM, GRU, CNN-LSTM, a
+              Everyday weather comes from Open-Meteo for any city in the world. Wetcast&apos;s own models (LSTM, GRU, CNN-LSTM, a
               spatio-temporal Transformer, LightGBM and their ensemble) cover India: they trained on 40 cities across the country and were tested on 8 more they never saw.
             </p>
           </div>
@@ -103,7 +103,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
           {models.data && models.data.length > 0 ? (
             <ResultsLine models={models.data} />
           ) : models.status === 'error' ? (
-            <p className="m-0 text-[var(--text-muted)]">Live results appear here when the WeatherAI server is running.</p>
+            <p className="m-0 text-[var(--text-muted)]">Live results appear here when the Wetcast server is running.</p>
           ) : (
             <TextSkeleton lines={2} />
           )}
@@ -144,7 +144,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
               <line x1="0" y1="7" x2="34" y2="7" stroke={modelColor} strokeWidth="2.5" />
             </Swatch>
             <span>
-              <b>Coloured line with a dotted band:</b> a WeatherAI model prediction. The band is its error range; on the test
+              <b>Coloured line with a dotted band:</b> a Wetcast model prediction. The band is its error range; on the test
               period it held the real value about three times out of four. Predictions are estimates, never certainties.
             </span>
           </li>
@@ -154,7 +154,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
       <GroupBox title="Where the data comes from">
         <div className="r-sunken overflow-x-auto">
           <table className="r-table min-w-[520px]">
-            <caption className="sr-only">Data sources used by WeatherAI</caption>
+            <caption className="sr-only">Data sources used by Wetcast</caption>
             <thead>
               <tr>
                 <th scope="col">Source</th>
@@ -217,7 +217,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
                 <th scope="row">
                   <Link href="https://ollama.com/">Ollama</Link> with <Link href="https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507">Qwen3 4B Instruct</Link>, optional
                 </th>
-                <td>The free alternative for the Ask page: a small model running on WeatherAI&apos;s own computer, with the same data and rules</td>
+                <td>The free alternative for the Ask page: a small model running on Wetcast&apos;s own computer, with the same data and rules</td>
                 <td>Free; Ollama MIT licence, Qwen3 Apache 2.0</td>
               </tr>
               <tr>
@@ -255,7 +255,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
           </li>
           <li>
             Voice search uses your browser&apos;s own speech recognition: Chrome and Edge send the audio to their makers&apos; speech
-            services, Safari to Apple&apos;s. WeatherAI never receives the audio, only the words. Firefox doesn&apos;t offer it.
+            services, Safari to Apple&apos;s. Wetcast never receives the audio, only the words. Firefox doesn&apos;t offer it.
           </li>
         </ul>
       </GroupBox>

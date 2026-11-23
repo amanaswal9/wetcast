@@ -1,4 +1,4 @@
-"""Does NASA's satellite rain (imerg.py) help WeatherAI's rain forecasts? A one-off check, kept to rerun.
+"""Does NASA's satellite rain (imerg.py) help Wetcast's rain forecasts? A one-off check, kept to rerun.
 
     python -m weatherai_ml.imerg_check          # after imerg.py and rain_amount; about 30 minutes
 

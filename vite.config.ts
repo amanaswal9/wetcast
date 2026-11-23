@@ -15,9 +15,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'WeatherAI',
-        short_name: 'WeatherAI',
-        description: 'Weather forecasts from WeatherAI’s own models, next to Open-Meteo, checked honestly.',
+        name: 'Wetcast',
+        short_name: 'Wetcast',
+        description: 'Weather forecasts from Wetcast’s own models, next to Open-Meteo, checked honestly.',
         lang: 'en',
         start_url: '/',
         scope: '/',

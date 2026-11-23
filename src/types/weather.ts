@@ -4,7 +4,7 @@
  * Every value carries an implicit source. On the Dashboard all data comes from
  * Open-Meteo's numerical forecast models: "past hours" are model estimates for
  * hours that have already happened, not station observations. Station
- * observations (Meteostat) and WeatherAI's own model predictions arrive in
+ * observations (Meteostat) and Wetcast's own model predictions arrive in
  * later stages and get their own types.
  */
 

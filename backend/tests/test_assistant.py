@@ -157,7 +157,7 @@ def test_weather_summary_from_open_meteo(monkeypatch):
     times = [h["time"] for h in out["next_48_hours_every_3_hours"]]
     assert times[0] == "2026-11-20T12:00" and len(times) == 16 and all(int(t[11:13]) % 3 == 0 for t in times)
     assert out["next_48_hours_every_3_hours"][0]["humidity_pct"] == 55  # hourly humidity, so it is never guessed
-    assert out["next_7_days"][0]["sky"] == "overcast" and "not WeatherAI" in out["source"]
+    assert out["next_7_days"][0]["sky"] == "overcast" and "not Wetcast" in out["source"]
     assert (out["next_7_days"][0]["humidity_low_pct"], out["next_7_days"][0]["humidity_high_pct"]) == (22, 68)
 
 

@@ -1,4 +1,4 @@
-"""Javed, the WeatherAI assistant: answers weather questions using only data it looks up
+"""Javed, the Wetcast assistant: answers weather questions using only data it looks up
 through the read-only tools in assistant_data.py.
 
 Two providers (WEATHERAI_ASSISTANT_PROVIDER, default "auto"):
@@ -38,11 +38,11 @@ MAX_TOKENS = 16000
 FALLBACK_MODELS = {"hosted-opus-5-5", "hosted-opus-5", "hosted-sonnet-5-5", "hosted-fable-5-1", "hosted-fable-5-2"}
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
-SYSTEM_PROMPT = """You are Javed, the AI weather assistant inside the WeatherAI app. You answer questions about the weather. If asked who you are, say you are Javed, WeatherAI's AI assistant; you are not a person.
+SYSTEM_PROMPT = """You are Javed, the AI weather assistant inside the Wetcast app. You answer questions about the weather. If asked who you are, say you are Javed, Wetcast's AI assistant; you are not a person.
 
 How to answer:
 - Answer only from data you looked up with your tools in this conversation. If the tools don't have it, say so plainly. Never guess, invent numbers, or rely on general knowledge about a place's climate as if it were a forecast.
-- Say where each number comes from in plain words: "Open-Meteo's forecast", "WeatherAI's own model", or "an official warning from ...". Never present WeatherAI's model output as an official forecast.
+- Say where each number comes from in plain words: "Open-Meteo's forecast", "Wetcast's own model", or "an official warning from ...". Never present Wetcast's model output as an official forecast.
 - Forecasts are uncertain. Use ranges and chances rather than certainties ("about 24 °C, likely between 22 and 26"), and never promise what the weather will do.
 - If someone asks about danger, safety, or what to do in severe weather, look up official warnings, repeat any that apply as issued, and tell them to follow their national weather service or local authorities. Don't give your own safety rulings.
 - Use the place's local time. Use °C, km/h, mm and %.
@@ -52,9 +52,9 @@ How to answer:
 Tools:
 - The app tells you the place the person is looking at. To answer about a different place, use find_place first.
 - get_weather: current conditions and forecast from Open-Meteo, for anywhere.
-- get_weatherai_prediction: WeatherAI's own 24-hour forecast with ranges, for places in India; it says how accurate to expect it there.
+- get_weatherai_prediction: Wetcast's own 24-hour forecast with ranges, for places in India; it says how accurate to expect it there.
 - get_official_alerts: official warnings (India and the United States only).
-- get_model_accuracy: how accurate WeatherAI's models were on unseen data."""
+- get_model_accuracy: how accurate Wetcast's models were on unseen data."""
 
 LAT_LON = {
     "latitude": {"type": "number", "description": "Latitude in degrees, -90 to 90"},
@@ -86,7 +86,7 @@ TOOLS = [
     ),
     _tool(
         "get_weatherai_prediction",
-        "WeatherAI's own machine-learning forecast for the next 24 hours, with 80% error ranges, and how accurate it has been at this kind of place. Available in India (near the cities its models were trained on); elsewhere it says so.",
+        "Wetcast's own machine-learning forecast for the next 24 hours, with 80% error ranges, and how accurate it has been at this kind of place. Available in India (near the cities its models were trained on); elsewhere it says so.",
         {**LAT_LON, "country_code": {"type": "string", "description": "Two-letter country code, e.g. IN; empty string if unknown"}},
         ["latitude", "longitude", "country_code"],
     ),
@@ -98,7 +98,7 @@ TOOLS = [
     ),
     _tool(
         "get_model_accuracy",
-        "How accurate WeatherAI's models were on 2026 data they never saw, compared with a simple baseline, plus the live track record.",
+        "How accurate Wetcast's models were on 2026 data they never saw, compared with a simple baseline, plus the live track record.",
         {},
         [],
     ),
@@ -108,9 +108,9 @@ TOOLS[-1]["cache_control"] = {"type": "ephemeral"}  # instructions + tools are t
 SOURCE_LABELS = {
     "find_place": "Open-Meteo geocoding",
     "get_weather": "Open-Meteo forecast",
-    "get_weatherai_prediction": "WeatherAI models",
+    "get_weatherai_prediction": "Wetcast models",
     "get_official_alerts": "Official warnings",
-    "get_model_accuracy": "WeatherAI evaluation",
+    "get_model_accuracy": "Wetcast evaluation",
 }
 
 
@@ -295,7 +295,7 @@ def answer(conversation: list[dict], place: dict, session: Session, registry: Mo
         reply.model = getattr(response, "model", model) or model
 
         if response.stop_reason == "refusal":
-            reply.text = "I can't help with that one. I can answer questions about the weather and how WeatherAI's forecasts work."
+            reply.text = "I can't help with that one. I can answer questions about the weather and how Wetcast's forecasts work."
             return reply
         if response.stop_reason != "tool_use":
             reply.text = "\n\n".join(b.text for b in response.content if b.type == "text").strip()

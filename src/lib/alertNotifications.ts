@@ -3,7 +3,7 @@ import type { OfficialAlert } from './api/weatherai'
 
 /**
  * Opt-in browser notifications for new official warnings at the place being viewed.
- * They only work while WeatherAI is open (a tab, even in the background, or the installed
+ * They only work while Wetcast is open (a tab, even in the background, or the installed
  * app): notifications for a closed app need a push server, i.e. hosting. Each warning is
  * announced once; ids already announced are remembered in this browser.
  */

@@ -1,4 +1,4 @@
-"""WeatherAI API. Run: uvicorn app.main:app --reload --port 8000 (from backend/)."""
+"""Wetcast API. Run: uvicorn app.main:app --reload --port 8000 (from backend/)."""
 
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ async def lifespan(_: FastAPI):
         task.cancel()
 
 
-app = FastAPI(title="WeatherAI API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Wetcast API", version="0.1.0", lifespan=lifespan)
 # Compress larger JSON (model metrics are ~75 KB as plain text, ~10 KB compressed).
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
@@ -131,7 +131,7 @@ def health(session: SessionDep, registry: RegistryDep) -> HealthOut:
 
 @app.get("/api/coverage", response_model=list[CityOut])
 def coverage(registry: RegistryDep) -> list[CityOut]:
-    """The cities behind WeatherAI's models: those they trained on and those held out to test them.
+    """The cities behind Wetcast's models: those they trained on and those held out to test them.
     Predictions are offered at these and, for the all-India models, anywhere in India near them."""
     return [city_out(c) for c in model_coverage.cities(registry.region_id)]
 
@@ -291,7 +291,7 @@ SACHET_NOTE = (
 )
 NWS_NOTE = "Official alerts from the US National Weather Service for this point."
 NONE_NOTE = (
-    "WeatherAI doesn't have an official warning feed for this country yet. It reads India's NDMA Sachet portal "
+    "Wetcast doesn't have an official warning feed for this country yet. It reads India's NDMA Sachet portal "
     "(IMD and state authorities) and the US National Weather Service. Check your national weather service for warnings."
 )
 

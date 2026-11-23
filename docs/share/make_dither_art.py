@@ -1,4 +1,4 @@
-"""Make WeatherAI's dithered black-and-white artwork: an original sky (sun, cumulus clouds,
+"""Make Wetcast's dithered black-and-white artwork: an original sky (sun, cumulus clouds,
 a low horizon) built from noise in code, then Floyd-Steinberg dithered to 1-bit, in the look
 of early-90s scanned pictures. No outside images are used.
 

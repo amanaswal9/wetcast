@@ -3,7 +3,7 @@ import { CHART_FONT } from '../../lib/chartTheme'
 import { isNum, linearPath, monotonePath, nearestIndex, niceScale, segments, type Num } from './chartMath'
 
 /**
- * WeatherAI's SVG chart: lines, dithered bands and bars over evenly spaced rows (or a
+ * Wetcast's SVG chart: lines, dithered bands and bars over evenly spaced rows (or a
  * numeric x axis), with a hover / touch / keyboard cursor and tooltip. It replaces a
  * general charting library at a fraction of the size, and draws crisp 1-pixel retro
  * axes. Charts stay decorative for screen readers: every chart in the app has a table

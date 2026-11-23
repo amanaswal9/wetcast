@@ -1,4 +1,4 @@
-"""WeatherAI machine-learning package.
+"""Wetcast machine-learning package.
 
 `config`, `features` and `preprocess` are shared by training and by the API so
 that inference uses exactly the same transformations and feature order.

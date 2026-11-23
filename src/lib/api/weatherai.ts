@@ -1,5 +1,5 @@
 /**
- * Client for WeatherAI's own FastAPI backend (/api, proxied by Vite in dev).
+ * Client for Wetcast's own FastAPI backend (/api, proxied by Vite in dev).
  * Every number here comes from trained models and real evaluation runs.
  */
 import { log } from '../log'
@@ -194,13 +194,13 @@ async function getJson(
     } catch {
       // Vite returns HTML when the backend isn't running; treat as unavailable below.
     }
-    if (body === null && !res.ok) throw new BackendUnavailable('network', "WeatherAI's prediction service isn't reachable.")
+    if (body === null && !res.ok) throw new BackendUnavailable('network', "Wetcast's prediction service isn't reachable.")
     return { status: res.status, body }
   } catch (error) {
     if (error instanceof ApiError) throw error
     if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError')
     log.warn('backend request failed', path, error)
-    throw new BackendUnavailable('network', "WeatherAI's prediction service isn't reachable.")
+    throw new BackendUnavailable('network', "Wetcast's prediction service isn't reachable.")
   } finally {
     window.clearTimeout(timer)
     signal?.removeEventListener('abort', forward)
@@ -226,7 +226,7 @@ function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> 
 }
 
 /**
- * WeatherAI's predictions for a point. Answers are kept for 10 minutes (the models only
+ * Wetcast's predictions for a point. Answers are kept for 10 minutes (the models only
  * change their forecast once an hour), and simultaneous requests for the same point,
  * such as a background prefetch and the Forecast page, share one network request.
  */
@@ -420,7 +420,7 @@ export async function askAssistant(
   throw new AssistantError(code, detailOf(body, `The assistant returned an error (${status}).`), status)
 }
 
-/** The cities behind WeatherAI's models: those they trained on and those held out to test them. */
+/** The cities behind Wetcast's models: those they trained on and those held out to test them. */
 export async function getCoverage(signal?: AbortSignal): Promise<CoveredCity[]> {
   const { status, body } = await getJson('/api/coverage', signal)
   if (status !== 200) throw new ApiError('http', detailOf(body, `The prediction service returned an error (${status}).`), status)

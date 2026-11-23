@@ -25,7 +25,7 @@ from .registry import ModelRegistry
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 CACHE_SECONDS = 600
-IST = ZoneInfo("Asia/Kolkata")  # every city WeatherAI's models cover is in India
+IST = ZoneInfo("Asia/Kolkata")  # every city Wetcast's models cover is in India
 
 # WMO weather codes, as Open-Meteo reports them.
 WEATHER_CODES = {
@@ -129,7 +129,7 @@ def weather(latitude: float, longitude: float) -> dict:
         for i, d in enumerate(daily.get("time", []))
     ]
     return {
-        "source": "Open-Meteo forecast (weather-model data from national weather services, not WeatherAI's own models)",
+        "source": "Open-Meteo forecast (weather-model data from national weather services, not Wetcast's own models)",
         "timezone": data.get("timezone"),
         "local_time_now": now_local,
         "now": {
@@ -148,7 +148,7 @@ def weather(latitude: float, longitude: float) -> dict:
 
 
 def weatherai_prediction(registry: ModelRegistry, latitude: float, longitude: float, country: str | None = None) -> dict:
-    """WeatherAI's own 24-hour forecast (the ensemble), where its models cover the place."""
+    """Wetcast's own 24-hour forecast (the ensemble), where its models cover the place."""
     region = registry.region_id
     located = model_coverage.locate(region, latitude, longitude, country)
     if located is None:
@@ -182,7 +182,7 @@ def weatherai_prediction(registry: ModelRegistry, latitude: float, longitude: fl
     return {
         "available": True,
         "place_kind": f"{label}. {detail}",
-        "source": f"WeatherAI's own {registry.display_name(name)} model (machine-learning forecast, not an official forecast)",
+        "source": f"Wetcast's own {registry.display_name(name)} model (machine-learning forecast, not an official forecast)",
         "city": city.name,
         "times": "India Standard Time",
         "issued_from_data_up_to": pred.issued_at.tz_convert(IST).strftime("%Y-%m-%dT%H:%M"),
@@ -216,7 +216,7 @@ def rain_chance_summary(pred, predictor) -> dict:
 def official_alerts_at(session: Session, latitude: float, longitude: float, country_code: str | None) -> dict:
     coverage = official_alerts.coverage_for(latitude, longitude, country_code)
     if coverage == "none":
-        return {"covered": False, "note": "WeatherAI has no official warning feed for this country. Point people to their national weather service."}
+        return {"covered": False, "note": "Wetcast has no official warning feed for this country. Point people to their national weather service."}
     if coverage == "india":
         rows = official_alerts.active_sachet_alerts(session, latitude, longitude)
         found = official_alerts.sort_alerts([official_alerts.alert_out(a) for a in rows])
@@ -265,7 +265,7 @@ def model_accuracy(session: Session, registry: ModelRegistry) -> dict:
     if record["first_valid_at"] and record["last_valid_at"]:
         days_live = (datetime.fromisoformat(record["last_valid_at"]) - datetime.fromisoformat(record["first_valid_at"])).total_seconds() / 86400
     return {
-        "source": "WeatherAI's evaluation (test period Jan-Oct 2026, never used in training) and its live track record",
+        "source": "Wetcast's evaluation (test period Jan-Oct 2026, never used in training) and its live track record",
         "most_accurate_on_test_period": best_on_test,
         "test_mean_absolute_error": {"units": {t: TARGET_UNITS[t] for t in TARGETS}, **models},
         "persistence_baseline": baseline,

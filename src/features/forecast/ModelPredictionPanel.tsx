@@ -141,7 +141,7 @@ function PredictionChart({
           <svg width="22" height="10" aria-hidden="true">
             <line x1="0" y1="5" x2="22" y2="5" stroke={modelColor} strokeWidth="2.5" />
           </svg>
-          WeatherAI {modelName} prediction
+          Wetcast {modelName} prediction
         </li>
         <li className="flex items-center gap-1.5">
           <svg width="22" height="10" aria-hidden="true">
@@ -238,7 +238,7 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
       )
   } else if (result.data.kind === 'unsupported') {
     body = (
-      <MessageBox kind="info" title={`WeatherAI's models don't cover ${place.name}`}>
+      <MessageBox kind="info" title={`Wetcast's models don't cover ${place.name}`}>
         <p className="m-0">
           {result.data.detail} Open one of the nearest to compare its model predictions with the forecast:
         </p>
@@ -307,5 +307,5 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
     )
   }
 
-  return <GroupBox title="WeatherAI model prediction, next 24 hours">{body}</GroupBox>
+  return <GroupBox title="Wetcast model prediction, next 24 hours">{body}</GroupBox>
 }

@@ -1,4 +1,4 @@
-"""Where WeatherAI's own models make predictions, and how accurate to expect them to be there.
+"""Where Wetcast's own models make predictions, and how accurate to expect them to be there.
 
 The served models were trained on one region's cities (registry.region_id):
 - "india": 40 training cities plus 8 held-out cities the models never saw. The models use a place's
@@ -129,10 +129,10 @@ def locate(region: str, latitude: float, longitude: float, country: str | None =
 def unsupported_detail(region: str) -> str:
     if region == "india":
         return (
-            f"WeatherAI's models cover India: anywhere within {reach_km(region):.0f} km of the "
+            f"Wetcast's models cover India: anywhere within {reach_km(region):.0f} km of the "
             f"{len(training_cities(region))} cities they were trained on."
         )
-    return f"WeatherAI's models only cover the {len(training_cities(region))} cities they were trained on."
+    return f"Wetcast's models only cover the {len(training_cities(region))} cities they were trained on."
 
 
 def expected_error(registry: ModelRegistry, name: str, located: Located) -> dict:

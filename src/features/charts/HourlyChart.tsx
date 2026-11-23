@@ -44,7 +44,7 @@ export function ChartLegend({ colors, mode, showPast }: { colors: ChartColors; m
         Open-Meteo forecast
       </li>
       <li className="text-[var(--text-muted)]">
-        WeatherAI&apos;s own predictions are on the <a href="#/forecast" className="text-[inherit]">Forecast page</a>, kept separate from this data.
+        Wetcast&apos;s own predictions are on the <a href="#/forecast" className="text-[inherit]">Forecast page</a>, kept separate from this data.
       </li>
     </ul>
   )

@@ -37,7 +37,7 @@ SACHET_HOME = "https://sachet.ndma.gov.in/"
 NWS_ALERTS = "https://api.weather.gov/alerts/active"
 NWS_HOME = "https://www.weather.gov/"
 # A generic client name (no personal contact details), as NWS asks clients to identify themselves.
-USER_AGENT = "WeatherAI/0.1 (open-source portfolio weather app)"
+USER_AGENT = "Wetcast/0.1 (open-source portfolio weather app)"
 CAP = {"cap": "urn:oasis:names:tc:emergency:cap:1.2"}
 
 KEEP_AFTER_EXPIRY = timedelta(days=7)

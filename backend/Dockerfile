@@ -1,4 +1,4 @@
-# WeatherAI API. Build from the repository root:
+# Wetcast API. Build from the repository root:
 #   docker build -f backend/Dockerfile -t weatherai-api .
 FROM python:3.13-slim
 

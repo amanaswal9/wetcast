@@ -98,14 +98,14 @@ function Body({ result }: { result: AlertsResult }) {
             ) : (
               'official feed'
             )}
-            . Shown as issued; WeatherAI does not change or add to official warnings.
+            . Shown as issued; Wetcast does not change or add to official warnings.
           </p>
         </MessageBox>
       </div>
     )
   }
   if (result.coverage === 'none') {
-    return <StatusLine short="Official warnings: not available here">Official warnings aren't available for this country in WeatherAI yet. Check your national weather service.</StatusLine>
+    return <StatusLine short="Official warnings: not available here">Official warnings aren't available for this country in Wetcast yet. Check your national weather service.</StatusLine>
   }
   if (result.stale) {
     return (
@@ -130,7 +130,7 @@ export function AlertsPanel({ place }: { place: Place }) {
   const key = `alerts:${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}:${place.countryCode ?? ''}`
   const result = useResource(key, ({ signal }) => getAlerts(place.latitude, place.longitude, place.countryCode, signal), REFRESH_MS)
   if (!result.data) {
-    if (result.status === 'error') return <StatusLine short="Official warnings: unavailable right now">Official warnings: unavailable right now (WeatherAI's server isn't reachable).</StatusLine>
+    if (result.status === 'error') return <StatusLine short="Official warnings: unavailable right now">Official warnings: unavailable right now (Wetcast's server isn't reachable).</StatusLine>
     return <StatusLine>Official warnings: checking…</StatusLine>
   }
   return (

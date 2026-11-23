@@ -1,10 +1,10 @@
-"""NASA's satellite rainfall (GPM IMERG Late Run, version 07) at WeatherAI's cities, hour by hour.
+"""NASA's satellite rainfall (GPM IMERG Late Run, version 07) at Wetcast's cities, hour by hour.
 
     python -m weatherai_ml.imerg --region india            # download 2023-01 to 2026-10 (resumable)
 
-Why: WeatherAI learns rain from Open-Meteo's archived weather, which is itself model output. IMERG is
+Why: Wetcast learns rain from Open-Meteo's archived weather, which is itself model output. IMERG is
 an independent estimate from satellites (0.1 degree, every half hour), so it is a second view of how
-much rain fell. The Late Run is used because it covers every year WeatherAI uses (the gauge-adjusted
+much rain fell. The Late Run is used because it covers every year Wetcast uses (the gauge-adjusted
 Final Run stopped at 2025-09-30 when this was written); it is satellite-only, so it is an estimate,
 not a gauge reading.
 
