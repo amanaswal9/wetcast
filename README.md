@@ -11,7 +11,7 @@ Only the title card, captions and pointer are drawn on top. Re-record it with `d
 - **Dashboard**: current conditions, readings, air quality, sun, hourly chart and table, read-aloud summary.
 - **Official warnings** (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
   (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
-- **Ask** (optional: a free local model through Ollama, or Hosted with an Hosted API key): a weather assistant that answers questions using
+- **Ask** (optional: a free local model through Ollama, or Hosted with an Hosted API key): Javed, a weather assistant that answers questions using
   only data it looks up (Open-Meteo, WeatherAI's models, official warnings), with its sources under each answer.
 - **Map**: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
   points, with the cities WeatherAI's own models cover marked.
@@ -379,7 +379,7 @@ arrows pointing where the wind blows. Values between points are not interpolated
 
 ## Weather assistant (optional)
 
-The **Ask** page answers weather questions with one of two models, chosen by `WEATHERAI_ASSISTANT_PROVIDER`
+The **Ask** page's assistant, Javed, answers weather questions with one of two models, chosen by `WEATHERAI_ASSISTANT_PROVIDER`
 (default `auto`: Hosted if an Hosted key is set, otherwise the local model if Ollama is running with it
 installed, otherwise off):
 

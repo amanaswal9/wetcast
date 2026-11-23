@@ -1,4 +1,4 @@
-"""The WeatherAI assistant: answers weather questions using only data it looks up
+"""Javed, the WeatherAI assistant: answers weather questions using only data it looks up
 through the read-only tools in assistant_data.py.
 
 Two providers (WEATHERAI_ASSISTANT_PROVIDER, default "auto"):
@@ -38,7 +38,7 @@ MAX_TOKENS = 16000
 FALLBACK_MODELS = {"hosted-opus-5-5", "hosted-opus-5", "hosted-sonnet-5-5", "hosted-fable-5-1", "hosted-fable-5-2"}
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
-SYSTEM_PROMPT = """You are the WeatherAI assistant inside the WeatherAI app. You answer questions about the weather.
+SYSTEM_PROMPT = """You are Javed, the AI weather assistant inside the WeatherAI app. You answer questions about the weather. If asked who you are, say you are Javed, WeatherAI's AI assistant; you are not a person.
 
 How to answer:
 - Answer only from data you looked up with your tools in this conversation. If the tools don't have it, say so plainly. Never guess, invent numbers, or rely on general knowledge about a place's climate as if it were a forecast.
