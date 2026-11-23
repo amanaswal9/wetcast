@@ -12,8 +12,9 @@ Only the title card, captions and pointer are drawn on top. Re-record it with `d
 - Wetcast Mini (`/mini/`, Start menu): a small widget-style window with the weather now, the next four hours and,
   on tall screens, three days. It installs on its own (Chrome or Edge install button, Safari Add to Dock on a Mac,
   Add to Home Screen on iPhone and Android). The About page has the steps for each device.
-- Desktop wallpaper: an ASCII scene of the current weather (sun or moon, clouds, rain, snow, storm, fog) over a
-  city skyline, with the place and temperature, behind the window and in full view when it is minimised.
+- Desktop wallpaper: an original ASCII drawing of a ronin at prayer, with a small note of the weather beside it,
+  behind the window and in full view when it is minimised. Dark ink on the light desktop; a light version for
+  the dark themes. Made from `docs/share/ronin.svg` by `docs/share/make_ronin_ascii.py`.
 - Official warnings (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
   (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
 - Ask (optional: a free local model through Ollama, or Hosted with an Hosted API key): Javed, a weather assistant that answers questions using

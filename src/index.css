@@ -1353,20 +1353,17 @@ html[data-busy] * {
   }
 }
 
-/* The ASCII wallpaper behind the window (DesktopArt.tsx). It stops above the taskbar,
-   never takes clicks, and shrinks its text on small screens so the scene still fits.
-   The note with the place and temperature is at the bottom of the scene, so it is the
-   part still showing when the window is open but short. */
+/* The ASCII wallpaper behind the window (DesktopArt.tsx): the ronin, with the weather note
+   beside him. It stops above the taskbar, never takes clicks, and is anchored to the bottom
+   like a wallpaper, so a short page leaves the figure's shoulders and the note showing. */
 .r-desktop-art {
   position: fixed;
   inset: 0 0 44px 0;
   z-index: 0;
   display: flex;
-  /* Anchored to the bottom, like a wallpaper: the skyline sits just above the taskbar,
-     and a short page leaves the lower part of the scene showing cleanly. */
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 16px;
+  gap: 2vw;
   overflow: hidden;
   pointer-events: none;
   user-select: none;
@@ -1376,9 +1373,49 @@ html[data-busy] * {
   margin: 0;
   color: var(--desk-ink);
   font-family: var(--font-term);
-  font-size: clamp(8px, 2vw, 24px);
-  line-height: 1.05;
+  line-height: 1;
   white-space: pre;
+}
+
+/* About 104 columns: the text size follows the screen width and height so the whole
+   figure fits on a laptop, a large monitor or a phone held either way. */
+.r-desktop-figure {
+  font-size: min(1.45vw, 1.35vh, 15px);
+}
+
+/* Light desktop: dark characters, so the drawing reads the right way round. The dark themes
+   use the light version instead, where the face and hands are the bright parts. */
+.r-desktop-art .r-figure-ink {
+  color: #012a2a;
+}
+
+.r-figure-light,
+:root:is([data-theme='night'], [data-theme='dark']) .r-figure-ink {
+  display: none;
+}
+
+:root:is([data-theme='night'], [data-theme='dark']) .r-figure-light {
+  display: block;
+}
+
+.r-desktop-note {
+  font-size: clamp(11px, 1.1vw, 16px);
+  line-height: 1.2;
+  padding-bottom: 3vh;
+}
+
+/* Narrow screens: the note goes above the figure instead of beside it. */
+@media (max-width: 640px) {
+  .r-desktop-art {
+    flex-direction: column-reverse;
+    align-items: center;
+  }
+  .r-desktop-figure {
+    font-size: min(1.7vw, 1.1vh);
+  }
+  .r-desktop-note {
+    padding-bottom: 8px;
+  }
 }
 
 /* Wetcast Mini (mini/index.html): one small window filling its own browser window, sized
