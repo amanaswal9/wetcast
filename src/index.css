@@ -1353,16 +1353,15 @@ html[data-busy] * {
   }
 }
 
-/* The desktop behind the window (DesktopArt.tsx): the personal ASCII picture. It sits just
-   above the taskbar, never takes clicks, and shows in full when the window is minimised. */
+/* The desktop behind the window (DesktopArt.tsx): the personal ASCII picture, centred in the
+   space above the taskbar. It never takes clicks and shows in full when the window is minimised. */
 .r-desktop-art {
   position: fixed;
   inset: 0 0 44px 0;
   z-index: 0;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding-bottom: 3vh;
   overflow: hidden;
   pointer-events: none;
   user-select: none;
