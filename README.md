@@ -12,8 +12,8 @@ Only the title card, captions and pointer are drawn on top. Re-record it with `d
 - Wetcast Mini (`/mini/`, Start menu): a small widget-style window with the weather now, the next four hours and,
   on tall screens, three days. It installs on its own (Chrome or Edge install button, Safari Add to Dock on a Mac,
   Add to Home Screen on iPhone and Android). The About page has the steps for each device.
-- Desktop note: the place and its weather in a small plain-text box on the desktop, in full view when the window
-  is minimised.
+- Desktop picture (optional, this computer only): an ASCII picture behind the window, made with
+  `docs/share/make_wallpaper_ascii.py` into the git-ignored `src/local/`; without it the desktop is plain.
 - Official warnings (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
   (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
 - Ask (optional: a free local model through Ollama, or Hosted with an Hosted API key): Javed, a weather assistant that answers questions using

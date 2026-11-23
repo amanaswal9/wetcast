@@ -1353,8 +1353,8 @@ html[data-busy] * {
   }
 }
 
-/* The note on the desktop behind the window (DesktopArt.tsx). It sits just above the
-   taskbar, never takes clicks, and shows in full when the window is minimised. */
+/* The desktop behind the window (DesktopArt.tsx): the personal ASCII picture. It sits just
+   above the taskbar, never takes clicks, and shows in full when the window is minimised. */
 .r-desktop-art {
   position: fixed;
   inset: 0 0 44px 0;
@@ -1370,20 +1370,12 @@ html[data-busy] * {
 
 .r-desktop-art pre {
   margin: 0;
-  color: var(--desk-ink);
-  font-family: var(--font-term);
-  font-size: clamp(13px, 1.4vw, 22px);
-  line-height: 1.2;
   white-space: pre;
 }
 
-/* The personal ASCII picture (about 140 columns). Its text size follows the screen so the whole
-   picture fits; on the light desktop it is drawn in dark ink, the right way round, and in the
-   dark themes in light ink, like a print in negative. */
-.r-desktop-art {
-  gap: 2vw;
-}
-
+/* The picture is about 140 columns. Its text size follows the screen so the whole picture fits;
+   on the light desktop it is drawn in dark ink, the right way round, and in the dark themes in
+   light ink, like a print in negative. */
 .r-desktop-art .r-desktop-picture {
   /* A crisp monospace font: the pixel font blurs at this size. */
   font-family: Consolas, Menlo, 'DejaVu Sans Mono', ui-monospace, monospace;
@@ -1398,10 +1390,6 @@ html[data-busy] * {
 }
 
 @media (max-width: 640px) {
-  .r-desktop-art {
-    flex-direction: column-reverse;
-    align-items: center;
-  }
   .r-desktop-art .r-desktop-picture {
     font-size: min(1.25vw, calc((100dvh - 200px) / var(--rows, 80)));
   }

@@ -211,7 +211,7 @@ export default function App() {
       >
         <span>Skip to content</span>
       </a>
-      <DesktopArt place={place} forecast={forecast.data} fmt={fmt} />
+      <DesktopArt />
       <div style={safeArea} className="relative z-[1]">
       <div className={`min-h-dvh ${frame}`}>
         <div
