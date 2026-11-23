@@ -154,7 +154,7 @@ screenshots after an intended visual change.
 
 `.forgejo/workflows/ci.yml` runs on Codeberg's Forgejo Actions (hosted `codeberg-medium` runners, enabled under
 the repository's Settings, Units, "Enable Actions") on every push and pull request: a frontend job (`npm ci`, lint, Vitest, type-check, build and the bundle-size budget), a browser job (the
-`e2e` tests; the first Linux run saves its own reference screenshots as a download to commit) and a Python job (ML pipeline and API tests on
+`e2e` tests, compared with the Linux reference screenshots in `e2e/screenshots/linux/`) and a Python job (ML pipeline and API tests on
 Python 3.13 with CPU TensorFlow). It needs no secrets and uses only open-source actions from code.forgejo.org.
 Codeberg's hosted runners allow 10 minutes a job; if installing TensorFlow runs over, change the Python job's
 `runs-on` to `codeberg-medium-lazy` or register a self-hosted Forgejo runner.

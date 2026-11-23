@@ -62,7 +62,7 @@ jobs:
           python -m pip install --no-cache-dir pytest playwright
           python -m playwright install --with-deps chromium
       # Offline: every request is answered from e2e/fixtures. Reference screenshots are kept per
-      # operating system; the first Linux run saves them (uploaded below) to commit afterwards.
+      # operating system (e2e/screenshots/linux here); a changed screenshot is uploaded below to look at.
       - name: Journeys, screenshots and accessibility
         run: python -m pytest e2e -q
       # Forgejo needs v3 or its own patched v4 of upload-artifact.
