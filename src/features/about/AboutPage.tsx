@@ -304,6 +304,24 @@ export function AboutPage({ theme }: { theme: Theme }) {
           motion.
         </p>
       </GroupBox>
+
+      <GroupBox title="Made by">
+        <p className="m-0 max-w-[75ch]">Wetcast was designed and built by Aman Singh Aswal.</p>
+        <dl className="m-0 mt-2 grid max-w-[75ch] grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5">
+          <dt className="font-bold">GitHub</dt>
+          <dd className="m-0">
+            <a href="https://github.com/amanaswal9" target="_blank" rel="noopener noreferrer">
+              github.com/amanaswal9
+            </a>
+          </dd>
+          <dt className="font-bold">LinkedIn</dt>
+          <dd className="m-0">
+            <a href="https://www.linkedin.com/in/amannaswal/" target="_blank" rel="noopener noreferrer">
+              linkedin.com/in/amannaswal
+            </a>
+          </dd>
+        </dl>
+      </GroupBox>
     </div>
   )
 }

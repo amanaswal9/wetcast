@@ -487,3 +487,10 @@ How it works (`backend/app/alerts.py`):
 - Fonts: Tahoma (Verdana fallback) for the interface, Pixelify Sans for big numbers, VT323 for terminal text.
 - Accessibility: Radix Tabs, an ARIA combobox for search, dotted focus rectangles, table alternatives,
   and reduced motion through Motion's `MotionConfig`.
+
+## Author
+
+Designed and built by Aman Singh Aswal.
+
+- GitHub: https://github.com/amanaswal9
+- LinkedIn: https://www.linkedin.com/in/amannaswal/

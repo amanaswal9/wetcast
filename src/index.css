@@ -44,6 +44,7 @@
   --lcd-on: #39ff6a;
   --lcd-off: rgb(57 255 106 / 0.13);
   --desk-ink: #d8eeee;
+  --link: #0000a8;
 }
 
 /*
@@ -79,6 +80,7 @@
   --lcd-on: #39ff6a;
   --lcd-off: rgb(57 255 106 / 0.12);
   --desk-ink: #6f9c9e;
+  --link: #8cc4ff;
 }
 
 /* High-contrast black, modelled on the classic accessibility scheme. */
@@ -110,6 +112,7 @@
   --lcd-on: #ffffff;
   --lcd-off: rgb(255 255 255 / 0.16);
   --desk-ink: #ffffff;
+  --link: #00ffff;
 }
 
 html {
@@ -132,6 +135,19 @@ body {
   body {
     font-size: 0.9375rem; /* 15px on phones */
   }
+}
+
+/* Plain links in text: underlined and in a link colour, as people expect. Links that are
+   styled as buttons or menu items have a class and keep their own look. */
+a:not([class]) {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a:not([class]):focus-visible {
+  outline: 1px dotted var(--text);
+  outline-offset: 1px;
 }
 
 ::selection {
