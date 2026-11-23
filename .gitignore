@@ -33,3 +33,8 @@ ml/artifacts/india/calibration/
 
 # Browser tests: screenshots from a failed comparison, kept only to look at
 e2e/screenshots-failed/
+
+# Personal desktop art: a picture of your own choosing and its ASCII version. Kept out of git
+# so it is never committed or published (docs/share/make_wallpaper_ascii.py makes it).
+local/
+src/local/

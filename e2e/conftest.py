@@ -219,7 +219,8 @@ MAX_DIFF = 0.003  # share of pixels allowed to differ (anti-aliasing noise)
 def expect_screenshot(page: Page, name: str) -> None:
     """Compare with the reference image for this operating system (fonts render differently
     on Windows and Linux). With no reference yet, or E2E_UPDATE=1, save one instead."""
-    shot = page.screenshot(animations="disabled", caret="hide")
+    # The personal desktop picture (src/local, not in git) is hidden, so screenshots match on every computer.
+    shot = page.screenshot(animations="disabled", caret="hide", style=".r-desktop-picture { display: none; }")
     reference = SHOTS / f"{name}.png"
     if UPDATE or not reference.exists():
         SHOTS.mkdir(parents=True, exist_ok=True)
