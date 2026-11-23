@@ -357,8 +357,9 @@ Secrets live only in `backend/.env`, which is git-ignored. Open-Meteo and Meteos
 ## Deployment
 
 `docker compose up --build` runs PostgreSQL, the API and the nginx-served frontend on http://localhost:8080.
-Set `POSTGRES_PASSWORD` in a `.env` next to `docker-compose.yml`. The Docker files were written but not run on the
-development machine (Docker isn't installed there), so test them before relying on them.
+Set `POSTGRES_PASSWORD` in a `.env` next to `docker-compose.yml`, and `WEB_PORT` if port 8080 is taken on your
+computer. Tested 2026-11-23 with Docker Desktop on Windows: all three containers start, the API loads the six models
+and serves predictions, and the site works.
 
 ## Weather map
 
