@@ -1,4 +1,4 @@
-import { Contrast, LocateFixed, RefreshCw, Star } from 'lucide-react'
+import { Contrast, LocateFixed, Moon, RefreshCw, Star } from 'lucide-react'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Button, ErrorStack, TitleButton, Window } from '../components/retro'
 import { buildSummary } from '../features/dashboard/buildSummary'
@@ -36,7 +36,7 @@ export default function App() {
   const [place, setPlace] = usePlace()
   const saved = useSavedPlaces()
   const [refreshToken, setRefreshToken] = useState(0)
-  const { theme, toggle: toggleTheme } = useTheme()
+  const { theme, toggleNight, toggleContrast } = useTheme()
   const speech = useSpeech()
   const [minimized, setMinimized] = useState(false)
   // After the minimise animation the window is hidden (still mounted, so it keeps its state).
@@ -282,7 +282,10 @@ export default function App() {
                 <Button onClick={refresh} icon={<RefreshCw size={14} />}>
                   <span className="max-sm:sr-only">Refresh</span>
                 </Button>
-                <Button aria-pressed={theme === 'dark'} onClick={toggleTheme} icon={<Contrast size={14} />} className="max-sm:hidden">
+                <Button aria-pressed={theme === 'night'} onClick={toggleNight} icon={<Moon size={14} />} className="max-sm:hidden">
+                  Dark
+                </Button>
+                <Button aria-pressed={theme === 'dark'} onClick={toggleContrast} icon={<Contrast size={14} />} className="max-sm:hidden">
                   High contrast
                 </Button>
               </div>
@@ -348,8 +351,10 @@ export default function App() {
         page={unknownPage === null ? page : null}
         minimized={minimized}
         onToggleWindow={() => (minimized ? restore() : minimize())}
+        darkMode={theme === 'night'}
+        onToggleDark={toggleNight}
         highContrast={theme === 'dark'}
-        onToggleContrast={toggleTheme}
+        onToggleContrast={toggleContrast}
         warningNotifications={notificationsOn}
         onToggleNotifications={() => void toggleNotifications()}
       />

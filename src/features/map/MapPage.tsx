@@ -4,7 +4,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, GroupBox, ProgressBar } from '../../components/retro'
 import { useResource } from '../../hooks/useResource'
-import type { Theme } from '../../hooks/useTheme'
+import { isDark, type Theme } from '../../hooks/useTheme'
 import { isAbort, toApiError } from '../../lib/api/http'
 import { clearGridCache, getGridForecasts, gridFor, nearestPoint, uncachedPoints, type Bounds, type Grid, type GridPoint, type PointForecast, type ViewSize } from '../../lib/api/mapGrid'
 import { getCoverage } from '../../lib/api/weatherai'
@@ -33,10 +33,11 @@ const ATTRIBUTION =
 // Land drawn at once under the tiles (the sea is the map's own background, see .r-map in index.css).
 const OUTLINE_STYLE: Record<Theme, L.PathOptions> = {
   light: { color: '#a3a3a3', weight: 1, fillColor: '#efefef', fillOpacity: 1 },
+  night: { color: '#4a5056', weight: 1, fillColor: '#262a2e', fillOpacity: 1 },
   dark: { color: '#5e5e5e', weight: 1, fillColor: '#2c2c2c', fillOpacity: 1 },
 }
 // The sea: the map's own background, with land drawn over it at once and the tiles over both.
-const SEA: Record<Theme, string> = { light: '#d4d8db', dark: '#141a1f' }
+const SEA: Record<Theme, string> = { light: '#d4d8db', night: '#161b20', dark: '#141a1f' }
 const FIELD_OPACITY = 0.62
 
 type Status = { kind: 'loading'; points: number; done: number } | { kind: 'waiting'; seconds: number } | { kind: 'ready' } | { kind: 'error'; message: string }
@@ -316,7 +317,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     if (!group || !grid) return
     group.clearLayers()
     if (layer !== 'wind') return
-    const ink = theme === 'dark' ? '#ffffff' : '#000000'
+    const ink = isDark(theme) ? '#ffffff' : '#000000'
     for (const p of grid.points) {
       const f = data.get(p.key)
       const speed = f?.windSpeed[hourIndex] ?? null
@@ -347,8 +348,8 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     const group = citiesRef.current
     if (!group) return
     group.clearLayers()
-    const ink = theme === 'dark' ? '#ffffff' : '#000000'
-    const paper = theme === 'dark' ? '#000000' : '#ffffff'
+    const ink = isDark(theme) ? '#ffffff' : '#000000'
+    const paper = isDark(theme) ? '#000000' : '#ffffff'
     for (const c of coverage.data ?? []) {
       const held = c.role === 'holdout'
       // Training cities: hollow dots. Held-out cities (never trained on): solid dots.

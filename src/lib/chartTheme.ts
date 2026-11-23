@@ -30,6 +30,16 @@ export const CHART_COLORS: Record<Theme, ChartColors> = {
     barPast: '#a0a0a0',
     barForecast: '#008080',
   },
+  night: {
+    text: '#e6e4e0',
+    axis: '#8a9096',
+    grid: '#34393e',
+    past: '#e6e4e0',
+    forecast: '#8fd18f',
+    model: '#ffd866',
+    barPast: '#6b7178',
+    barForecast: '#4fb3b3',
+  },
   dark: {
     text: '#ffffff',
     axis: '#c0c0c0',
@@ -46,6 +56,7 @@ export const CHART_COLORS: Record<Theme, ChartColors> = {
 // distinguishable without relying on colour alone.
 export const CITY_COLORS: Record<Theme, string[]> = {
   light: ['#000080', '#800000', '#006400', '#800080'],
+  night: ['#7ab8ff', '#ffb86b', '#8fd18f', '#e39ad8'],
   dark: ['#00ffff', '#ffff00', '#00ff00', '#ff80ff'],
 }
 
@@ -55,6 +66,7 @@ export const CITY_DASHES = ['', '7 4', '2 3', '10 3 2 3']
 // Wetcast model colours: one per architecture, reused on every page.
 export const MODEL_COLORS: Record<Theme, Record<string, string>> = {
   light: { lstm: '#000080', gru: '#800080', cnn_lstm: '#800000', lightgbm: '#7a5200', transformer: '#007070', ensemble: '#006400', baseline: '#808080' },
+  night: { lstm: '#7ab8ff', gru: '#e39ad8', cnn_lstm: '#ff8a80', lightgbm: '#ffc56b', transformer: '#5fd3c8', ensemble: '#8fd18f', baseline: '#9aa0a6' },
   dark: { lstm: '#ffff00', gru: '#ff80ff', cnn_lstm: '#00ffff', lightgbm: '#ffb040', transformer: '#ff6b6b', ensemble: '#80ff80', baseline: '#c0c0c0' },
 }
 

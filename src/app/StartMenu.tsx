@@ -1,4 +1,4 @@
-import { Bell, Contrast, Ruler } from 'lucide-react'
+import { Bell, Contrast, Moon, Ruler } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { loaders } from './pageLoaders'
 import { PAGE_ICONS } from './pageIcons'
@@ -7,6 +7,8 @@ import { UnitsDialog } from './UnitsDialog'
 
 interface StartMenuProps {
   page: PageId | null
+  darkMode: boolean
+  onToggleDark: () => void
   highContrast: boolean
   onToggleContrast: () => void
   warningNotifications: boolean
@@ -43,7 +45,7 @@ function KeyLabel({ text, letter }: { text: string; letter: string }) {
 // The taskbar's Start button and its menu: every page plus high contrast. On phones it
 // replaces the menu bar, so the header stays short. A disclosure (button + list of links),
 // not an ARIA menu, because its items are ordinary page links.
-export function StartMenu({ page, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: StartMenuProps) {
+export function StartMenu({ page, darkMode, onToggleDark, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: StartMenuProps) {
   const [open, setOpen] = useState(false)
   const [unitsOpen, setUnitsOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -141,6 +143,23 @@ export function StartMenu({ page, highContrast, onToggleContrast, warningNotific
             </ul>
           </nav>
           <div className="r-divider mx-1 my-[3px]" />
+          <button
+            type="button"
+            className="r-start-item w-full"
+            aria-pressed={darkMode}
+            data-key="k"
+            aria-keyshortcuts="K"
+            onClick={() => {
+              onToggleDark()
+              setOpen(false)
+            }}
+          >
+            <Moon size={16} aria-hidden="true" />
+            <span>
+              <KeyLabel text="Dark mode" letter="k" />
+              {darkMode ? ': on' : ''}
+            </span>
+          </button>
           <button
             type="button"
             className="r-start-item w-full"

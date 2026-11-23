@@ -280,7 +280,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
         </dl>
         <p className="m-0 mt-3 max-w-[75ch]">
           The look is a tribute to late-1990s desktop software, rebuilt with modern accessibility: every control works from the
-          keyboard, charts have table views, there&apos;s a high-contrast theme, and animation stops when your system asks for reduced
+          keyboard, charts have table views, there&apos;s a dark mode and a high-contrast theme, and animation stops when your system asks for reduced
           motion.
         </p>
       </GroupBox>

@@ -116,7 +116,7 @@ def test_every_page_loads_without_errors(desktop):
     assert errors == []
 
 
-@pytest.mark.parametrize("theme", ["light", "dark"])
+@pytest.mark.parametrize("theme", ["light", "night", "dark"])
 @pytest.mark.parametrize("page_id", PAGES)
 def test_accessibility(browser, server, page_id, theme):
     page = open_app(browser, server, DESKTOP, theme=theme)

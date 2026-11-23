@@ -4,8 +4,8 @@
 
 /*
   Wetcast design tokens: "Classic" (1990s Windows NT) theme.
-  Every colour in the app comes from these variables, so the light and
-  high-contrast dark themes stay in one place.
+  Every colour in the app comes from these variables, so the light, dark and
+  high-contrast themes stay in one place.
 */
 @theme {
   /* Tahoma ships with Windows; Verdana is the closest free fallback elsewhere. */
@@ -43,6 +43,40 @@
   --lcd-bg: #000000;
   --lcd-on: #39ff6a;
   --lcd-off: rgb(57 255 106 / 0.13);
+}
+
+/*
+  Dark mode: the classic look after hours. Charcoal panels on a dimmed teal desktop, soft
+  off-white text and a calm blue title bar. Bevels keep their light top-left and dark
+  bottom-right edges, just in darker greys, so every control still reads as raised or sunken.
+*/
+:root[data-theme='night'] {
+  color-scheme: dark;
+  --desk: #0f2a2c;
+  --face: #2b2f33;
+  --hilite: #6a7178;
+  --light: #42484e;
+  --shadow: #1a1c1f;
+  --dark: #0a0b0c;
+  --field: #1b1e21;
+  --field-text: #e6e4e0;
+  --text: #e6e4e0;
+  --text-muted: #a9adb2;
+  --title: #1f4e8c;
+  --title-text: #ffffff;
+  --title-inactive: #3d4247;
+  --title-inactive-text: #b8bcc0;
+  --select: #3d6fb5;
+  --select-text: #ffffff;
+  --danger: #ff8a80;
+  --tip-bg: #33373c;
+  --tip-text: #f0eeea;
+  --tip-border: #0a0b0c;
+  --term-bg: #0a0b0c;
+  --term-text: #b8c4b8;
+  --lcd-bg: #0a0b0c;
+  --lcd-on: #39ff6a;
+  --lcd-off: rgb(57 255 106 / 0.12);
 }
 
 /* High-contrast black, modelled on the classic accessibility scheme. */
@@ -687,6 +721,11 @@ body {
 
   .r-map[data-theme='dark'] .leaflet-tile-pane {
     filter: grayscale(1) invert(1) brightness(0.75) contrast(1.1);
+  }
+
+  /* Dark mode: the same inverted basemap, a little softer so the weather colours stand out. */
+  .r-map[data-theme='night'] .leaflet-tile-pane {
+    filter: grayscale(1) invert(1) brightness(0.62) contrast(0.95);
   }
 
   /* The weather image is small and scaled up: let the browser smooth it. */

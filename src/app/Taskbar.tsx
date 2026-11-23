@@ -11,6 +11,8 @@ interface TaskbarProps {
   page: PageId | null
   minimized: boolean
   onToggleWindow: () => void
+  darkMode: boolean
+  onToggleDark: () => void
   highContrast: boolean
   onToggleContrast: () => void
   warningNotifications: boolean
@@ -18,7 +20,7 @@ interface TaskbarProps {
 }
 
 // The bar along the bottom of the screen: Start menu, quick launch, the window button and the clock.
-export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: TaskbarProps) {
+export function Taskbar({ title, page, minimized, onToggleWindow, darkMode, onToggleDark, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: TaskbarProps) {
   const now = useClock()
   const fmt = useFormat()
   return (
@@ -32,6 +34,8 @@ export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, 
     >
       <StartMenu
         page={page}
+        darkMode={darkMode}
+        onToggleDark={onToggleDark}
         highContrast={highContrast}
         onToggleContrast={onToggleContrast}
         warningNotifications={warningNotifications}

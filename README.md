@@ -477,7 +477,7 @@ How it works (`backend/app/alerts.py`):
 
 ## Design system
 
-- Colours are CSS variables in `src/index.css` (light and high-contrast dark). Chart colours are mirrored in
+- Colours are CSS variables in `src/index.css` (light, dark and high contrast; the first visit follows the device setting). Chart colours are mirrored in
   `src/lib/chartTheme.ts` because SVG attributes can't read CSS variables.
 - Fonts: Tahoma (Verdana fallback) for the interface, Pixelify Sans for big numbers, VT323 for terminal text.
 - Accessibility: Radix Tabs, an ARIA combobox for search, dotted focus rectangles, table alternatives,

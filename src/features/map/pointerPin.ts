@@ -1,8 +1,9 @@
 import L from 'leaflet'
+import { isDark, type Theme } from '../../hooks/useTheme'
 
 // The map's location pin: a classic pixel arrow pointer whose tip sits exactly on the
 // forecast point being shown. Drawn here pixel by pixel (B = outline, W = fill), so it
-// stays sharp at any zoom and in both themes.
+// stays sharp at any zoom and in every theme.
 const ARROW = [
   'B',
   'BB',
@@ -40,9 +41,9 @@ function rects(char: string): string {
 const OUTLINE = rects('B')
 const FILL = rects('W')
 
-// The pointer pin; the high-contrast theme swaps outline and fill.
-export function pointerIcon(theme: 'light' | 'dark'): L.DivIcon {
-  const [outline, fill] = theme === 'dark' ? ['#ffffff', '#000000'] : ['#000000', '#ffffff']
+// The pointer pin; the dark themes swap outline and fill.
+export function pointerIcon(theme: Theme): L.DivIcon {
+  const [outline, fill] = isDark(theme) ? ['#ffffff', '#000000'] : ['#000000', '#ffffff']
   const w = WIDTH * SCALE
   const h = HEIGHT * SCALE
   // A one-pixel offset shadow, as cursors had, so the arrow stands out over coloured squares.
