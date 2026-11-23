@@ -1,0 +1,119 @@
+{
+ "rule_written": "2026-11-23 12:28 UTC",
+ "A_validation_2025": {
+  "base": {
+   "trees": 132,
+   "val_oof": {
+    "r2": 0.139,
+    "rmse": 0.7803,
+    "wet_rmse": 1.7262,
+    "mae": 0.2301
+   }
+  },
+  "sat_lag14": {
+   "trees": 161,
+   "val_oof": {
+    "r2": 0.1364,
+    "rmse": 0.7815,
+    "wet_rmse": 1.7286,
+    "mae": 0.2299
+   }
+  },
+  "sat_nodelay_ceiling": {
+   "trees": 132,
+   "val_oof": {
+    "r2": 0.1379,
+    "rmse": 0.7808,
+    "wet_rmse": 1.7285,
+    "mae": 0.2289
+   }
+  }
+ },
+ "B_test_2026": {
+  "ours_corrected": {
+   "vs_openmeteo": {
+    "r2": 0.1835,
+    "rmse": 0.7252,
+    "wet_rmse": 1.5042,
+    "mae": 0.2108
+   },
+   "vs_nasa": {
+    "r2": 0.0786,
+    "rmse": 0.7584,
+    "wet_rmse": 1.9007,
+    "mae": 0.2317
+   },
+   "corr_nasa": 0.2944
+  },
+  "ours_with_sat_lag14": {
+   "vs_openmeteo": {
+    "r2": 0.1813,
+    "rmse": 0.7262,
+    "wet_rmse": 1.5066,
+    "mae": 0.2103
+   },
+   "vs_nasa": {
+    "r2": 0.0763,
+    "rmse": 0.7594,
+    "wet_rmse": 1.9037,
+    "mae": 0.2312
+   },
+   "corr_nasa": 0.2913
+  },
+  "openmeteo_dayold_forecast": {
+   "vs_openmeteo": {
+    "r2": -0.3255,
+    "rmse": 0.924,
+    "wet_rmse": 1.7951,
+    "mae": 0.2329
+   },
+   "vs_nasa": {
+    "r2": -0.5734,
+    "rmse": 0.9911,
+    "wet_rmse": 2.223,
+    "mae": 0.2614
+   },
+   "corr_nasa": 0.215
+  },
+  "members_plain_mean": {
+   "vs_openmeteo": {
+    "r2": 0.1302,
+    "rmse": 0.7485,
+    "wet_rmse": 1.5799,
+    "mae": 0.1795
+   },
+   "vs_nasa": {
+    "r2": 0.0789,
+    "rmse": 0.7583,
+    "wet_rmse": 1.9659,
+    "mae": 0.1864
+   },
+   "corr_nasa": 0.3086
+  },
+  "persistence_last_hour": {
+   "vs_openmeteo": {
+    "r2": -0.5112,
+    "rmse": 0.9866,
+    "wet_rmse": 1.8777,
+    "mae": 0.26
+   },
+   "vs_nasa": {
+    "r2": -0.6762,
+    "rmse": 1.0229,
+    "wet_rmse": 2.2519,
+    "mae": 0.2707
+   },
+   "corr_nasa": 0.175
+  },
+  "openmeteo_archive_itself": {
+   "vs_nasa": {
+    "r2": -0.3991,
+    "rmse": 0.9346,
+    "wet_rmse": 2.1818,
+    "mae": 0.2375
+   },
+   "corr_nasa": 0.3116
+  }
+ },
+ "rows_test": 6936000
+}
