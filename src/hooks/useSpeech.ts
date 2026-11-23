@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { pickVoice } from '../lib/speechHelp'
 
 /**
  * Text-to-speech through the browser's Web Speech API. Supported in current
@@ -29,7 +30,10 @@ export function useSpeech() {
       setSpeaking(true)
       sentences.forEach((sentence, i) => {
         const utterance = new SpeechSynthesisUtterance(sentence)
-        utterance.lang = 'en'
+        // Choose the voice ourselves: given only "en", some Mac browsers pick a novelty voice.
+        const voice = pickVoice(window.speechSynthesis.getVoices(), navigator.language || 'en-IN')
+        if (voice) utterance.voice = voice
+        utterance.lang = voice?.lang ?? 'en'
         const finish = () => {
           if (run.current === id && i === sentences.length - 1) setSpeaking(false)
         }

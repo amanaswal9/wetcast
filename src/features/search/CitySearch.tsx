@@ -5,6 +5,7 @@ import { Button } from '../../components/retro'
 import { useSpeechRecognition, type VoiceError } from '../../hooks/useSpeechRecognition'
 import { isAbort } from '../../lib/api/http'
 import { searchPlaces } from '../../lib/api/openMeteo'
+import { voiceErrorMessage } from '../../lib/speechHelp'
 import { parseVoiceCommand } from '../../lib/voice'
 import type { Place } from '../../types/weather'
 
@@ -21,12 +22,6 @@ interface CitySearchProps {
   onVoicePage?: (page: PageId) => void
 }
 
-const VOICE_ERRORS: Record<VoiceError, string> = {
-  blocked: 'Microphone access is blocked. Allow it in your browser settings, or type instead.',
-  'no-speech': "Didn't catch that. Press the microphone and try again.",
-  network: 'Voice input needs an internet connection. Type instead.',
-  other: "Voice input didn't work this time. Try again or type instead.",
-}
 
 function sameName(a: string, b: string): boolean {
   const n = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '')
@@ -124,7 +119,7 @@ export function CitySearch({
           setVoiceMessage(`Heard "${text}" but no place name. Try "weather in Delhi".`)
         }
       },
-      (error) => setVoiceMessage(VOICE_ERRORS[error]),
+      (error: VoiceError) => setVoiceMessage(voiceErrorMessage(error, navigator.userAgent)),
     )
   }
 
