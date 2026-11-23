@@ -1,5 +1,6 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -48,8 +49,15 @@ export default defineConfig({
         // The link-preview image is for other sites' crawlers, not the offline app.
         globIgnores: ['assets/*-cyrillic-*', 'assets/*-vietnamese-*', 'assets/*-greek-*', 'og-image.png'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        // Wetcast Mini has its own page, so its address must not fall back to the main app.
+        navigateFallbackDenylist: [/^\/api\//, /^\/mini\//],
         runtimeCaching: [
+          {
+            // Wetcast Mini's page: fresh when online, the last copy when offline.
+            urlPattern: ({ url }) => url.pathname === '/mini/' || url.pathname === '/mini/index.html',
+            handler: 'NetworkFirst',
+            options: { cacheName: 'mini-page', expiration: { maxEntries: 2 } },
+          },
           {
             // The map's land outline (about 70 KB compressed) is kept once the map has been opened,
             // instead of being pre-cached for everyone.
@@ -81,5 +89,12 @@ export default defineConfig({
     // Minimum browsers, matching Tailwind CSS v4's requirements. index.html shows a
     // plain "please update" message on anything older instead of a blank page.
     target: ['chrome111', 'edge111', 'firefox128', 'safari16.4', 'ios16.4'],
+    // Two pages: the app itself and Wetcast Mini, the small widget-style window.
+    rollupOptions: {
+      input: {
+        main: resolve(import.meta.dirname, 'index.html'),
+        mini: resolve(import.meta.dirname, 'mini/index.html'),
+      },
+    },
   },
 })

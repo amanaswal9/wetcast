@@ -43,6 +43,7 @@
   --lcd-bg: #000000;
   --lcd-on: #39ff6a;
   --lcd-off: rgb(57 255 106 / 0.13);
+  --desk-ink: #d8eeee;
 }
 
 /*
@@ -77,6 +78,7 @@
   --lcd-bg: #0a0b0c;
   --lcd-on: #39ff6a;
   --lcd-off: rgb(57 255 106 / 0.12);
+  --desk-ink: #6f9c9e;
 }
 
 /* High-contrast black, modelled on the classic accessibility scheme. */
@@ -107,6 +109,7 @@
   --lcd-bg: #000000;
   --lcd-on: #ffffff;
   --lcd-off: rgb(255 255 255 / 0.16);
+  --desk-ink: #ffffff;
 }
 
 html {
@@ -1331,5 +1334,82 @@ html[data-busy] * {
   .r-error-stack-ghost,
   .r-error-stack-front {
     animation: none;
+  }
+}
+
+/* The ASCII wallpaper behind the window (DesktopArt.tsx). It stops above the taskbar,
+   never takes clicks, and shrinks its text on small screens so the scene still fits.
+   The note with the place and temperature is at the bottom of the scene, so it is the
+   part still showing when the window is open but short. */
+.r-desktop-art {
+  position: fixed;
+  inset: 0 0 44px 0;
+  z-index: 0;
+  display: flex;
+  /* Anchored to the bottom, like a wallpaper: the skyline sits just above the taskbar,
+     and a short page leaves the lower part of the scene showing cleanly. */
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 16px;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.r-desktop-art pre {
+  margin: 0;
+  color: var(--desk-ink);
+  font-family: var(--font-term);
+  font-size: clamp(8px, 2vw, 24px);
+  line-height: 1.05;
+  white-space: pre;
+}
+
+/* Wetcast Mini (mini/index.html): one small window filling its own browser window, sized
+   for a narrow desktop window or a phone screen. */
+.r-mini {
+  min-width: 0;
+}
+
+.r-mini .r-title {
+  gap: 6px;
+}
+
+.r-mini-open {
+  min-height: 0;
+  padding: 0 8px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.r-mini-temp {
+  font-size: clamp(40px, 13vw, 72px);
+}
+
+.r-mini-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 2px;
+  border-left: var(--p1) solid var(--light);
+}
+
+.r-mini-hour:first-child {
+  border-left: 0;
+}
+
+@media (min-width: 480px) {
+  .r-mini {
+    font-size: 1rem;
+  }
+}
+
+.r-mini-days {
+  display: none;
+}
+
+@media (min-height: 420px) {
+  .r-mini-days {
+    display: flex;
   }
 }

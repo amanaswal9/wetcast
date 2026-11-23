@@ -1,4 +1,4 @@
-import { Bell, Contrast, Moon, Ruler } from 'lucide-react'
+import { Bell, Contrast, Moon, PanelTop, Ruler } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { loaders } from './pageLoaders'
 import { PAGE_ICONS } from './pageIcons'
@@ -16,6 +16,12 @@ interface StartMenuProps {
 }
 
 const preload = (id: PageId) => void loaders[id]().catch(() => undefined)
+
+// Wetcast Mini in a small window of its own. Phones ignore the size and open a new tab,
+// which is fine: there it is meant to be added to the home screen.
+function openMini() {
+  window.open('/mini/', 'wetcast-mini', 'popup,width=380,height=300')
+}
 
 // Underlined shortcut letter for each item; press it while the menu is open.
 const PAGE_KEYS: Record<PageId, string> = {
@@ -175,6 +181,21 @@ export function StartMenu({ page, darkMode, onToggleDark, highContrast, onToggle
             <span>
               <KeyLabel text="High contrast" letter="h" />
               {highContrast ? ': on' : ''}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="r-start-item w-full"
+            data-key="i"
+            aria-keyshortcuts="I"
+            onClick={() => {
+              setOpen(false)
+              openMini()
+            }}
+          >
+            <PanelTop size={16} aria-hidden="true" />
+            <span>
+              <KeyLabel text="Wetcast Mini" letter="i" />
             </span>
           </button>
           <button

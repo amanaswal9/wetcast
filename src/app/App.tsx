@@ -5,6 +5,7 @@ import { buildSummary } from '../features/dashboard/buildSummary'
 import { CitySearch } from '../features/search/CitySearch'
 import { usePlace } from '../hooks/usePlace'
 import { useResource } from '../hooks/useResource'
+import { DesktopArt } from './DesktopArt'
 import { MAX_SAVED, useSavedPlaces } from '../hooks/useSavedPlaces'
 import { useSpeech } from '../hooks/useSpeech'
 import { useOnline } from '../hooks/useOnline'
@@ -210,7 +211,8 @@ export default function App() {
       >
         <span>Skip to content</span>
       </a>
-      <div style={safeArea}>
+      <DesktopArt place={place} forecast={forecast.data} fmt={fmt} />
+      <div style={safeArea} className="relative z-[1]">
       <div className={`min-h-dvh ${frame}`}>
         <div
           // No animation on first load: the page's static frame is already showing.

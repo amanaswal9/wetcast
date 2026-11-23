@@ -238,6 +238,26 @@ export function AboutPage({ theme }: { theme: Theme }) {
         </p>
       </GroupBox>
 
+      <GroupBox title="Keep the weather on screen">
+        <p className="m-0 mb-2 max-w-[75ch]">
+          Wetcast Mini is a small window with the weather now and for the next few hours, for the place you last opened here.
+          Open it from the Start menu, or go to <a href="/mini/">/mini/</a>. Then keep it where you can see it:
+        </p>
+        <ul className="m-0 flex max-w-[75ch] flex-col gap-1.5 pl-5">
+          <li>
+            Windows PC or laptop: in Chrome or Edge, use the install button at the right of the address bar. It becomes its own
+            small window and a Start menu app, which you can pin to the taskbar.
+          </li>
+          <li>Mac: in Safari, File, then Add to Dock. In Chrome, use the install button in the address bar.</li>
+          <li>iPhone and iPad: in Safari, the Share button, then Add to Home Screen.</li>
+          <li>Android phone: in Chrome, the menu, then Add to Home screen (or Install app).</li>
+        </ul>
+        <p className="m-0 mt-2 max-w-[75ch] text-[var(--text-muted)]">
+          These open Wetcast Mini with one tap. True home-screen widgets on iPhone, Mac and Android can only come from apps
+          built with Apple&apos;s and Google&apos;s own tools, which a website can&apos;t provide.
+        </p>
+      </GroupBox>
+
       <GroupBox title="Limits worth knowing">
         <ul className="m-0 flex max-w-[75ch] flex-col gap-1.5 pl-5">
           <li>
