@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def csp() -> dict[str, set[str]]:
+    """The policy in deploy/security-headers.conf as {directive: set of sources}."""
     text = (ROOT / "deploy" / "security-headers.conf").read_text(encoding="utf-8")
     policy = re.search(r'Content-Security-Policy "([^"]+)"', text).group(1)
     return {part.split()[0]: set(part.split()[1:]) for part in policy.split(";") if part.strip()}

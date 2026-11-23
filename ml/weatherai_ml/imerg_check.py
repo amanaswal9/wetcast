@@ -82,6 +82,7 @@ def score(p: np.ndarray, y: np.ndarray) -> dict:
 
 
 def main() -> None:
+    """Run checks A and B from the module notes and write ensemble/imerg_check.json."""
     root = artifacts_dir(REGION)
     out = root / "ensemble"
     cache = root / "calibration"

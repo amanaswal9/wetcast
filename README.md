@@ -2,9 +2,9 @@
 
 Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop interface.
 
-![Wetcast demo: the Dashboard for Delhi with its LCD readout, searching Jaipur, opening the Forecast from the Start menu, Wetcast's model forecasts next to Open-Meteo, the weather map's temperature and wind tools, the test-period results, and switching to Fahrenheit in the Units dialog](docs/demo/weatherai-demo.gif)
+![Wetcast demo: the Dashboard for Delhi with its LCD readout, searching Jaipur, opening the Forecast from the Start menu, Wetcast's model forecasts next to Open-Meteo, the weather map's temperature and wind tools, the test-period results, and switching to Fahrenheit in the Units dialog](docs/demo/wetcast-demo.gif)
 
-A 57-second tour recorded from the running app with live data ([MP4, 1280×720](docs/demo/weatherai-demo.mp4)).
+A 57-second tour recorded from the running app with live data ([MP4, 1280×720](docs/demo/wetcast-demo.mp4)).
 Only the title card, captions and pointer are drawn on top. Re-record it with `docs/demo/record_demo.py`
 (needs the dev servers, Playwright with Chromium, and ffmpeg).
 

@@ -24,10 +24,13 @@ class FakeOllama:
     """Plays back scripted /api/chat replies and records each request body."""
 
     def __init__(self, replies=(), status=200):
+        """Replies to play back in order, or an HTTP status to answer every request with."""
         self.replies, self.status, self.requests = list(replies), status, []
 
     def client(self) -> httpx.Client:
+        """An httpx client whose requests go to this fake instead of the network."""
         def handle(request: httpx.Request) -> httpx.Response:
+            """Record the request body, then answer with the status or the next reply."""
             self.requests.append(json.loads(request.content))
             if self.status != 200:
                 return httpx.Response(self.status, text="boom")
