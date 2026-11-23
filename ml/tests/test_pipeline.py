@@ -455,3 +455,31 @@ def test_saved_chance_model_uses_the_outlook_and_does_without_it():
     for c in (blind, dry, wet):
         assert c.shape == (24,) and ((c >= 0) & (c <= 1)).all()
     assert wet.mean() > dry.mean() + 0.2  # Open-Meteo forecasting heavy rain raises the chance a lot
+
+
+def test_imerg_cells_and_hours():
+    """IMERG cells line up with the cities, and half-hours become hourly totals stamped at the hour's end."""
+    from weatherai_ml.config import region_cities
+    from weatherai_ml.imerg import LAT_CELLS, LON_CELLS, cell_of, city_values, to_hours
+
+    for city in region_cities("india"):
+        i, j = cell_of(city.latitude, city.longitude)
+        # The cell's centre is within half a cell (0.05 degrees) of the city.
+        assert abs(-179.95 + 0.1 * (LON_CELLS[0] + i) - city.longitude) <= 0.0501
+        assert abs(-89.95 + 0.1 * (LAT_CELLS[0] + j) - city.latitude) <= 0.0501
+    with pytest.raises(ValueError):
+        cell_of(51.5, -0.1)  # London is outside the India box
+
+    grid = np.zeros((300, 314))
+    grid[10, 20] = 4.0
+    grid[11, 20] = np.nan
+    a, b = city_values(grid, {"x": (10, 20)})["x"]
+    assert a == 4.0 and b == pytest.approx(4.0 / 8)  # the 3x3 mean leaves out the missing cell
+
+    t = pd.Timestamp("2025-07-15T06:00", tz="UTC")
+    rows = [(t, "x", 2.0, 1.0), (t + pd.Timedelta(minutes=30), "x", 4.0, 3.0), (t + pd.Timedelta(hours=1), "x", 6.0, 6.0)]
+    hours = to_hours(rows).set_index("time")
+    first = hours.loc[pd.Timestamp("2025-07-15T07:00", tz="UTC")]
+    assert first["cell_mm"] == pytest.approx(3.0) and first["box_mm"] == pytest.approx(2.0) and first["half_hours"] == 2
+    second = hours.loc[pd.Timestamp("2025-07-15T08:00", tz="UTC")]
+    assert second["cell_mm"] == pytest.approx(6.0) and second["half_hours"] == 1  # one half-hour counted for the whole hour

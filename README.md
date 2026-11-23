@@ -296,6 +296,11 @@ whole training job (about 4 hours on an ordinary CPU).
   because that measure rewards forecasting almost no rain. Open-Meteo's forecast as an input added too little here
   to keep (`--outlook` turns it on). LightGBM's own rain model learns with a Tweedie loss
   (`python -m weatherai_ml.gbm --region india --only precipitation`).
+- **NASA satellite rain check (2026-11-23):** `python -m weatherai_ml.imerg --region india` downloads GPM IMERG
+  Late Run rain at the 48 cities for 2023 to October 2026 (free; needs a NASA Earthdata token), and
+  `python -m weatherai_ml.imerg_check` tests it. As an input to the rain correction it did not help, even
+  without its 14-hour delay, so the app does not use it. As an independent judge on the 2026 test period, the
+  Ensemble's rain matches the satellite better (correlation 0.29) than Open-Meteo's own day-old forecast (0.22).
 - A **station check** compares test predictions with Meteostat weather-station measurements, and scores
   Open-Meteo's own data against the same stations to show the data source's error floor.
 - **Where the models predict:** anywhere in India within 310 km of a training city (the farthest a held-out
