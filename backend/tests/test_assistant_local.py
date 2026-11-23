@@ -3,13 +3,11 @@ run offline and never need a model installed."""
 
 from __future__ import annotations
 
-import json
-
-import httpx
 import pytest
 
 from app import assistant, assistant_data, assistant_local
 from app.registry import get_registry
+from fake_ollama import FakeOllama, call, chat
 
 PLACE = {"name": "Jaipur", "latitude": 26.9196, "longitude": 75.7878, "country_code": "IN"}
 CLIENT = {"X-Client-Id": "test-client-0002"}
@@ -28,35 +26,6 @@ FAKE_WEATHER = {
         {"time": "2026-11-21T00:00", "temperature_c": 22.0, "humidity_pct": 50, "chance_of_rain_pct": 0, "sky": "clear sky", "wind_kmh": 3},
     ],
 }
-
-
-def chat(content="", tool_calls=None):
-    """A fake /api/chat reply."""
-    message = {"role": "assistant", "content": content}
-    if tool_calls:
-        message["tool_calls"] = tool_calls
-    return {"message": message, "prompt_eval_count": 500, "eval_count": 40}
-
-
-def call(name, args):
-    """A tool call as Ollama sends it."""
-    return {"function": {"name": name, "arguments": args}}
-
-
-class FakeOllama:
-    """Plays back scripted /api/chat replies and records each request body."""
-
-    def __init__(self, replies=(), status=200):
-        self.replies, self.status, self.requests = list(replies), status, []
-
-    def client(self) -> httpx.Client:
-        def handle(request: httpx.Request) -> httpx.Response:
-            self.requests.append(json.loads(request.content))
-            if self.status != 200:
-                return httpx.Response(self.status, text="boom")
-            return httpx.Response(200, json=self.replies.pop(0))
-
-        return httpx.Client(transport=httpx.MockTransport(handle))
 
 
 @pytest.fixture()
@@ -83,7 +52,7 @@ def test_looks_up_then_answers(stub_weather):
     first, second = fake.requests
     assert first["model"] == "qwen3:4b-instruct" and first["stream"] is False and "think" not in first
     assert first["options"]["num_ctx"] == 4096
-    assert {t["function"]["name"] for t in first["tools"]} == {t["name"] for t in assistant.TOOLS}
+    assert first["tools"] == assistant.TOOLS
     assert first["messages"][0]["role"] == "system" and "call a tool" in first["messages"][0]["content"]
     assert "[App context]" in first["messages"][1]["content"]
     tool_msg = second["messages"][-1]
@@ -134,27 +103,27 @@ def test_ollama_errors_become_clear_messages():
 
 
 def test_status_reports_local_provider(client, monkeypatch):
-    monkeypatch.setattr(assistant, "api_key", lambda: None)
     monkeypatch.setattr(assistant_local, "is_available", lambda: True)
     body = client.get("/api/assistant/status").json()
     assert body == body | {"configured": True, "provider": "local", "model": "qwen3:4b-instruct"}
 
 
-def test_hosted_wins_when_a_key_is_set(client, monkeypatch):
-    monkeypatch.setattr(assistant, "api_key", lambda: "test-key-not-real")
+def test_off_setting_turns_it_off(client, monkeypatch):
+    from app.config import get_settings
+
     monkeypatch.setattr(assistant_local, "is_available", lambda: True)
-    assert client.get("/api/assistant/status").json()["provider"] == "hosted"
+    monkeypatch.setattr(get_settings(), "assistant_provider", "off")
+    body = client.get("/api/assistant/status").json()
+    assert body["configured"] is False and body["provider"] is None and body["model"] == "qwen3:4b-instruct"
 
 
 def test_off_when_nothing_is_available(client, monkeypatch):
-    monkeypatch.setattr(assistant, "api_key", lambda: None)
     assistant_local._status = None  # forget any cached check
     body = client.get("/api/assistant/status").json()  # Ollama URL points nowhere in tests
     assert body["configured"] is False and body["provider"] is None
 
 
 def test_endpoint_reports_local_failures(client, monkeypatch):
-    monkeypatch.setattr(assistant, "api_key", lambda: None)
     monkeypatch.setattr(assistant_local, "is_available", lambda: True)
     monkeypatch.setattr(assistant, "LIMITS", assistant.DailyLimits())
 
@@ -164,3 +133,4 @@ def test_endpoint_reports_local_failures(client, monkeypatch):
     monkeypatch.setattr(assistant_local, "answer", down)
     r = client.post("/api/assistant", json={"messages": [{"role": "user", "content": "Hi"}], "place": PLACE}, headers=CLIENT)
     assert r.status_code == 502 and "Start Ollama" in r.json()["detail"]
+    assert assistant.LIMITS.used(CLIENT["X-Client-Id"]) == 0  # the failed question isn't counted

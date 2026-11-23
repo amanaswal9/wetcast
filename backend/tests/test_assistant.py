@@ -1,145 +1,135 @@
-"""Assistant tests. Hosted is replaced by a scripted fake client and Open-Meteo by
-fixed data, so these run offline and never call (or bill) the Hosted API."""
+"""Assistant tests: the answer loop, tools, sources, daily limits and the endpoint. The local
+model is replaced by a scripted fake Ollama and Open-Meteo by fixed data, so these run offline."""
 
 from __future__ import annotations
 
 import json
-from datetime import date, timedelta
-from types import SimpleNamespace
+from datetime import timedelta
 
-import hosted
+import httpx
 import pytest
 
-from app import assistant, assistant_data
+from app import assistant, assistant_data, assistant_local
 from app.registry import get_registry
+from fake_ollama import FakeOllama, call, chat
 
 PLACE = {"name": "Jaipur", "latitude": 26.9196, "longitude": 75.7878, "country_code": "IN"}
 CLIENT = {"X-Client-Id": "test-client-0001"}
-
-
-def text(t):
-    return SimpleNamespace(type="text", text=t)
-
-
-def tool_use(id_, name, args):
-    return SimpleNamespace(type="tool_use", id=id_, name=name, input=args)
-
-
-def response(stop_reason, content=(), model="hosted-opus-5-5"):
-    """A fake Messages API response with the given content blocks."""
-    return SimpleNamespace(stop_reason=stop_reason, content=list(content), model=model, usage=SimpleNamespace(input_tokens=1000, output_tokens=100))
-
-
-class FakeClient:
-    """Plays back scripted responses and records every request. Like the real SDK, it leaves
-    out arguments passed as hosted.omit."""
-
-    def __init__(self, responses):
-        self.responses = list(responses)
-        self.requests: list[dict] = []
-        self.beta = SimpleNamespace(messages=SimpleNamespace(create=self.create))
-
-    def create(self, model, max_tokens, system, tools, messages, output_config, betas=hosted.omit, fallbacks=hosted.omit):
-        request = {
-            "model": model, "max_tokens": max_tokens, "system": system, "tools": tools,
-            "messages": messages, "output_config": output_config, "betas": betas, "fallbacks": fallbacks,
-        }
-        request = {k: v for k, v in request.items() if v is not hosted.omit}
-        self.requests.append(json.loads(json.dumps(request, default=lambda o: o.__dict__)))
-        return self.responses.pop(0)
-
-
-FAKE_WEATHER = {"source": "Open-Meteo forecast (test data)", "now": {"temperature_c": 24.0, "sky": "clear sky"}}
+FAKE_PLACES = {"matches": [{"name": "Pune", "latitude": 18.52, "longitude": 73.86, "country_code": "IN"}]}
+FAKE_ALERTS = {"source": "NDMA Sachet (test data)", "alerts": []}
 
 
 @pytest.fixture()
-def stub_weather(monkeypatch):
-    monkeypatch.setattr(assistant_data, "weather", lambda lat, lon: FAKE_WEATHER)
+def stub_lookups(monkeypatch):
+    monkeypatch.setattr(assistant_data, "find_place", lambda name: FAKE_PLACES)
+    monkeypatch.setattr(assistant_data, "official_alerts_at", lambda session, lat, lon, cc: FAKE_ALERTS)
+    monkeypatch.setattr(assistant_data, "weather", lambda lat, lon: {"source": "Open-Meteo forecast (test data)", "now": {}})
 
 
-def ask(client, question="Will it rain tomorrow?", place=PLACE):
-    """Ask one question through the Hosted path with a fake client."""
+def ask(fake, conversation=None, question="Will it rain tomorrow?"):
+    """Ask one question through the local model with a fake Ollama."""
     from app import db
 
+    conversation = conversation or [{"role": "user", "content": question}]
     with db.new_session() as session:
-        return assistant.answer([{"role": "user", "content": question}], place, session, get_registry(), client=client)
+        return assistant_local.answer(conversation, PLACE, session, get_registry(), http=fake.client())
 
 
 # The answer loop.
 
 
-def test_looks_up_data_then_answers(client, stub_weather):
-    fake = FakeClient([
-        response("tool_use", [tool_use("t1", "get_weather", {"latitude": 26.92, "longitude": 75.79})]),
-        response("end_turn", [text("Open-Meteo's forecast shows 24 °C and clear skies now.")]),
+def test_looks_up_data_then_answers(client, monkeypatch, stub_lookups):
+    """Goes through assistant.answer, the entry point the endpoint uses."""
+    from app import db
+
+    fake = FakeOllama([
+        chat(tool_calls=[
+            call("find_place", {"name": "Pune"}),
+            call("get_official_alerts", {"latitude": 18.52, "longitude": 73.86, "country_code": "IN"}),
+        ]),
+        chat(tool_calls=[call("find_place", {"name": "Pune"})]),
+        chat("There are no official warnings for Pune right now."),
     ])
-    reply = ask(fake)
-    assert reply.text.startswith("Open-Meteo's forecast")
-    assert reply.sources == ["Open-Meteo forecast"] and reply.rounds == 2
-    second = fake.requests[1]["messages"]
-    result = second[-1]["content"][0]
-    assert result["type"] == "tool_result" and result["tool_use_id"] == "t1"
-    assert json.loads(result["content"]) == FAKE_WEATHER
+    http = fake.client()
+    monkeypatch.setattr(httpx, "Client", lambda **kwargs: http)
+    with db.new_session() as session:
+        reply = assistant.answer([{"role": "user", "content": "Any warnings in Pune?"}], PLACE, session, get_registry())
+    assert reply.text == "There are no official warnings for Pune right now."
+    assert reply.sources == ["Open-Meteo geocoding", "Official warnings"]  # each source once, in order
+    assert reply.tools_used == ["find_place", "get_official_alerts", "find_place"] and reply.rounds == 3
+    assert reply.model == "qwen3:4b-instruct" and reply.input_tokens == 1500 and reply.output_tokens == 120
+    results = fake.requests[1]["messages"][-2:]
+    assert [m["tool_name"] for m in results] == ["find_place", "get_official_alerts"]
+    assert json.loads(results[0]["content"]) == FAKE_PLACES and json.loads(results[1]["content"]) == FAKE_ALERTS
 
 
-def test_request_shape(client, stub_weather):
-    fake = FakeClient([response("end_turn", [text("Hello.")])])
-    ask(fake)
+def test_request_shape(stub_lookups):
+    fake = FakeOllama([chat("Hello.")])
+    history = [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "Hello, I'm Javed."},
+        {"role": "user", "content": "What can you do?"},
+    ]
+    ask(fake, history)
     req = fake.requests[0]
-    assert req["model"] == "hosted-opus-5-5"
-    assert req["output_config"] == {"effort": "low"}
-    assert req["fallbacks"] == "default" and req["betas"] == ["server-side-fallback-2026-07-01"]
-    assert all(t["strict"] and t["input_schema"]["additionalProperties"] is False for t in req["tools"])
-    assert req["tools"][-1]["cache_control"] == {"type": "ephemeral"}
-    assert "Answer only from data you looked up" in req["system"][0]["text"]
-    assert "Jaipur" in req["messages"][0]["content"] and req["messages"][-1]["content"] == "Will it rain tomorrow?"
-    assert "tool_choice" not in req  # forcing a tool is rejected by current models
+    assert "Answer only from data you looked up" in req["messages"][0]["content"]
+    assert "Jaipur" in req["messages"][1]["content"] and "country code IN" in req["messages"][1]["content"]
+    assert req["messages"][2:] == history  # the whole visible chat, oldest first
+    names = [t["function"]["name"] for t in req["tools"]]
+    assert names == list(assistant.SOURCE_LABELS)  # every tool has a source label
+    assert all(t["function"]["parameters"]["additionalProperties"] is False for t in req["tools"])
 
 
-def test_no_fallback_for_models_without_it(client, monkeypatch, stub_weather):
-    from app.config import get_settings
-
-    monkeypatch.setattr(get_settings(), "assistant_model", "hosted-haiku-5-5")
-    fake = FakeClient([response("end_turn", [text("Hi.")], model="hosted-haiku-5-5")])
-    ask(fake)
-    assert "fallbacks" not in fake.requests[0] and fake.requests[0]["model"] == "hosted-haiku-5-5"
-
-
-def test_refusal_gets_a_polite_reply(client):
-    reply = ask(FakeClient([response("refusal")]))
-    assert "weather" in reply.text
+def test_off_topic_questions_are_declined(stub_lookups):
+    """Ollama has no separate refusal signal: the instructions tell the model to decline,
+    and its polite answer is passed on as it is, with no sources."""
+    assert "Politely decline anything else" in assistant.SYSTEM_PROMPT
+    fake = FakeOllama([chat("I can only help with the weather and how Wetcast's forecasts work.")])
+    reply = ask(fake, question="Write me a poem about cricket.")
+    assert reply.text.startswith("I can only help with the weather") and reply.sources == [] and reply.rounds == 1
 
 
-def test_failed_lookup_is_reported_to_the_model(client, monkeypatch):
+def test_failed_lookup_is_reported_to_the_model(monkeypatch):
     def broken(lat, lon):
         raise RuntimeError("Open-Meteo couldn't be reached.")
 
     monkeypatch.setattr(assistant_data, "weather", broken)
-    fake = FakeClient([
-        response("tool_use", [tool_use("t1", "get_weather", {"latitude": 1.0, "longitude": 2.0})]),
-        response("end_turn", [text("I couldn't get the forecast right now.")]),
+    fake = FakeOllama([
+        chat(tool_calls=[call("get_weather", {"latitude": 1.0, "longitude": 2.0})]),
+        chat("I couldn't get the forecast right now."),
     ])
     reply = ask(fake)
-    result = fake.requests[1]["messages"][-1]["content"][0]
-    assert result["is_error"] is True and "couldn't be reached" in result["content"]
+    result = fake.requests[1]["messages"][-1]
+    assert result["role"] == "tool" and result["content"].startswith("The lookup failed") and "couldn't be reached" in result["content"]
     assert reply.text.startswith("I couldn't")
 
 
-def test_out_of_range_coordinates_are_refused(client):
-    fake = FakeClient([
-        response("tool_use", [tool_use("t1", "get_weather", {"latitude": 123.0, "longitude": 2.0})]),
-        response("end_turn", [text("That place isn't valid.")]),
+def test_out_of_range_coordinates_are_refused(stub_lookups):
+    fake = FakeOllama([
+        chat(tool_calls=[call("get_weather", {"latitude": 123.0, "longitude": 2.0})]),
+        chat("That place isn't valid."),
     ])
     ask(fake)
-    assert fake.requests[1]["messages"][-1]["content"][0]["is_error"] is True
+    assert "out of range" in fake.requests[1]["messages"][-1]["content"]
 
 
-def test_rounds_are_capped(client, stub_weather):
-    loop = [response("tool_use", [tool_use(f"t{i}", "get_weather", {"latitude": 1.0, "longitude": 2.0})]) for i in range(assistant.MAX_ROUNDS)]
-    fake = FakeClient(loop)
+def test_unknown_tool_is_reported(stub_lookups):
+    fake = FakeOllama([chat(tool_calls=[call("delete_everything", {"latitude": 1.0, "longitude": 2.0})]), chat("Sorry.")])
+    reply = ask(fake)
+    assert "unknown tool" in fake.requests[1]["messages"][-1]["content"] and reply.sources == []
+
+
+def test_rounds_are_capped(stub_lookups):
+    loop = [chat(tool_calls=[call("get_weather", {"latitude": 1.0, "longitude": 2.0})]) for _ in range(assistant.MAX_ROUNDS)]
+    fake = FakeOllama(loop)
     reply = ask(fake)
     assert len(fake.requests) == assistant.MAX_ROUNDS
     assert "more lookups" in reply.text
+
+
+def test_empty_answer_gets_an_apology(stub_lookups):
+    reply = ask(FakeOllama([chat("")]))
+    assert reply.text.startswith("Sorry, I couldn't put an answer together")
 
 
 def test_prediction_outside_coverage_says_so():
@@ -236,9 +226,9 @@ def body(question="Will it rain?"):
 
 
 def test_status_and_unconfigured(client, monkeypatch):
-    monkeypatch.setattr(assistant, "api_key", lambda: None)
+    monkeypatch.setattr(assistant_local, "is_available", lambda: False)
     status = client.get("/api/assistant/status").json()
-    assert status["configured"] is False and status["model"] == "hosted-opus-5-5"
+    assert status == {"configured": False, "provider": None, "model": "qwen3:4b-instruct", "daily_limit_per_visitor": 20}
     r = client.post("/api/assistant", json=body(), headers=CLIENT)
     assert r.status_code == 503 and r.json()["code"] == "assistant_not_configured"
 
@@ -246,23 +236,23 @@ def test_status_and_unconfigured(client, monkeypatch):
 def test_endpoint_answers_and_enforces_limits(client, monkeypatch):
     from app.config import get_settings
 
-    monkeypatch.setattr(assistant, "api_key", lambda: "test-key-not-real")
+    monkeypatch.setattr(assistant_local, "is_available", lambda: True)
     monkeypatch.setattr(assistant, "LIMITS", assistant.DailyLimits())
     monkeypatch.setattr(get_settings(), "assistant_daily_limit_per_client", 2)
     monkeypatch.setattr(
         assistant, "answer",
-        lambda conv, place, session, registry: assistant.Reply(text=f"About {place['name']}.", sources=["Open-Meteo forecast"], model="hosted-opus-5-5"),
+        lambda conv, place, session, registry: assistant.Reply(text=f"About {place['name']}.", sources=["Open-Meteo forecast"], model="qwen3:4b-instruct"),
     )
     r = client.post("/api/assistant", json=body(), headers=CLIENT)
     assert r.status_code == 200, r.text
-    assert r.json() == {"reply": "About Jaipur.", "sources": ["Open-Meteo forecast"], "model": "hosted-opus-5-5"}
+    assert r.json() == {"reply": "About Jaipur.", "sources": ["Open-Meteo forecast"], "model": "qwen3:4b-instruct"}
     assert client.post("/api/assistant", json=body(), headers=CLIENT).status_code == 200
     limited = client.post("/api/assistant", json=body(), headers=CLIENT)
     assert limited.status_code == 429 and limited.json()["code"] == "client_limit"
 
 
 def test_endpoint_validation(client, monkeypatch):
-    monkeypatch.setattr(assistant, "api_key", lambda: "test-key-not-real")
+    monkeypatch.setattr(assistant_local, "is_available", lambda: True)
     last_is_answer = {"messages": [{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "Hello"}], "place": PLACE}
     assert client.post("/api/assistant", json=last_is_answer, headers=CLIENT).status_code == 422
     too_long = body("x" * 2001)

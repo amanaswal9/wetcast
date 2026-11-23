@@ -9,6 +9,17 @@
         font-family: 'Pixelify Sans';
         src: url('../../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-400-normal.woff2') format('woff2');
       }
+      /* The interface font, the same files the app ships. */
+      @font-face {
+        font-family: 'Noto Sans';
+        font-weight: 400;
+        src: url('../../node_modules/@fontsource/noto-sans/files/noto-sans-latin-400-normal.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Noto Sans';
+        font-weight: 700;
+        src: url('../../node_modules/@fontsource/noto-sans/files/noto-sans-latin-700-normal.woff2') format('woff2');
+      }
       :root {
         --face: #c0c0c0;
         --hilite: #fff;
@@ -31,7 +42,7 @@
       body {
         position: relative;
         background: #008080;
-        font: 22px/1.35 Tahoma, Verdana, sans-serif;
+        font: 22px/1.35 'Noto Sans', sans-serif;
         color: #000;
       }
       .raised {
@@ -139,8 +150,8 @@
         margin-top: 26px;
       }
       .models span {
-        padding: 8px 14px 9px;
-        font-size: 19px;
+        padding: 8px 12px 9px;
+        font-size: 18px;
       }
       .taskbar {
         position: absolute;

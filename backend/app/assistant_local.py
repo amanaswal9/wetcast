@@ -1,10 +1,9 @@
 """Javed, the Wetcast assistant, on a free local model, run by Ollama on this computer.
 
-Same rules, tools and data as the Hosted version (assistant.py): the model may only answer
-from what the read-only tools return. Nothing leaves the machine except the tools' own
-lookups (Open-Meteo, the official feeds), and nothing is billed. A small local model follows
-instructions less reliably than Hosted, so the instructions are firmer and the Ask page says
-which model answered.
+The rules and tools live in assistant.py: the model may only answer from what the read-only
+tools return. Nothing leaves the machine except the tools' own lookups (Open-Meteo, the
+official feeds), and nothing is billed. A small model follows instructions less reliably than
+a large one, so the instructions here are firmer and the Ask page says which model answered.
 """
 
 from __future__ import annotations
@@ -74,16 +73,6 @@ def is_available() -> bool:
     return reachable and installed
 
 
-def ollama_tools() -> list[dict]:
-    """The same tools as the Hosted version, in Ollama's (OpenAI-style) function format."""
-    from .assistant import TOOLS
-
-    return [
-        {"type": "function", "function": {"name": t["name"], "description": t["description"], "parameters": t["input_schema"]}}
-        for t in TOOLS
-    ]
-
-
 _THINK = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
@@ -97,7 +86,7 @@ def _clean(text: str) -> str:
 def weather_text(out: dict) -> str:
     """The forecast lookup as short plain lines with the days named ("today", "tomorrow").
     Small models misread large JSON tables (they quoted figures that weren't there); plain
-    lines with nothing to work out are read reliably. Hosted still gets the full JSON."""
+    lines with nothing to work out are read reliably."""
     from datetime import date
 
     today = str(out.get("local_time_now", ""))[:10]
@@ -141,9 +130,9 @@ def weather_text(out: dict) -> str:
 
 
 def answer(conversation: list[dict], place: dict, session: Session, registry: ModelRegistry, http: httpx.Client | None = None):
-    """Answer the last user message with the local model. Same loop as the Hosted version:
-    the model asks for lookups, gets their results, and answers from them."""
-    from .assistant import MAX_ROUNDS, SOURCE_LABELS, SYSTEM_PROMPT, AssistantUnavailable, Reply, context_message, run_tool
+    """Answer the last user message with the local model: it asks for lookups, gets their
+    results, and answers from them."""
+    from .assistant import MAX_ROUNDS, SOURCE_LABELS, SYSTEM_PROMPT, TOOLS, AssistantUnavailable, Reply, context_message, run_tool
 
     settings = get_settings()
     model = settings.ollama_model
@@ -152,7 +141,6 @@ def answer(conversation: list[dict], place: dict, session: Session, registry: Mo
         {"role": "user", "content": context_message(place)},
     ]
     messages += [{"role": m["role"], "content": m["content"]} for m in conversation]
-    tools = ollama_tools()
     reply = Reply(text="", sources=[], model=model)
     own_client = http is None
     http = http or httpx.Client(timeout=CALL_TIMEOUT_SECONDS)
@@ -165,7 +153,7 @@ def answer(conversation: list[dict], place: dict, session: Session, registry: Mo
                     json={
                         "model": model,
                         "messages": messages,
-                        "tools": tools,
+                        "tools": TOOLS,
                         "stream": False,
                         # Stay loaded between questions, so a follow-up doesn't wait for the model to load.
                         "keep_alive": "15m",

@@ -358,42 +358,6 @@ export function ModelsPage({ theme }: { theme: Theme }) {
         )}
       </GroupBox>
 
-      <GroupBox title="Check against weather stations">
-        {first.station_check?.overall?.temperature ? (
-          <>
-            <p className="m-0 mb-2 max-w-[75ch]">
-              The models learn from Open-Meteo data. Here their test-period predictions are compared with what nearby weather stations
-              actually measured ({first.station_check.source}). The last row scores Open-Meteo's own data against the same stations.
-            </p>
-            <Table
-              caption="Mean absolute error against station measurements"
-              head={['Source', 'Temp, 6 h ahead', 'Temp, 24 h ahead', 'Humidity, 6 h ahead', 'Humidity, 24 h ahead']}
-              rows={[
-                ...list.map((m) => {
-                  const o = m.station_check?.overall
-                  return [
-                    m.display_name,
-                    o?.temperature?.lead6 ? `${fmt(o.temperature.lead6.mae)} °C` : 'n/a',
-                    o?.temperature?.lead24 ? `${fmt(o.temperature.lead24.mae)} °C` : 'n/a',
-                    o?.humidity?.lead6 ? `${fmt(o.humidity.lead6.mae, 1)}%` : 'n/a',
-                    o?.humidity?.lead24 ? `${fmt(o.humidity.lead24.mae, 1)}%` : 'n/a',
-                  ]
-                }),
-                [
-                  'Open-Meteo data itself',
-                  first.station_check.overall.temperature.open_meteo ? `${fmt(first.station_check.overall.temperature.open_meteo.mae)} °C` : 'n/a',
-                  '–',
-                  first.station_check.overall.humidity?.open_meteo ? `${fmt(first.station_check.overall.humidity.open_meteo.mae, 1)}%` : 'n/a',
-                  '–',
-                ],
-              ]}
-            />
-          </>
-        ) : (
-          <p className="m-0">Station comparison isn't available for this training run{first.station_check?.reason ? `: ${first.station_check.reason}` : '.'}</p>
-        )}
-      </GroupBox>
-
       {(() => {
         const gbm = list.find((m) => m.kind === 'gbm' && m.feature_importance)
         if (!gbm?.feature_importance) return null

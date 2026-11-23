@@ -256,7 +256,7 @@ def record(video_dir: Path) -> tuple[Path, float]:
         scroll_to_heading(page, "Test-set results", offset=-150)
         page.wait_for_timeout(2200)
         scroll_to_heading(page, "Error by hours ahead")
-        caption(page, "Error by hours ahead, error ranges and a weather-station check")
+        caption(page, "Error by hours ahead and error ranges")
         page.wait_for_timeout(2400)
 
         # 6. Units: back to the Dashboard, switch to Fahrenheit, mph and a 12-hour clock.

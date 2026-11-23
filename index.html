@@ -10,7 +10,9 @@
     <meta name="theme-color" content="#000080" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Wetcast: spatial-temporal weather forecasting with its own LSTM, GRU, CNN-LSTM, Transformer and LightGBM models, built on Open-Meteo data." />
-    <!-- The pixel font for temperatures is needed for the first screen: fetch it straight away. -->
+    <!-- The fonts on the first screen (interface text, title bars, temperatures): fetch them straight away. -->
+    <link rel="preload" href="/node_modules/@fontsource/noto-sans/files/noto-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/node_modules/@fontsource/noto-sans/files/noto-sans-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
     <title>Wetcast</title>
     <!-- Link previews (WhatsApp, Slack, social). Image source: docs/share/. Most sites need an
@@ -24,29 +26,7 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Wetcast in a classic grey desktop window: a pixel-art cloud and the names of its six forecasting models." />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      // Apply the saved or system theme before first paint to avoid a flash.
-      try {
-        // A saved choice wins; on a first visit, a device set to dark gets the night theme.
-        var saved = localStorage.getItem('weatherai.theme')
-        var theme = saved === 'light' || saved === 'night' || saved === 'dark' ? saved
-          : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'light'
-        document.documentElement.dataset.theme = theme
-        var bar = { light: '#000080', night: '#1f4e8c', dark: '#800080' }[theme]
-        document.querySelector('meta[name="theme-color"]').setAttribute('content', bar)
-      } catch (e) {
-        document.documentElement.dataset.theme = 'light'
-      }
-      // Pixel-exact bevels: make --px a whole number of screen pixels (see :root in index.css),
-      // and update it when the browser zoom or the screen changes.
-      ;(function sharpPixels() {
-        var dpr = window.devicePixelRatio || 1
-        document.documentElement.style.setProperty('--px', Math.max(1, Math.round(dpr)) / dpr + 'px')
-        if (window.matchMedia) {
-          window.matchMedia('(resolution: ' + dpr + 'dppx)').addEventListener('change', sharpPixels, { once: true })
-        }
-      })()
-    </script>
+    <script src="/boot.js"></script>
   </head>
   <body>
     <div id="root"><!--
@@ -72,25 +52,13 @@
           </section>
         </div>
       </div></div></div>
-    <div id="unsupported" hidden style="max-width: 32rem; margin: 3rem auto; padding: 1rem 1.25rem; font: 16px/1.5 Verdana, sans-serif; background: #c0c0c0; color: #000; border: 2px solid #000">
+    <div id="unsupported" hidden style="max-width: 32rem; margin: 3rem auto; padding: 1rem 1.25rem; font: 16px/1.5 sans-serif; background: #c0c0c0; color: #000; border: 2px solid #000">
       <p style="margin: 0 0 0.5rem; font-weight: bold">Wetcast needs a newer browser</p>
       <p style="margin: 0">
         Please update to Safari 16.4 or later (iOS / iPadOS 16.4+), Chrome or Edge 111+, or Firefox 128+, then reload this page.
       </p>
     </div>
-    <script>
-      // Show a clear message instead of a blank page on browsers the app can't run in.
-      ;(function () {
-        var ok = true
-        try {
-          new Function('class A { static { } }')
-        } catch (e) {
-          ok = false
-        }
-        if (!(window.CSS && CSS.supports && CSS.supports('color', 'color-mix(in srgb, red, blue)'))) ok = false
-        if (!ok) document.getElementById('unsupported').hidden = false
-      })()
-    </script>
+    <script src="/browser-check.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

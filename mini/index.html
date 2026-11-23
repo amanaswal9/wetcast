@@ -13,20 +13,12 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Wetcast Mini" />
     <meta name="description" content="Wetcast Mini: the current weather and the next few hours, small enough to keep on screen." />
+    <!-- The interface font, fetched straight away so the first paint uses it. -->
+    <link rel="preload" href="/node_modules/@fontsource/noto-sans/files/noto-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/node_modules/@fontsource/noto-sans/files/noto-sans-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
     <title>Wetcast Mini</title>
-    <script>
-      // Same theme as the main app, applied before first paint.
-      try {
-        var saved = localStorage.getItem('weatherai.theme')
-        var theme = saved === 'light' || saved === 'night' || saved === 'dark' ? saved
-          : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'light'
-        document.documentElement.dataset.theme = theme
-        var bar = { light: '#000080', night: '#1f4e8c', dark: '#800080' }[theme]
-        document.querySelector('meta[name="theme-color"]').setAttribute('content', bar)
-      } catch (e) {
-        document.documentElement.dataset.theme = 'light'
-      }
-    </script>
+    <!-- Same theme as the main app, applied before first paint. -->
+    <script src="/boot.js"></script>
   </head>
   <body>
     <div id="root"></div>
