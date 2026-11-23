@@ -1379,8 +1379,8 @@ html[data-busy] * {
 .r-desktop-art .r-desktop-picture {
   /* A crisp monospace font: the pixel font blurs at this size. */
   font-family: Consolas, Menlo, 'DejaVu Sans Mono', ui-monospace, monospace;
-  /* Fits the width (about 140 columns), the height above the taskbar (by row count), and 13px at most. */
-  font-size: min(1.05vw, calc((100dvh - 110px) / var(--rows, 80)), 13px);
+  /* About 60% of the screen height above the taskbar (by row count), never wider than the screen, and 8px at most. */
+  font-size: min(0.63vw, calc((100dvh - 110px) * 0.6 / var(--rows, 80)), 8px);
   line-height: 1;
   color: #001a1a;
 }
