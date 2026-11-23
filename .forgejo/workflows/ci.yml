@@ -99,7 +99,8 @@ jobs:
       - uses: https://code.forgejo.org/actions/checkout@v4
       - name: Install dependencies
         run: |
-          pip install -r backend/requirements.txt pytest
+          # scikit-learn: the chance-of-rain calibration the ML tests check is fitted with it.
+          pip install -r backend/requirements.txt pytest scikit-learn
           pip install -e ml
       - name: ML pipeline tests
         working-directory: ml
