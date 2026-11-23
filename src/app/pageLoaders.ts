@@ -1,6 +1,6 @@
 // Each page is its own JavaScript file, downloaded the first time it's opened,
-// so the first screen loads less code (noticeable on phones). After the first
-// page is up, the rest are fetched in the background so switching stays instant.
+// so the first screen loads less code (noticeable on phones). Once the first
+// screen's weather is in, the rest are fetched in the background so switching stays instant.
 export const loaders = {
   dashboard: () => import('../features/dashboard/Dashboard'),
   forecast: () => import('../features/forecast/ForecastPage'),
