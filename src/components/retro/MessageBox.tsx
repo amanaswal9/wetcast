@@ -30,11 +30,11 @@ interface MessageBoxProps {
   title: string
   children: ReactNode
   actions?: ReactNode
-  /** Use "alert" for errors that appear after an action. */
+  // Use "alert" for errors that appear after an action.
   role?: 'alert' | 'status'
 }
 
-/** Inline version of the classic message box: icon, text, buttons. */
+// Inline version of the classic message box: icon, text, buttons.
 export function MessageBox({ kind, title, children, actions, role }: MessageBoxProps) {
   return (
     <div role={role} className="flex flex-col gap-3 p-3 sm:flex-row sm:items-start">

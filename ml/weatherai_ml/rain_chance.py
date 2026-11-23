@@ -54,7 +54,8 @@ def chance(leads: list[dict], forecast: np.ndarray) -> np.ndarray:
 
 
 def brier(observed_wet: np.ndarray, prob) -> float:
-    return round(float(np.mean((np.asarray(prob, dtype=float) - observed_wet) ** 2)), 5)
+    """Brier score: mean squared gap between the chance given and what happened (1 wet, 0 dry)."""
+    return round(float(np.mean(np.square(np.asarray(prob, dtype=float) - observed_wet))), 5)
 
 
 def reliability(observed_wet: np.ndarray, prob: np.ndarray) -> list[dict]:
@@ -82,6 +83,7 @@ def main() -> None:
     ds = load_dataset(args.region)
 
     def load(s: str):
+        """Cached ensemble rain forecasts for one slice, and the rain that actually fell."""
         d = np.load(cache / f"ensemble__{s}.npz")
         forecast = d["pred"][..., P].astype(float)
         # The real observations: rebuilding them from the cached float32 forecast and error turned some exact

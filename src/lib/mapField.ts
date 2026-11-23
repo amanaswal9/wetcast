@@ -1,11 +1,9 @@
-/**
- * The weather map's colour field: one image drawn from the grid of point forecasts.
- *
- * Values are blended between neighbouring points (bilinear interpolation) and only then given a
- * band colour, so band edges follow the weather instead of the grid's squares. The image is laid
- * out in Web Mercator rows, like the map, so each point sits exactly under its colour at any zoom.
- * One image instead of a shape per point also keeps panning, zooming and the hour slider smooth.
- */
+// The weather map's colour field: one image drawn from the grid of point forecasts.
+//
+// Values are blended between neighbouring points (bilinear interpolation) and only then given a
+// band colour, so band edges follow the weather instead of the grid's squares. The image is laid
+// out in Web Mercator rows, like the map, so each point sits exactly under its colour at any zoom.
+// One image instead of a shape per point also keeps panning, zooming and the hour slider smooth.
 import type { Band } from './mapScales'
 
 export interface FieldPoint {
@@ -16,13 +14,13 @@ export interface FieldPoint {
 export interface Field {
   width: number
   height: number
-  /** RGBA pixels, row by row from the north-west corner. */
+  // RGBA pixels, row by row from the north-west corner.
   pixels: Uint8ClampedArray<ArrayBuffer>
-  /** [[south, west], [north, east]]: half a grid step beyond the outermost points. */
+  // [[south, west], [north, east]]: half a grid step beyond the outermost points.
   bounds: [[number, number], [number, number]]
 }
 
-/** Image pixels per grid step across; the browser smooths the rest when it scales the image. */
+// Image pixels per grid step across; the browser smooths the rest when it scales the image.
 const PX_PER_STEP = 64
 const MAX_SIDE = 1000
 
@@ -40,11 +38,9 @@ function rgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
-/**
- * Draw the field. `valueOf` gives a point's value (null when unknown); `bandFor` the band for a
- * blended value (null leaves the pixel clear, e.g. rain below 0.1 mm). Returns null when there is
- * nothing to draw.
- */
+// Draw the field. `valueOf` gives a point's value (null when unknown); `bandFor` the band for a
+// blended value (null leaves the pixel clear, e.g. rain below 0.1 mm). Returns null when there is
+// nothing to draw.
 export function renderField<P extends FieldPoint>(
   points: P[],
   latSpacing: number,

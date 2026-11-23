@@ -11,6 +11,9 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
+    """Every setting can be overridden with an environment variable named WEATHERAI_ plus the field
+    name in capitals, for example WEATHERAI_DATABASE_URL."""
+
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", env_prefix="WEATHERAI_", extra="ignore")
 
     database_url: str = "sqlite:///./weatherai-dev.db"
@@ -47,4 +50,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """The settings, read once per process."""
     return Settings()

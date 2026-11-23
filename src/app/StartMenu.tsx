@@ -1,4 +1,4 @@
-import { Bell, Contrast, Ruler } from 'lucide-react'
+import { Bell, Contrast, Moon, PanelTop, Ruler } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { loaders } from './pageLoaders'
 import { PAGE_ICONS } from './pageIcons'
@@ -7,6 +7,8 @@ import { UnitsDialog } from './UnitsDialog'
 
 interface StartMenuProps {
   page: PageId | null
+  darkMode: boolean
+  onToggleDark: () => void
   highContrast: boolean
   onToggleContrast: () => void
   warningNotifications: boolean
@@ -15,7 +17,13 @@ interface StartMenuProps {
 
 const preload = (id: PageId) => void loaders[id]().catch(() => undefined)
 
-/** Underlined shortcut letter for each item; press it while the menu is open. */
+// Wetcast Mini in a small window of its own. Phones ignore the size and open a new tab,
+// which is fine: there it is meant to be added to the home screen.
+function openMini() {
+  window.open('/mini/', 'wetcast-mini', 'popup,width=380,height=300')
+}
+
+// Underlined shortcut letter for each item; press it while the menu is open.
 const PAGE_KEYS: Record<PageId, string> = {
   dashboard: 'd',
   forecast: 'f',
@@ -27,7 +35,7 @@ const PAGE_KEYS: Record<PageId, string> = {
   about: 'b',
 }
 
-/** The label with its shortcut letter underlined, as in classic menus. */
+// The label with its shortcut letter underlined, as in classic menus.
 function KeyLabel({ text, letter }: { text: string; letter: string }) {
   const i = text.toLowerCase().indexOf(letter)
   if (i < 0) return <>{text}</>
@@ -40,12 +48,10 @@ function KeyLabel({ text, letter }: { text: string; letter: string }) {
   )
 }
 
-/**
- * The taskbar's Start button and its menu: every page plus high contrast. On phones it
- * replaces the menu bar, so the header stays short. A disclosure (button + list of links),
- * not an ARIA menu, because its items are ordinary page links.
- */
-export function StartMenu({ page, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: StartMenuProps) {
+// The taskbar's Start button and its menu: every page plus high contrast. On phones it
+// replaces the menu bar, so the header stays short. A disclosure (button + list of links),
+// not an ARIA menu, because its items are ordinary page links.
+export function StartMenu({ page, darkMode, onToggleDark, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: StartMenuProps) {
   const [open, setOpen] = useState(false)
   const [unitsOpen, setUnitsOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -146,6 +152,23 @@ export function StartMenu({ page, highContrast, onToggleContrast, warningNotific
           <button
             type="button"
             className="r-start-item w-full"
+            aria-pressed={darkMode}
+            data-key="k"
+            aria-keyshortcuts="K"
+            onClick={() => {
+              onToggleDark()
+              setOpen(false)
+            }}
+          >
+            <Moon size={16} aria-hidden="true" />
+            <span>
+              <KeyLabel text="Dark mode" letter="k" />
+              {darkMode ? ': on' : ''}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="r-start-item w-full"
             aria-pressed={highContrast}
             data-key="h"
             aria-keyshortcuts="H"
@@ -158,6 +181,21 @@ export function StartMenu({ page, highContrast, onToggleContrast, warningNotific
             <span>
               <KeyLabel text="High contrast" letter="h" />
               {highContrast ? ': on' : ''}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="r-start-item w-full"
+            data-key="i"
+            aria-keyshortcuts="I"
+            onClick={() => {
+              setOpen(false)
+              openMini()
+            }}
+          >
+            <PanelTop size={16} aria-hidden="true" />
+            <span>
+              <KeyLabel text="Wetcast Mini" letter="i" />
             </span>
           </button>
           <button
@@ -195,8 +233,8 @@ export function StartMenu({ page, highContrast, onToggleContrast, warningNotific
           </button>
         </div>
       </div>
-      {/* Outside the menu panel: the menu is hidden while the dialog is open. */}
       <UnitsDialog
+        // Rendered outside the menu panel, because the menu is hidden while the dialog is open.
         open={unitsOpen}
         onClose={() => {
           setUnitsOpen(false)

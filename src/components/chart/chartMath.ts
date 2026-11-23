@@ -1,22 +1,22 @@
-/** Small, dependency-free maths for the SVG charts: nice axis ticks and smooth paths. */
+// Small, dependency-free maths for the SVG charts: nice axis ticks and smooth paths.
 
 export type Num = number | null | undefined
 
+// True for a real number, so gaps (null, NaN) can be skipped when drawing.
 export function isNum(v: Num): v is number {
   return typeof v === 'number' && Number.isFinite(v)
 }
 
+// Round a rough tick step up to 1, 2, 2.5, 5 or 10 times a power of ten.
 function niceStep(rough: number): number {
-  const power = 10 ** Math.floor(Math.log10(rough))
+  const power = Math.pow(10, Math.floor(Math.log10(rough)))
   const f = rough / power
   return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * power
 }
 
-/**
- * A rounded domain and evenly spaced tick values covering [min, max].
- * `fixed` ends are kept as given (e.g. 0 for rain or 100 for humidity); 'auto' ends are
- * rounded outwards to a tick, like most charting libraries do.
- */
+// A rounded domain and evenly spaced tick values covering [min, max].
+// `fixed` ends are kept as given (e.g. 0 for rain or 100 for humidity); 'auto' ends are
+// rounded outwards to a tick, like most charting libraries do.
 export function niceScale(
   min: number,
   max: number,
@@ -46,7 +46,7 @@ export function niceScale(
   return { domain: [d0, d1], ticks }
 }
 
-/** Runs of consecutive defined points; a missing value breaks a line. */
+// Runs of consecutive defined points; a missing value breaks a line.
 export function segments(points: [number, Num][]): [number, number][][] {
   const out: [number, number][][] = []
   let run: [number, number][] = []
@@ -61,16 +61,14 @@ export function segments(points: [number, Num][]): [number, number][][] {
   return out
 }
 
-/** SVG path through points with straight segments. */
+// SVG path through points with straight segments.
 export function linearPath(pts: [number, number][]): string {
   return pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join('')
 }
 
-/**
- * Smooth path that never overshoots the data (monotone cubic interpolation, the
- * Fritsch-Carlson method; the same idea as d3's curveMonotoneX). Points must be in
- * increasing x order.
- */
+// Smooth path that never overshoots the data (monotone cubic interpolation, the
+// Fritsch-Carlson method; the same idea as d3's curveMonotoneX). Points must be in
+// increasing x order.
 export function monotonePath(pts: [number, number][]): string {
   const n = pts.length
   if (n < 3) return linearPath(pts)
@@ -108,7 +106,7 @@ export function monotonePath(pts: [number, number][]): string {
   return d
 }
 
-/** Index of the point whose x is closest to `x` (xs sorted ascending). */
+// Index of the point whose x is closest to `x` (xs sorted ascending).
 export function nearestIndex(xs: number[], x: number): number {
   if (!xs.length) return -1
   let lo = 0

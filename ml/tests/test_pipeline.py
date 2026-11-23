@@ -79,6 +79,7 @@ def test_preprocessor_rejects_reordered_features():
 
 
 def test_scaler_uses_only_rows_it_is_given():
+    """Leakage guard: the scaler is fitted on the rows passed in and nothing else."""
     rng = np.random.default_rng(1)
     train = rng.normal(0, 1, (500, len(FEATURE_ORDER)))
     future = rng.normal(100, 1, (500, len(FEATURE_ORDER)))  # very different "test" data

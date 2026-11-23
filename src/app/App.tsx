@@ -1,10 +1,11 @@
-import { Contrast, LocateFixed, RefreshCw, Star } from 'lucide-react'
+import { Contrast, LocateFixed, Moon, RefreshCw, Star } from 'lucide-react'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Button, ErrorStack, TitleButton, Window } from '../components/retro'
 import { buildSummary } from '../features/dashboard/buildSummary'
 import { CitySearch } from '../features/search/CitySearch'
 import { usePlace } from '../hooks/usePlace'
 import { useResource } from '../hooks/useResource'
+import { DesktopArt } from './DesktopArt'
 import { MAX_SAVED, useSavedPlaces } from '../hooks/useSavedPlaces'
 import { useSpeech } from '../hooks/useSpeech'
 import { useOnline } from '../hooks/useOnline'
@@ -27,6 +28,8 @@ import { Taskbar } from './Taskbar'
 
 const MINUTE = 60_000
 
+// The whole app: one desktop-style window with the menu bar, the current page and the taskbar.
+// Forecast, air quality and server health are loaded here once and shared by the pages.
 export default function App() {
   const page = usePage()
   const unknownPage = useUnknownPage()
@@ -34,7 +37,7 @@ export default function App() {
   const [place, setPlace] = usePlace()
   const saved = useSavedPlaces()
   const [refreshToken, setRefreshToken] = useState(0)
-  const { theme, toggle: toggleTheme } = useTheme()
+  const { theme, toggleNight, toggleContrast } = useTheme()
   const speech = useSpeech()
   const [minimized, setMinimized] = useState(false)
   // After the minimise animation the window is hidden (still mounted, so it keeps its state).
@@ -208,10 +211,11 @@ export default function App() {
       >
         <span>Skip to content</span>
       </a>
-      <div style={safeArea}>
+      <DesktopArt />
+      <div style={safeArea} className="relative z-[1]">
       <div className={`min-h-dvh ${frame}`}>
-        {/* No animation on first load: the page's static frame is already showing. */}
         <div
+          // No animation on first load: the page's static frame is already showing.
           hidden={hiddenAway}
           inert={minimized}
           data-state={minimized ? 'closing' : 'open'}
@@ -238,8 +242,11 @@ export default function App() {
               </>
             }
           >
-            {/* On phones the taskbar's Start menu and quick launch take over, keeping the header short. */}
-            <nav aria-label="Pages" className="r-menubar max-sm:hidden">
+            <nav
+              // On phones the taskbar's Start menu and quick launch take over, keeping the header short.
+              aria-label="Pages"
+              className="r-menubar max-sm:hidden"
+            >
               {PAGES.map((p) => (
                 <a
                   key={p.id}
@@ -264,8 +271,10 @@ export default function App() {
                   window.location.hash = `#/${next}`
                 }}
               />
-              {/* Icon-only on phones, so search and these fit on one row. */}
-              <div className="r-toolbar flex flex-wrap gap-1.5">
+              <div
+                // Icon-only buttons on phones, so search and these fit on one row.
+                className="r-toolbar flex flex-wrap gap-1.5"
+              >
                 <Button onClick={locate} aria-busy={locating} icon={<LocateFixed size={14} />}>
                   <span className="max-sm:sr-only">{locating ? 'Locating…' : 'My location'}</span>
                 </Button>
@@ -275,7 +284,10 @@ export default function App() {
                 <Button onClick={refresh} icon={<RefreshCw size={14} />}>
                   <span className="max-sm:sr-only">Refresh</span>
                 </Button>
-                <Button aria-pressed={theme === 'dark'} onClick={toggleTheme} icon={<Contrast size={14} />} className="max-sm:hidden">
+                <Button aria-pressed={theme === 'night'} onClick={toggleNight} icon={<Moon size={14} />} className="max-sm:hidden">
+                  Dark
+                </Button>
+                <Button aria-pressed={theme === 'dark'} onClick={toggleContrast} icon={<Contrast size={14} />} className="max-sm:hidden">
                   High contrast
                 </Button>
               </div>
@@ -341,8 +353,10 @@ export default function App() {
         page={unknownPage === null ? page : null}
         minimized={minimized}
         onToggleWindow={() => (minimized ? restore() : minimize())}
+        darkMode={theme === 'night'}
+        onToggleDark={toggleNight}
         highContrast={theme === 'dark'}
-        onToggleContrast={toggleTheme}
+        onToggleContrast={toggleContrast}
         warningNotifications={notificationsOn}
         onToggleNotifications={() => void toggleNotifications()}
       />

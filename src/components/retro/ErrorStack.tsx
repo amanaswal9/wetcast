@@ -2,22 +2,20 @@ import type { ReactNode } from 'react'
 import { MessageBox } from './MessageBox'
 
 interface ErrorStackProps {
-  /** Title-bar text of every window in the stack. */
+  // Title-bar text of every window in the stack.
   caption: string
   kind?: 'error' | 'warning' | 'info'
   title: string
   children: ReactNode
   actions?: ReactNode
-  /** Windows behind the front one (decoration only). */
+  // Windows behind the front one (decoration only).
   depth?: number
 }
 
-/**
- * The classic "it happened again, and again" cascade: a pile of identical message windows,
- * each a step down and to the right, with the real one in front. Used for failures and
- * not-found states. The windows behind are decoration, hidden from screen readers; they
- * pop in one after another unless reduced motion is on.
- */
+// The classic "it happened again, and again" cascade: a pile of identical message windows,
+// each a step down and to the right, with the real one in front. Used for failures and
+// not-found states. The windows behind are decoration, hidden from screen readers; they
+// pop in one after another unless reduced motion is on.
 // Each window steps down by more than a title bar's height, so every caption stays readable.
 const STEP_X = 22
 const STEP_Y = 26

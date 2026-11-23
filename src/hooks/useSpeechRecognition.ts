@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toVoiceError, type VoiceError } from '../lib/speechHelp'
 
-/**
- * Voice input through the browser's speech recognition (Web Speech API).
- * Available in Chrome, Edge and Safari; not in Firefox. It needs a secure page
- * (https or localhost) and microphone permission. In Chrome and Edge the audio
- * is processed by the browser maker's speech service, not by Wetcast.
- */
+// Voice input through the browser's speech recognition (Web Speech API).
+// Available in Chrome, Edge and Safari; not in Firefox. It needs a secure page
+// (https or localhost) and microphone permission. In Chrome and Edge the audio
+// is processed by the browser maker's speech service, not by Wetcast.
 interface RecognitionResultEvent {
   results: ArrayLike<ArrayLike<{ transcript: string }>>
 }

@@ -11,7 +11,7 @@ only, early-stopped on October-December. The trade-off, chosen on purpose: expec
 better on RMSE, R² and the hours that rained, and worse on mean absolute error, which rewards
 forecasting almost no rain (an always-dry forecast beats it on that measure).
 
-Honest numbers: the error ranges for rain are calibrated on out-of-fold 2025 predictions (each third
+Scoring: the error ranges for rain are calibrated on out-of-fold 2025 predictions (each third
 of the year corrected by a model that never saw it), and the ensemble is then re-scored on the 2026
 test period with train.evaluate, rewriting its metrics.json and evaluation.json.
 
@@ -67,9 +67,10 @@ def design(
     month = np.broadcast_to(np.asarray(months)[:, None], (n, H))
     hour = (np.asarray(hours)[:, None] + lead) % 24
     recent = np.clip(np.asarray(recent, dtype=float), 0, None)
-    cols = [
-        np.log1p(np.clip(ensemble, 0, None)),
-        *[np.log1p(np.clip(members[..., i], 0, None)) for i in range(members.shape[-1])],
+    # Column order matters: the saved trees expect exactly this layout.
+    cols = [np.log1p(np.clip(ensemble, 0, None))]
+    cols += [np.log1p(np.clip(members[..., i], 0, None)) for i in range(members.shape[-1])]
+    cols += [
         chance(chance_leads, ensemble),
         lead,
         np.sin(2 * np.pi * month / 12), np.cos(2 * np.pi * month / 12),
@@ -109,6 +110,7 @@ class RainAmount:
 
 
 def main() -> None:
+    # Training-only imports live here so that serving can import RainAmount cheaply.
     import lightgbm as lgb
 
     from . import train
@@ -155,9 +157,11 @@ def main() -> None:
         return ends, members
 
     def recent_rain(ends: np.ndarray) -> np.ndarray:
+        """(n, RECENT_HOURS) observed rain at the centre up to each issue hour, newest last."""
         return np.stack([ds.targets[ends - k, P] for k in range(RECENT_HOURS - 1, -1, -1)], -1)
 
     def X_of(ends, members):
+        """Correction inputs for the given windows and member forecasts."""
         rain = np.clip(members[:, :, P, :], 0, None)
         outlook = None if om is None else om[future_index(ends)]
         return design(rain.mean(-1), rain, months[ends], hours[ends], recent_rain(ends), chance_leads, outlook)
@@ -177,6 +181,7 @@ def main() -> None:
         print(f"day-old forecast missing for {np.isnan(v_X[:, -1]).mean():.2%} of validation hours", flush=True)
 
     def fit(rows: np.ndarray, trees: int | None = None, stop: np.ndarray | None = None):
+        """Fit on `rows`: a fixed number of trees, or early-stopped on the `stop` rows."""
         data = lgb.Dataset(v_X_fit[rows], v_y[rows])
         if trees is not None:
             return lgb.train(PARAMS, data, trees)
@@ -187,7 +192,7 @@ def main() -> None:
     first = fit(keep & (v_month <= 9), stop=v_month >= 10)
     trees = int(first.best_iteration)
     print(f"trees: {trees}", flush=True)
-    # 2. Out-of-fold 2025 amounts, for honest error ranges.
+    # 2. Out-of-fold 2025 amounts, so the error ranges are set on hours each model never saw.
     oof = np.zeros_like(v_y)
     for fold in FOLDS:
         inside = np.isin(v_month, fold)
@@ -212,13 +217,18 @@ def main() -> None:
         lookup.update({int(e): mean[i] for i, e in enumerate(ends)})
 
     def predict_ends(ends: np.ndarray) -> np.ndarray:
+        """Cached ensemble forecasts (with corrected rain) for the given windows."""
         missing = [int(e) for e in ends if int(e) not in lookup]
         if missing:
             raise SystemExit(f"{len(missing)} ensemble windows have no cached predictions; rerun recalibrate.")
         return np.stack([lookup[int(e)] for e in ends])
 
     old = json.loads((out / "metrics.json").read_text())
-    train.station_check = lambda *a, **k: old.get("station_check")  # temperature and humidity only: unchanged
+    def previous_station_check(ds, ends, lead6, lead24) -> dict:
+        """The station check covers temperature and humidity only, which this script leaves unchanged."""
+        return old.get("station_check")
+
+    train.station_check = previous_station_check
     lookback = int(old["data"]["lookback_hours"])
     bad = np.isnan(ds.targets).any(axis=1) | np.isnan(residual_targets(ds, RESIDUAL_INDICES)).any(axis=1)
     if not np.array_equal(window_ends(ds, "test", lookback=lookback, extra_bad=bad, cities=ds.city_indices("train")), np.load(cache / "ensemble__test_train.npz")["ends"]):
@@ -247,7 +257,7 @@ def main() -> None:
     }
     (out / "rain_amount.json").write_text(json.dumps(info, indent=2))
     keep_keys = {k: v for k, v in old.items() if k not in metrics}
-    merged = {**keep_keys, **metrics, "rain_amount": {k: v for k, v in info.items() if k != "params"}}
+    merged = keep_keys | metrics | {"rain_amount": {k: v for k, v in info.items() if k != "params"}}
     merged["method"] = "equal-weight mean of member predictions; rain amounts corrected to the expected amount (rain_amount.py)"
     (out / "metrics.json").write_text(json.dumps(merged, indent=2))
     (out / "evaluation.json").write_text(json.dumps(evaluation))

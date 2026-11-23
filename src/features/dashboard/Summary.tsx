@@ -6,6 +6,7 @@ interface SummaryProps {
   speech: { supported: boolean; speaking: boolean; speak: (text: string) => void; stop: () => void }
 }
 
+// Plain-language summary of the day, with a button to have it read aloud.
 export function Summary({ text, speech }: SummaryProps) {
   return (
     <GroupBox title="Summary">

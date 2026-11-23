@@ -1,4 +1,8 @@
-"""Wetcast API. Run: uvicorn app.main:app --reload --port 8000 (from backend/)."""
+"""Wetcast API: forecasts from Wetcast's own models, their track record, official alerts,
+the Javed assistant and saved places.
+
+Run from backend/ with: uvicorn app.main:app --reload --port 8000
+"""
 
 from __future__ import annotations
 
@@ -55,10 +59,11 @@ log = logging.getLogger("weatherai.api")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    """Migrate the database, load the models, and start the background jobs; stop them on shutdown."""
     migrate(engine())
     registry = get_registry()
     log.info("startup complete; models available: %s", ", ".join(registry.names) or "none")
-    tasks = [asyncio.create_task(asyncio.to_thread(registry.warm_up))]  # in the background: requests aren't held up
+    tasks = [asyncio.create_task(asyncio.to_thread(registry.warm_up))]  # in the background, so requests aren't held up
     if settings.track_record_interval_hours > 0:
         tasks.append(asyncio.create_task(scheduler(settings.track_record_interval_hours)))
         log.info("track record: forecasts issued and scored every %d h", settings.track_record_interval_hours)
@@ -83,6 +88,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
+    """Log each request with its status and how long it took."""
     started = time.perf_counter()
     response = await call_next(request)
     log.info("%s %s -> %s in %.0f ms", request.method, request.url.path, response.status_code, (time.perf_counter() - started) * 1000)
@@ -91,6 +97,7 @@ async def log_requests(request: Request, call_next):
 
 @app.exception_handler(Exception)
 async def unhandled(_: Request, exc: Exception):
+    """Log the full error, but give the visitor a short message with no internals."""
     log.exception("unhandled error: %s", exc)
     return JSONResponse(status_code=500, content={"detail": "Something went wrong on the server. Try again."})
 
@@ -102,6 +109,8 @@ CLIENT_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 
 
 def client_id(x_client_id: Annotated[str, Header()]) -> str:
+    """The anonymous browser id from the X-Client-Id header. There are no accounts; this id
+    keeps one visitor's saved places and question count apart from another's."""
     if not CLIENT_ID.match(x_client_id):
         raise HTTPException(status_code=400, detail="X-Client-Id must be 8 to 64 letters, digits or dashes.")
     return x_client_id
@@ -111,15 +120,17 @@ ClientDep = Annotated[str, Depends(client_id)]
 
 
 def city_out(city) -> CityOut:
+    """A city for the API. Grid points (ids starting "pt") get no training role."""
     role = city.role if city.role in ("train", "holdout") and not city.id.startswith("pt") else None
     return CityOut(id=city.id, name=city.name, latitude=city.latitude, longitude=city.longitude, role=role)
 
 
-# ---- health and models --------------------------------------------------------------
+# Health and model information.
 
 
 @app.get("/api/health", response_model=HealthOut)
 def health(session: SessionDep, registry: RegistryDep) -> HealthOut:
+    """Whether the database answers and which models are loaded."""
     try:
         session.execute(text("SELECT 1"))
         database = "ok"
@@ -138,11 +149,13 @@ def coverage(registry: RegistryDep) -> list[CityOut]:
 
 @app.get("/api/models")
 def list_models(registry: RegistryDep) -> dict:
+    """Test-period metrics for every served model."""
     return {"models": [registry.metrics(name) for name in registry.names]}
 
 
 @app.get("/api/models/{name}")
 def model_detail(name: str, registry: RegistryDep) -> dict:
+    """Test-period metrics for one model."""
     if registry.get(name) is None:
         raise HTTPException(status_code=404, detail=f"No trained model called {name!r}.")
     return registry.metrics(name)
@@ -155,6 +168,7 @@ def model_evaluation(
     include_samples: Annotated[bool, Query(description="Include actual-vs-predicted series")] = True,
     city: Annotated[str | None, Query(max_length=32)] = None,
 ) -> dict:
+    """The full evaluation of one model, optionally with the actual-vs-predicted series for one city."""
     if registry.get(name) is None:
         raise HTTPException(status_code=404, detail=f"No trained model called {name!r}.")
     evaluation = dict(registry.evaluation(name))
@@ -167,7 +181,7 @@ def model_evaluation(
     return evaluation
 
 
-# ---- predictions ----------------------------------------------------------------------
+# Forecasts from Wetcast's own models.
 
 
 @app.get(
@@ -183,6 +197,8 @@ def predictions(
     models: Annotated[list[str] | None, Query()] = None,
     country: Annotated[str | None, Query(min_length=2, max_length=2, pattern="^[A-Za-z]{2}$")] = None,
 ):
+    """The next 24 hours from each requested model, with error ranges and how accurate to expect
+    them at this place. Places the models don't cover get a 404 listing the cities they do."""
     region = registry.region_id
     located = model_coverage.locate(region, latitude, longitude, country)
     if located is None:
@@ -234,7 +250,7 @@ def predictions(
                 row[f"{target}_upper"] = round(float(pred.upper[i, k]), 2)
             if pred.rain_chance is not None:
                 row["rain_chance"] = round(float(pred.rain_chance[i]), 3)
-            points.append(PredictionPointOut(**row))
+            points.append(PredictionPointOut.model_validate(row))
         results.append(ModelPredictionOut(model=name, display_name=registry.display_name(name), points=points))
 
     level = registry.metrics(names[0])["interval"]["level"]
@@ -265,7 +281,7 @@ def predictions(
     )
 
 
-# ---- live track record ---------------------------------------------------------------
+# Live track record.
 
 
 @app.get("/api/track-record")
@@ -281,7 +297,7 @@ def track_record(
     return track_record_summary(session, registry, days=days, city=city)
 
 
-# ---- official alerts -----------------------------------------------------------------
+# Official alerts. These notes are shown under the alerts list.
 
 SACHET_NOTE = (
     "Official alerts for India from NDMA's Sachet portal, which carries warnings from the India Meteorological "
@@ -330,11 +346,12 @@ def alerts(
     return body
 
 
-# ---- assistant (Hosted or a free local model) ------------------------------------------
+# The Javed assistant (Hosted or a free local model).
 
 
 @app.get("/api/assistant/status", response_model=AssistantStatus)
 def assistant_status() -> AssistantStatus:
+    """Whether the Ask page can be used, who answers, and the daily question limit."""
     which = weather_assistant.provider()
     return AssistantStatus(
         configured=which is not None,
@@ -346,7 +363,8 @@ def assistant_status() -> AssistantStatus:
 
 @app.post("/api/assistant", response_model=AssistantOut, responses={429: {}, 502: {}, 503: {}, 504: {}})
 def ask_assistant(body: AssistantIn, session: SessionDep, registry: RegistryDep, client: ClientDep):
-    """Answer a weather question (Hosted or the local model), using only data looked up through read-only tools."""
+    """Answer a weather question (Hosted or the local model), using only data looked up through read-only tools.
+    A question that fails before it is answered does not count towards the visitor's daily limit."""
     if body.messages[-1].role != "user":
         raise HTTPException(status_code=422, detail="The last message must be the question.")
     if not weather_assistant.is_configured():
@@ -392,10 +410,19 @@ def ask_assistant(body: AssistantIn, session: SessionDep, registry: RegistryDep,
     return AssistantOut(reply=reply.text, sources=reply.sources, model=reply.model)
 
 
-# ---- saved places ---------------------------------------------------------------------
+# Saved places, kept per anonymous client id.
+
+
+def saved_place(client: str, place: PlaceIn, is_home: bool = False) -> SavedPlace:
+    """A database row for one of this client's saved places."""
+    return SavedPlace(
+        client_id=client, place_id=place.place_id, name=place.name, admin1=place.admin1,
+        country=place.country, latitude=place.latitude, longitude=place.longitude, is_home=is_home,
+    )
 
 
 def place_out(p: SavedPlace) -> PlaceOut:
+    """A saved place for the API."""
     return PlaceOut(
         place_id=p.place_id, name=p.name, admin1=p.admin1, country=p.country,
         latitude=p.latitude, longitude=p.longitude, is_home=p.is_home,
@@ -404,19 +431,21 @@ def place_out(p: SavedPlace) -> PlaceOut:
 
 @app.get("/api/places", response_model=list[PlaceOut])
 def list_places(session: SessionDep, client: ClientDep) -> list[PlaceOut]:
+    """This client's saved places, oldest first."""
     rows = session.scalars(select(SavedPlace).where(SavedPlace.client_id == client).order_by(SavedPlace.id))
     return [place_out(p) for p in rows]
 
 
 @app.post("/api/places", response_model=PlaceOut, status_code=201)
 def add_place(body: PlaceIn, session: SessionDep, client: ClientDep) -> PlaceOut:
+    """Save a place. Saving one that is already saved returns it unchanged."""
     existing = session.scalar(select(SavedPlace).where(SavedPlace.client_id == client, SavedPlace.place_id == body.place_id))
     if existing:
         return place_out(existing)
     count = len(session.scalars(select(SavedPlace.id).where(SavedPlace.client_id == client)).all())
     if count >= 8:
         raise HTTPException(status_code=409, detail="You can save up to 8 places. Remove one first.")
-    place = SavedPlace(client_id=client, **body.model_dump())
+    place = saved_place(client, body)
     session.add(place)
     session.commit()
     return place_out(place)
@@ -424,6 +453,7 @@ def add_place(body: PlaceIn, session: SessionDep, client: ClientDep) -> PlaceOut
 
 @app.put("/api/places/{place_id}/home", response_model=PlaceOut)
 def set_home(place_id: str, session: SessionDep, client: ClientDep) -> PlaceOut:
+    """Make a saved place the home place; any other place loses that mark."""
     place = session.scalar(select(SavedPlace).where(SavedPlace.client_id == client, SavedPlace.place_id == place_id))
     if place is None:
         raise HTTPException(status_code=404, detail="That place isn't saved.")
@@ -435,6 +465,7 @@ def set_home(place_id: str, session: SessionDep, client: ClientDep) -> PlaceOut:
 
 @app.delete("/api/places/{place_id}/home", status_code=204)
 def unset_home(place_id: str, session: SessionDep, client: ClientDep) -> None:
+    """Clear the home mark from a place. Doing it twice is harmless."""
     session.execute(
         update(SavedPlace)
         .where(SavedPlace.client_id == client, SavedPlace.place_id == place_id)
@@ -452,10 +483,7 @@ def replace_places(body: PlacesReplace, session: SessionDep, client: ClientDep) 
     if body.home_place_id is not None and body.home_place_id not in ids:
         raise HTTPException(status_code=422, detail="The home place must be one of the saved places.")
     session.execute(delete(SavedPlace).where(SavedPlace.client_id == client))
-    rows = [
-        SavedPlace(client_id=client, is_home=p.place_id == body.home_place_id, **p.model_dump())
-        for p in body.places
-    ]
+    rows = [saved_place(client, p, is_home=p.place_id == body.home_place_id) for p in body.places]
     session.add_all(rows)
     session.commit()
     return [place_out(p) for p in rows]
@@ -463,5 +491,6 @@ def replace_places(body: PlacesReplace, session: SessionDep, client: ClientDep) 
 
 @app.delete("/api/places/{place_id}", status_code=204)
 def remove_place(place_id: str, session: SessionDep, client: ClientDep) -> None:
+    """Remove a saved place. Removing one that isn't saved is not an error."""
     session.execute(delete(SavedPlace).where(SavedPlace.client_id == client, SavedPlace.place_id == place_id))
     session.commit()

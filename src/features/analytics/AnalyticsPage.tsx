@@ -36,7 +36,7 @@ function fmtValue(v: number, target: Target) {
   return target === 'precipitation' ? `${v.toFixed(1)} mm` : `${round(v)}${TARGET_UNITS[target]}`
 }
 
-/** "2026-10-17T05:00Z" -> India local (UTC+5:30) date label. The trained region is all in IST. */
+// "2026-10-17T05:00Z" -> India local (UTC+5:30) date label. The trained region is all in IST.
 function istLabel(utc: string): string {
   const d = new Date(Date.parse(utc.replace('Z', ':00Z')) + 5.5 * 3_600_000)
   return d.toISOString().slice(0, 10)
@@ -299,6 +299,7 @@ function HistoricalTrends({ place, theme }: { place: Place; theme: Theme }) {
   )
 }
 
+// Analytics page: predictions against what was measured, and past trends for the place.
 export function AnalyticsPage({ place, theme }: { place: Place; theme: Theme }) {
   return (
     <div className="flex min-w-0 flex-col gap-3">

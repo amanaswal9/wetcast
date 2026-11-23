@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import threading
 from dataclasses import dataclass, field
 from collections.abc import Callable
@@ -47,6 +48,8 @@ How to answer:
 - If someone asks about danger, safety, or what to do in severe weather, look up official warnings, repeat any that apply as issued, and tell them to follow their national weather service or local authorities. Don't give your own safety rulings.
 - Use the place's local time. Use °C, km/h, mm and %.
 - Keep answers short: two to five sentences, or a short list when comparing days. Plain words, no jargon, no emoji.
+- Write plain text only. The app shows your reply exactly as written, so do not use markdown: no asterisks, no bold or italics, no headings, no tables.
+- For a list, start each item on its own line with "- " (a hyphen and a space).
 - Only weather, this app, and how its models work. Politely decline anything else.
 
 Tools:
@@ -63,6 +66,7 @@ LAT_LON = {
 
 
 def _tool(name: str, description: str, properties: dict, required: list[str]) -> dict:
+    """One tool definition in the Messages API format, with strict argument checking."""
     return {
         "name": name,
         "description": description,
@@ -87,13 +91,13 @@ TOOLS = [
     _tool(
         "get_weatherai_prediction",
         "Wetcast's own machine-learning forecast for the next 24 hours, with 80% error ranges, and how accurate it has been at this kind of place. Available in India (near the cities its models were trained on); elsewhere it says so.",
-        {**LAT_LON, "country_code": {"type": "string", "description": "Two-letter country code, e.g. IN; empty string if unknown"}},
+        LAT_LON | {"country_code": {"type": "string", "description": "Two-letter country code, e.g. IN; empty string if unknown"}},
         ["latitude", "longitude", "country_code"],
     ),
     _tool(
         "get_official_alerts",
         "Official weather warnings in effect at a point: India (NDMA Sachet, from IMD and state authorities) and the United States (National Weather Service).",
-        {**LAT_LON, "country_code": {"type": "string", "description": "Two-letter country code, e.g. IN or US; empty string if unknown"}},
+        LAT_LON | {"country_code": {"type": "string", "description": "Two-letter country code, e.g. IN or US; empty string if unknown"}},
         ["latitude", "longitude", "country_code"],
     ),
     _tool(
@@ -103,8 +107,9 @@ TOOLS = [
         [],
     ),
 ]
-TOOLS[-1]["cache_control"] = {"type": "ephemeral"}  # instructions + tools are the same every time: cache them
+TOOLS[-1]["cache_control"] = {"type": "ephemeral"}  # instructions and tools are the same every time, so cache them
 
+# The source names shown under an answer, one per tool that was used.
 SOURCE_LABELS = {
     "find_place": "Open-Meteo geocoding",
     "get_weather": "Open-Meteo forecast",
@@ -124,6 +129,8 @@ class AssistantUnavailable(RuntimeError):
 
 @dataclass
 class Reply:
+    """An answer for the Ask page, with what it cost and which lookups it used."""
+
     text: str
     sources: list[str]
     model: str
@@ -133,10 +140,23 @@ class Reply:
     tools_used: list[str] = field(default_factory=list)
 
 
-# ---- configuration and limits ---------------------------------------------------------
+# Markdown the models sometimes write even when told not to. The Ask page shows text as it is,
+# so a stray asterisk would appear on screen.
+_STAR_BULLET = re.compile(r"^([ \t]*)[*•][ \t]+", re.MULTILINE)
+_EXTRA_SPACES = re.compile(r"(?<=\S)[ \t]{2,}(?=\S)")
+
+
+def plain_text(text: str | None) -> str:
+    """Clean a model's reply for the Ask page: bullet lines become "- " items,
+    bold and italic markers are dropped, and any other asterisk is removed. The words stay."""
+    text = _STAR_BULLET.sub(r"\1- ", text or "")
+    text = text.replace("*", "")
+    lines = [_EXTRA_SPACES.sub(" ", line).rstrip() for line in text.split("\n")]
+    return "\n".join(lines).strip()
 
 
 def api_key() -> str | None:
+    """The Hosted key from settings, or from the SDK's usual HOSTED_API_KEY."""
     key = get_settings().hosted_api_key
     return key.get_secret_value() if key else os.environ.get("HOSTED_API_KEY") or None
 
@@ -156,10 +176,12 @@ def provider() -> str | None:
 
 
 def is_configured() -> bool:
+    """True when some provider can answer questions right now."""
     return provider() is not None
 
 
 def model_name(which: str | None) -> str:
+    """The model that answers for a provider, as shown on the Ask page."""
     settings = get_settings()
     return settings.ollama_model if which == "local" else settings.assistant_model
 
@@ -227,13 +249,13 @@ LIMITS = DailyLimits()
 
 
 def make_client() -> hosted.Hosted:
+    """A Hosted client: two retries, and at most 60 seconds per attempt."""
     return hosted.Hosted(api_key=api_key(), max_retries=2, timeout=60)
 
 
-# ---- the loop -------------------------------------------------------------------------
-
-
 def run_tool(name: str, args: dict, session: Session, registry: ModelRegistry) -> dict:
+    """Run one tool the model asked for. Bad coordinates or an unknown tool raise ValueError,
+    which the caller passes back to the model as a failed lookup."""
     if name == "find_place":
         return data.find_place(str(args["name"])[:100])
     if name == "get_model_accuracy":
@@ -251,6 +273,7 @@ def run_tool(name: str, args: dict, session: Session, registry: ModelRegistry) -
 
 
 def context_message(place: dict) -> str:
+    """The first user turn: which place is on screen, and the time now."""
     country = place.get("country_code") or "unknown"
     return (
         f"[App context] The person is looking at {place['name']} "
@@ -261,7 +284,8 @@ def context_message(place: dict) -> str:
 
 def answer(conversation: list[dict], place: dict, session: Session, registry: ModelRegistry, client=None) -> Reply:
     """Answer the last user message. `conversation` is the visible chat so far
-    (plain text turns, oldest first, ending with the user's question)."""
+    (plain text turns, oldest first, ending with the user's question). Calls Hosted, or hands
+    over to the local model when that is the provider."""
     if client is None and provider() == "local":
         from . import assistant_local
 
@@ -273,9 +297,10 @@ def answer(conversation: list[dict], place: dict, session: Session, registry: Mo
     messages: list[dict] = [{"role": "user", "content": context_message(place)}]
     messages += [{"role": m["role"], "content": m["content"]} for m in conversation]
 
-    extra: dict = {}
-    if model in FALLBACK_MODELS:
-        extra = {"betas": [FALLBACK_BETA], "fallbacks": "default"}
+    # Models that support it get Hosted's refusal fallback; for the rest these stay unset.
+    use_fallback = model in FALLBACK_MODELS
+    betas = [FALLBACK_BETA] if use_fallback else hosted.omit
+    fallbacks = "default" if use_fallback else hosted.omit
 
     reply = Reply(text="", sources=[], model=model)
     for round_no in range(1, MAX_ROUNDS + 1):
@@ -287,7 +312,8 @@ def answer(conversation: list[dict], place: dict, session: Session, registry: Mo
             tools=TOOLS,
             messages=messages,
             output_config={"effort": settings.assistant_effort},
-            **extra,
+            betas=betas,
+            fallbacks=fallbacks,
         )
         usage = getattr(response, "usage", None)
         reply.input_tokens += getattr(usage, "input_tokens", 0) or 0
@@ -298,7 +324,7 @@ def answer(conversation: list[dict], place: dict, session: Session, registry: Mo
             reply.text = "I can't help with that one. I can answer questions about the weather and how Wetcast's forecasts work."
             return reply
         if response.stop_reason != "tool_use":
-            reply.text = "\n\n".join(b.text for b in response.content if b.type == "text").strip()
+            reply.text = plain_text("\n\n".join(b.text for b in response.content if b.type == "text"))
             if response.stop_reason == "max_tokens":
                 reply.text += "\n\n(The answer was cut short.)"
             if not reply.text:

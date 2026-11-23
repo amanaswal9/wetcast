@@ -1,30 +1,27 @@
-/**
- * Weather-map grid: Open-Meteo forecasts at evenly spaced points over the visible map.
- *
- * Each point is Open-Meteo's forecast for that exact spot (model data, not a
- * measurement). Points sit on multiples of the grid spacing, so panning reuses
- * points already fetched and only the new ones are requested.
- */
+// Weather-map grid: Open-Meteo forecasts at evenly spaced points over the visible map.
+//
+// Each point is Open-Meteo's forecast for that exact spot (model data, not a
+// measurement). Points sit on multiples of the grid spacing, so panning reuses
+// points already fetched and only the new ones are requested.
 import { ApiError, fetchJson } from './http'
 import { arr, numOrNull, obj, str } from './validate'
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
 const VARS = ['temperature_2m', 'precipitation', 'wind_speed_10m', 'wind_direction_10m'] as const
+// Hours ahead the map's slider covers.
 export const MAP_HOURS = 48
-/** Open-Meteo counts every location as one call, so keep views modest. */
+// Open-Meteo counts every location as one call, so keep views modest.
 const MAX_POINTS = 160
 const CHUNK = 100
 const TTL_MS = 30 * 60_000
-/** Smallest square on screen, in pixels, so the grid stays readable. */
+// Smallest square on screen, in pixels, so the grid stays readable.
 const MIN_CELL_PX = 40
-/**
- * Open-Meteo's free tier allows 600 calls a minute per visitor, shared with the rest of
- * the app. The map keeps itself to this many points in any rolling minute and waits
- * rather than hitting the limit.
- */
+// Open-Meteo's free tier allows 600 calls a minute per visitor, shared with the rest of
+// the app. The map keeps itself to this many points in any rolling minute and waits
+// rather than hitting the limit.
 export const POINTS_PER_MINUTE = 400
 
-/** Grid spacings in degrees, finest first. */
+// Grid spacings in degrees, finest first.
 export const SPACINGS = [0.1, 0.25, 0.5, 1, 2, 5, 10, 20] as const
 
 export interface Bounds {
@@ -34,7 +31,7 @@ export interface Bounds {
   east: number
 }
 
-/** The map's size on screen, in pixels. */
+// The map's size on screen, in pixels.
 export interface ViewSize {
   width: number
   height: number
@@ -47,7 +44,7 @@ export interface GridPoint {
 }
 
 export interface PointForecast {
-  /** UTC times, one per hour. */
+  // UTC times, one per hour.
   times: number[]
   temperature: (number | null)[]
   precipitation: (number | null)[]
@@ -71,7 +68,7 @@ function clampLon(value: number): number {
   return Math.min(Math.max(value, -180), 180)
 }
 
-/** Grid indices whose points lie within [lo, hi] widened by half a cell, so squares reach the map's edges. */
+// Grid indices whose points lie within [lo, hi] widened by half a cell, so squares reach the map's edges.
 function indexRange(lo: number, hi: number, spacing: number, clamp: (v: number) => number): [number, number] {
   return [Math.ceil(clamp(lo - spacing / 2) / spacing - 1e-9), Math.floor(clamp(hi + spacing / 2) / spacing + 1e-9)]
 }
@@ -80,7 +77,7 @@ function count(range: [number, number]): number {
   return Math.max(0, range[1] - range[0] + 1)
 }
 
-/** Finest spacing that fits at most `maxCount` points across the span. */
+// Finest spacing that fits at most `maxCount` points across the span.
 function pickSpacing(lo: number, hi: number, maxCount: number, clamp: (v: number) => number): number {
   for (const s of SPACINGS) if (count(indexRange(lo, hi, s, clamp)) <= maxCount) return s
   return SPACINGS[SPACINGS.length - 1]
@@ -95,15 +92,14 @@ function round(value: number): number {
   return Math.round(value * 1000) / 1000
 }
 
+// Cache key for a grid point, rounded so floating-point noise doesn't split entries.
 export function pointKey(latitude: number, longitude: number): string {
   return `${round(latitude).toFixed(3)},${round(longitude).toFixed(3)}`
 }
 
-/**
- * Grid points covering the view, on multiples of the spacings. Each axis gets the
- * finest spacing that keeps squares at least MIN_CELL_PX on screen; the total is
- * capped at MAX_POINTS by coarsening the finer axis.
- */
+// Grid points covering the view, on multiples of the spacings. Each axis gets the
+// finest spacing that keeps squares at least MIN_CELL_PX on screen; the total is
+// capped at MAX_POINTS by coarsening the finer axis.
 export function gridFor(bounds: Bounds, size: ViewSize = { width: 720, height: 400 }): Grid {
   const { south, north, west, east } = bounds
   const maxCols = Math.max(3, Math.floor(size.width / MIN_CELL_PX))
@@ -128,12 +124,12 @@ export function gridFor(bounds: Bounds, size: ViewSize = { width: 720, height: 4
   return { latSpacing, lonSpacing, points: points.slice(0, MAX_POINTS) }
 }
 
-/** The grid point closest to a position (by degrees, which is fine at this scale). */
+// The grid point closest to a position (by degrees, which is fine at this scale).
 export function nearestPoint(points: GridPoint[], latitude: number, longitude: number): GridPoint | null {
   let best: GridPoint | null = null
   let bestD = Infinity
   for (const p of points) {
-    const d = (p.latitude - latitude) ** 2 + (p.longitude - longitude) ** 2
+    const d = Math.hypot(p.latitude - latitude, p.longitude - longitude)
     if (d < bestD) {
       bestD = d
       best = p
@@ -142,6 +138,7 @@ export function nearestPoint(points: GridPoint[], latitude: number, longitude: n
   return best
 }
 
+// Read one location from an Open-Meteo multi-location response.
 export function parsePoint(raw: unknown): PointForecast {
   const hourly = obj(obj(raw, 'location').hourly, 'hourly')
   const times = arr(hourly.time, 'hourly.time').map((t) => Date.parse(`${str(t, 'time')}Z`))
@@ -161,16 +158,16 @@ export function parsePoint(raw: unknown): PointForecast {
 
 const pointCache = new Map<string, { expires: number; forecast: PointForecast }>()
 
-/** Points with no fresh cached forecast. */
+// Points with no fresh cached forecast.
 export function uncachedPoints(points: GridPoint[]): GridPoint[] {
   const now = Date.now()
   return points.filter((p) => !((pointCache.get(p.key)?.expires ?? 0) > now))
 }
 
-/** Points requested recently, for the per-minute budget. */
+// Points requested recently, for the per-minute budget.
 const spent: { at: number; points: number }[] = []
 
-/** How long to wait before `points` more fit in the rolling one-minute budget. */
+// How long to wait before `points` more fit in the rolling one-minute budget.
 export function budgetWaitMs(points: number, now = Date.now()): number {
   while (spent.length && spent[0].at <= now - 60_000) spent.shift()
   let used = spent.reduce((sum, s) => sum + s.points, 0)
@@ -196,20 +193,18 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   })
 }
 
-/** Forget cached points (used by the Refresh button and tests). */
+// Forget cached points (used by the Refresh button and tests).
 export function clearGridCache(): void {
   pointCache.clear()
 }
 
-/** Reset the per-minute budget (tests only). */
+// Reset the per-minute budget (tests only).
 export function resetBudget(): void {
   spent.length = 0
 }
 
-/**
- * Forecasts for every point, fetching only those not cached. Missing points are
- * fetched in batches of up to 100 locations per request.
- */
+// Forecasts for every point, fetching only those not cached. Missing points are
+// fetched in batches of up to 100 locations per request.
 export async function getGridForecasts(
   points: GridPoint[],
   options: { signal?: AbortSignal; fresh?: boolean; onWait?: (ms: number) => void; onProgress?: (done: number, total: number) => void } = {},

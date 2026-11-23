@@ -1,4 +1,4 @@
-import * as RadixTabs from '@radix-ui/react-tabs'
+import { Tabs as TabsRoot, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Button, ChartSkeleton, GroupBox, MessageBox, PixelWeatherIcon, Skeleton } from '../../components/retro'
 import { useResource } from '../../hooks/useResource'
@@ -31,7 +31,7 @@ function DayButton({ day, index, weekMin, weekMax }: { day: DayDetail; index: nu
   // The button's name is its visible text plus a few hidden words ("high", "low", the
   // conditions), so what people see is what voice control and screen readers hear.
   return (
-    <RadixTabs.Trigger value={day.date} className="r-day shrink-0 snap-start md:w-auto">
+    <TabsTrigger value={day.date} className="r-day shrink-0 snap-start md:w-auto">
       <span className="r-day-name self-start">{dayName(day.date, index, 'short')}</span>
       <span className="text-[0.92em]">
         {shortDate(day.date)}
@@ -52,7 +52,7 @@ function DayButton({ day, index, weekMin, weekMax }: { day: DayDetail; index: nu
       <span className="mt-1 text-[0.92em] tabular-nums">
         Rain {day.precipitationProbabilityMax === null ? 'n/a' : `${day.precipitationProbabilityMax}%`}
       </span>
-    </RadixTabs.Trigger>
+    </TabsTrigger>
   )
 }
 
@@ -125,6 +125,7 @@ interface ForecastPageProps {
   onSelectPlace: (place: Place) => void
 }
 
+// Forecast page: a seven-day strip, then the hourly detail and model predictions for the chosen day.
 export function ForecastPage({ place, theme, refreshToken, onSelectPlace }: ForecastPageProps) {
   const week = useResource(coordKey(place), ({ signal, fresh }) => getWeekForecast(place, { signal, fresh }), 10 * MINUTE)
   const { reload } = week
@@ -162,25 +163,25 @@ export function ForecastPage({ place, theme, refreshToken, onSelectPlace }: Fore
           {week.error?.message}
         </MessageBox>
       )}
-      <RadixTabs.Root value={activeDate} onValueChange={setSelected} className="flex min-w-0 flex-col gap-3">
+      <TabsRoot value={activeDate} onValueChange={setSelected} className="flex min-w-0 flex-col gap-3">
         <GroupBox title={`Next 7 days in ${placeShortLabel(place)}`}>
-          <RadixTabs.List aria-label="Choose a day" className="r-day-strip flex snap-x gap-1 overflow-x-auto pb-1 md:grid md:grid-cols-7 md:overflow-visible">
+          <TabsList aria-label="Choose a day" className="r-day-strip flex snap-x gap-1 overflow-x-auto pb-1 md:grid md:grid-cols-7 md:overflow-visible">
             {days.map((day, i) => (
               <DayButton key={day.date} day={day} index={i} weekMin={weekMin} weekMax={weekMax} />
             ))}
-          </RadixTabs.List>
+          </TabsList>
           <p className="m-0 mt-2 text-[0.92em] text-[var(--text-muted)]">
             Open-Meteo forecast. The bar under each day shows its temperature range within the week.
           </p>
         </GroupBox>
         {days.map((day, i) => (
-          <RadixTabs.Content key={day.date} value={day.date} className="outline-none">
+          <TabsContent key={day.date} value={day.date} className="outline-none">
             <GroupBox title={`${dayName(day.date, i, 'long')}, ${shortDate(day.date)}`}>
               <DayDetailPanel week={data} day={day} index={i} theme={theme} />
             </GroupBox>
-          </RadixTabs.Content>
+          </TabsContent>
         ))}
-      </RadixTabs.Root>
+      </TabsRoot>
       <ModelPredictionPanel place={place} week={data} theme={theme} onSelectPlace={onSelectPlace} />
       {activeIndex < 0 && <p className="m-0">No forecast days were returned for this place.</p>}
     </div>

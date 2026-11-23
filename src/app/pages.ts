@@ -5,11 +5,12 @@ export type PageId = 'dashboard' | 'forecast' | 'map' | 'assistant' | 'analytics
 export interface PageInfo {
   id: PageId
   label: string
-  /** What the page will contain; shown while it is still being built. */
+  // What the page will contain; shown while it is still being built.
   plan: string
   ready: boolean
 }
 
+// Every page in menu order. The id is also the URL hash, for example #/map.
 export const PAGES: PageInfo[] = [
   { id: 'dashboard', label: 'Dashboard', plan: '', ready: true },
   { id: 'forecast', label: 'Forecast', plan: '', ready: true },
@@ -30,7 +31,7 @@ function pageFromHash(): PageId {
   return PAGES.some((p) => p.id === id) ? (id as PageId) : 'dashboard'
 }
 
-/** The address asked for when it isn't a page (e.g. "#/radar"), else null. */
+// The address asked for when it isn't a page (e.g. "#/radar"), else null.
 export function useUnknownPage(): string | null {
   const [id, setId] = useState(hashId)
   useEffect(() => {
@@ -41,7 +42,7 @@ export function useUnknownPage(): string | null {
   return id && !PAGES.some((p) => p.id === id) ? id : null
 }
 
-/** Hash-based page state, so pages are linkable without a router yet. */
+// Hash-based page state, so pages are linkable without a router yet.
 export function usePage(): PageId {
   const [page, setPage] = useState<PageId>(pageFromHash)
 

@@ -8,14 +8,12 @@ export interface ResourceState<T> {
   status: 'idle' | 'loading' | 'success' | 'error'
   data?: T
   error?: ApiError
-  /** True while re-fetching data that is already on screen. */
+  // True while re-fetching data that is already on screen.
   refreshing: boolean
 }
 
-/**
- * Loads data for a key, cancels stale requests, keeps showing the previous
- * data while refreshing the same key, and can auto-refresh on an interval.
- */
+// Loads data for a key, cancels stale requests, keeps showing the previous
+// data while refreshing the same key, and can auto-refresh on an interval.
 export function useResource<T>(key: string | null, loader: Loader<T>, refreshMs?: number) {
   const [state, setState] = useState<ResourceState<T>>({ status: 'idle', refreshing: false })
   const [tick, setTick] = useState(0)

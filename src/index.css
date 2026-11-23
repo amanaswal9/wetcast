@@ -4,8 +4,8 @@
 
 /*
   Wetcast design tokens: "Classic" (1990s Windows NT) theme.
-  Every colour in the app comes from these variables, so the light and
-  high-contrast dark themes stay in one place.
+  Every colour in the app comes from these variables, so the light, dark and
+  high-contrast themes stay in one place.
 */
 @theme {
   /* Tahoma ships with Windows; Verdana is the closest free fallback elsewhere. */
@@ -43,6 +43,44 @@
   --lcd-bg: #000000;
   --lcd-on: #39ff6a;
   --lcd-off: rgb(57 255 106 / 0.13);
+  --desk-ink: #d8eeee;
+  --link: #0000a8;
+}
+
+/*
+  Dark mode: the classic look after hours. Charcoal panels on a dimmed teal desktop, soft
+  off-white text and a calm blue title bar. Bevels keep their light top-left and dark
+  bottom-right edges, just in darker greys, so every control still reads as raised or sunken.
+*/
+:root[data-theme='night'] {
+  color-scheme: dark;
+  --desk: #0f2a2c;
+  --face: #2b2f33;
+  --hilite: #6a7178;
+  --light: #42484e;
+  --shadow: #1a1c1f;
+  --dark: #0a0b0c;
+  --field: #1b1e21;
+  --field-text: #e6e4e0;
+  --text: #e6e4e0;
+  --text-muted: #a9adb2;
+  --title: #1f4e8c;
+  --title-text: #ffffff;
+  --title-inactive: #3d4247;
+  --title-inactive-text: #b8bcc0;
+  --select: #3d6fb5;
+  --select-text: #ffffff;
+  --danger: #ff8a80;
+  --tip-bg: #33373c;
+  --tip-text: #f0eeea;
+  --tip-border: #0a0b0c;
+  --term-bg: #0a0b0c;
+  --term-text: #b8c4b8;
+  --lcd-bg: #0a0b0c;
+  --lcd-on: #39ff6a;
+  --lcd-off: rgb(57 255 106 / 0.12);
+  --desk-ink: #6f9c9e;
+  --link: #8cc4ff;
 }
 
 /* High-contrast black, modelled on the classic accessibility scheme. */
@@ -73,6 +111,8 @@
   --lcd-bg: #000000;
   --lcd-on: #ffffff;
   --lcd-off: rgb(255 255 255 / 0.16);
+  --desk-ink: #ffffff;
+  --link: #00ffff;
 }
 
 html {
@@ -97,16 +137,29 @@ body {
   }
 }
 
+/* Plain links in text: underlined and in a link colour, as people expect. Links that are
+   styled as buttons or menu items have a class and keep their own look. */
+a:not([class]) {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a:not([class]):focus-visible {
+  outline: 1px dotted var(--text);
+  outline-offset: 1px;
+}
+
 ::selection {
   background: var(--select);
   color: var(--select-text);
 }
 
 /*
- * Pixel-exact bevels: --px is the CSS length of a whole number of screen pixels closest to
- * 1px (0.8px at 125% scaling, 1.333px at 150%). index.html sets it before first paint and
- * when the zoom or screen changes. Bevels and dither tiles use these, so they stay sharp.
- */
+  Pixel-exact bevels: --px is the CSS length of a whole number of screen pixels closest to
+  1px (0.8px at 125% scaling, 1.333px at 150%). index.html sets it before first paint and
+  when the zoom or screen changes. Bevels and dither tiles use these, so they stay sharp.
+*/
 :root {
   --px: 1px;
   --p1: var(--px);
@@ -689,6 +742,11 @@ body {
     filter: grayscale(1) invert(1) brightness(0.75) contrast(1.1);
   }
 
+  /* Dark mode: the same inverted basemap, a little softer so the weather colours stand out. */
+  .r-map[data-theme='night'] .leaflet-tile-pane {
+    filter: grayscale(1) invert(1) brightness(0.62) contrast(0.95);
+  }
+
   /* The weather image is small and scaled up: let the browser smooth it. */
   .r-map .r-map-field {
     image-rendering: auto;
@@ -1180,11 +1238,11 @@ body {
 }
 
 /*
- * Feedback that answers what the person did, in NT's own vocabulary: menus slide open from
- * where they were opened, controls press in, and the pointer shows an hourglass while weather
- * is loading. No hover animations or entrance effects. The slides are off with reduced motion;
- * pressing in is not motion, so it stays.
- */
+  Feedback that answers what the person did, in NT's own vocabulary: menus slide open from
+  where they were opened, controls press in, and the pointer shows an hourglass while weather
+  is loading. No hover animations or entrance effects. The slides are off with reduced motion;
+  pressing in is not motion, so it stays.
+*/
 @keyframes r-slide-up {
   from {
     clip-path: inset(100% 0 0 0);
@@ -1292,5 +1350,112 @@ html[data-busy] * {
   .r-error-stack-ghost,
   .r-error-stack-front {
     animation: none;
+  }
+}
+
+/* The desktop behind the window (DesktopArt.tsx): the personal ASCII picture, centred in the
+   space above the taskbar. It never takes clicks and shows in full when the window is minimised. */
+.r-desktop-art {
+  position: fixed;
+  inset: 0 0 44px 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.r-desktop-art pre {
+  margin: 0;
+  white-space: pre;
+}
+
+/* The picture is about 140 columns. Its text size follows the screen so the whole picture fits;
+   on the light desktop it is drawn in dark ink, the right way round, and in the dark themes in
+   light ink, like a print in negative. */
+.r-desktop-art .r-desktop-picture {
+  /* A crisp monospace font: the pixel font blurs at this size. */
+  font-family: Consolas, Menlo, 'DejaVu Sans Mono', ui-monospace, monospace;
+  /* About 60% of the screen height above the taskbar (by row count), never wider than the screen, and 8px at most. */
+  font-size: min(0.63vw, calc((100dvh - 110px) * 0.6 / var(--rows, 80)), 8px);
+  line-height: 1;
+  color: #001a1a;
+}
+
+:root:is([data-theme='night'], [data-theme='dark']) .r-desktop-art .r-desktop-picture {
+  color: var(--desk-ink);
+}
+
+/* Photos come with a light-ink version, where bright parts (a face) are drawn densely. It reads
+   best in every theme, on the teal desktop too, so it replaces the dark-ink version there. */
+.r-desktop-art .r-picture-light,
+.r-desktop-art[data-light-version] .r-picture-ink {
+  display: none;
+}
+
+.r-desktop-art .r-desktop-picture.r-picture-light {
+  display: block;
+  color: var(--desk-ink);
+}
+
+/* The dark mode's desktop ink is deliberately muted; the picture needs a little more light. */
+:root[data-theme='night'] .r-desktop-art .r-desktop-picture.r-picture-light {
+  color: #a3c6c7;
+}
+
+@media (max-width: 640px) {
+  .r-desktop-art .r-desktop-picture {
+    font-size: min(1.25vw, calc((100dvh - 200px) / var(--rows, 80)));
+  }
+}
+
+/* Wetcast Mini (mini/index.html): one small window filling its own browser window, sized
+   for a narrow desktop window or a phone screen. */
+.r-mini {
+  min-width: 0;
+}
+
+.r-mini .r-title {
+  gap: 6px;
+}
+
+.r-mini-open {
+  min-height: 0;
+  padding: 0 8px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.r-mini-temp {
+  font-size: clamp(40px, 13vw, 72px);
+}
+
+.r-mini-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 2px;
+  border-left: var(--p1) solid var(--light);
+}
+
+.r-mini-hour:first-child {
+  border-left: 0;
+}
+
+@media (min-width: 480px) {
+  .r-mini {
+    font-size: 1rem;
+  }
+}
+
+.r-mini-days {
+  display: none;
+}
+
+@media (min-height: 420px) {
+  .r-mini-days {
+    display: flex;
   }
 }

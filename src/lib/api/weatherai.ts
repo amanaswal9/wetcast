@@ -1,7 +1,5 @@
-/**
- * Client for Wetcast's own FastAPI backend (/api, proxied by Vite in dev).
- * Every number here comes from trained models and real evaluation runs.
- */
+// Client for Wetcast's own FastAPI backend (/api, proxied by Vite in dev).
+// Every number here comes from trained models and real evaluation runs.
 import { log } from '../log'
 import { ApiError } from './http'
 
@@ -12,23 +10,23 @@ export interface CoveredCity {
   name: string
   latitude: number
   longitude: number
-  /** 'train': the models trained on it; 'holdout': kept out of training to test them on new places. */
+  // 'train': the models trained on it; 'holdout': kept out of training to test them on new places.
   role?: 'train' | 'holdout' | null
 }
 
-/** What kind of place a forecast is for, and the accuracy measured for that kind of place. */
+// What kind of place a forecast is for, and the accuracy measured for that kind of place.
 export interface PredictionCoverage {
   kind: 'trained' | 'held_out' | 'untrained'
   label: string
   detail: string
   nearest_city: CoveredCity
   nearest_km: number
-  /** The model whose measured accuracy is given (the ensemble when it is served). */
+  // The model whose measured accuracy is given (the ensemble when it is served).
   model: string
   expected_error: {
     mae: Record<Target, number | null>
     basis: string
-    /** Lowest and highest temperature error among the held-out cities (untrained places only). */
+    // Lowest and highest temperature error among the held-out cities (untrained places only).
     temperature_range: [number, number] | null
   }
 }
@@ -45,7 +43,7 @@ export interface ModelPoint {
   precipitation: number
   precipitation_lower: number
   precipitation_upper: number
-  /** Chance (0-1) of at least 0.1 mm of rain in the hour; only the ensemble has one. */
+  // Chance (0-1) of at least 0.1 mm of rain in the hour; only the ensemble has one.
   rain_chance?: number | null
 }
 
@@ -87,26 +85,26 @@ export interface ModelMetrics {
   display_name: string
   test: Record<Target, MetricSummary>
   persistence_baseline: Record<Target, MetricSummary>
-  /** Same test period, at the held-out cities the models never trained on (all-India models only). */
+  // Same test period, at the held-out cities the models never trained on (all-India models only).
   test_unseen?: Record<Target, MetricSummary>
   persistence_baseline_unseen?: Record<Target, MetricSummary>
   interval: {
     level: number
     method: string
     halfwidth_by_horizon: Record<Target, number[]>
-    /** Half-widths per calendar month (12 rows) and lead hour; older models have one set for the year. */
+    // Half-widths per calendar month (12 rows) and lead hour; older models have one set for the year.
     halfwidth_by_month?: Record<Target, number[][]>
     test_coverage: Record<Target, number>
-    /** Same check at the held-out cities (all-India models only). */
+    // Same check at the held-out cities (all-India models only).
     test_coverage_unseen?: Record<Target, number>
   }
-  /** The ensemble's rain-amount correction (expected amounts) and its test scores before it. */
+  // The ensemble's rain-amount correction (expected amounts) and its test scores before it.
   rain_amount?: { trees: number; test_before: MetricSummary; test_unseen_before?: MetricSummary | null }
-  /** The ensemble's chance-of-rain scores (Brier score, lower is better), when it has a table. */
+  // The ensemble's chance-of-rain scores (Brier score, lower is better), when it has a table.
   rain_chance?: {
     wet_mm: number
     validation_rain_share: number
-    /** Present when a LightGBM classifier (with Open-Meteo's day-old forecast as an input) gives the chance. */
+    // Present when a LightGBM classifier (with Open-Meteo's day-old forecast as an input) gives the chance.
     model?: { outlook: boolean; trees: number }
     scores: {
       test: { brier: number; climatology_brier: number; rain_share: number; isotonic_brier?: number; without_forecast_brier?: number }
@@ -123,7 +121,7 @@ export interface ModelMetrics {
     target_mode: 'direct' | 'residual24'
     loss: 'mse' | 'huber'
     train_stride_hours: number
-    /** Transformer settings (patch hours, token width, blocks, heads, dropout). */
+    // Transformer settings (patch hours, token width, blocks, heads, dropout).
     architecture?: { patch: number; dim: number; layers: number; heads: number; dropout: number }
   }
   framework: { tensorflow: string; keras: string }
@@ -136,7 +134,7 @@ export interface ModelMetrics {
     train_stride_hours?: number
     note?: string
   }
-  /** "ensemble" averages other models; "gbm" is LightGBM (trees, no epochs). */
+  // "ensemble" averages other models; "gbm" is LightGBM (trees, no epochs).
   kind?: 'ensemble' | 'gbm'
   members?: string[]
   method?: string
@@ -214,7 +212,7 @@ function detailOf(body: unknown, fallback: string): string {
 const PREDICTIONS_TTL_MS = 10 * 60_000
 const predictionsCache = new Map<string, { expires: number; promise: Promise<PredictionsResult> }>()
 
-/** Resolve with `promise`, or reject with an AbortError as soon as `signal` aborts (the request itself carries on). */
+// Resolve with `promise`, or reject with an AbortError as soon as `signal` aborts (the request itself carries on).
 function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
   if (!signal) return promise
   if (signal.aborted) return Promise.reject(new DOMException('Request cancelled', 'AbortError'))
@@ -225,17 +223,15 @@ function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> 
   })
 }
 
-/**
- * Wetcast's predictions for a point. Answers are kept for 10 minutes (the models only
- * change their forecast once an hour), and simultaneous requests for the same point,
- * such as a background prefetch and the Forecast page, share one network request.
- */
+// Wetcast's predictions for a point. Answers are kept for 10 minutes (the models only
+// change their forecast once an hour), and simultaneous requests for the same point,
+// such as a background prefetch and the Forecast page, share one network request.
 export function getPredictions(
   latitude: number,
   longitude: number,
   signal?: AbortSignal,
   fresh = false,
-  /** Two-letter country code when the place came from search; the server decides from the map otherwise. */
+  // Two-letter country code when the place came from search; the server decides from the map otherwise.
   country?: string,
 ): Promise<PredictionsResult> {
   const key = `${latitude.toFixed(3)},${longitude.toFixed(3)}:${country ?? ''}`
@@ -263,12 +259,14 @@ async function fetchPredictions(latitude: number, longitude: number, country?: s
   return { kind: 'ok', data: body as Predictions }
 }
 
+// Every trained model with its test scores.
 export async function getModels(signal?: AbortSignal): Promise<ModelMetrics[]> {
   const { status, body } = await getJson('/api/models', signal)
   if (status !== 200) throw new ApiError('http', detailOf(body, `The model service returned an error (${status}).`), status)
   return (body as { models: ModelMetrics[] }).models
 }
 
+// Detailed evaluation for one model. Samples for a city are included only when asked for.
 export async function getEvaluation(model: string, options: { samplesFor?: string } = {}, signal?: AbortSignal): Promise<Evaluation> {
   const params = new URLSearchParams(options.samplesFor ? { city: options.samplesFor } : { include_samples: 'false' })
   const { status, body } = await getJson(`/api/models/${encodeURIComponent(model)}/evaluation?${params}`, signal)
@@ -276,7 +274,7 @@ export async function getEvaluation(model: string, options: { samplesFor?: strin
   return body as Evaluation
 }
 
-/** One group of scored forecast hours from the live track record. */
+// One group of scored forecast hours from the live track record.
 export interface TrackStats {
   model: string
   target: Target
@@ -289,7 +287,7 @@ export interface TrackStats {
 export interface TrackRecord {
   days: number
   city: string | null
-  /** Which model set the record is for ("india", "north_india"); older sets aren't mixed in. */
+  // Which model set the record is for ("india", "north_india"); older sets aren't mixed in.
   model_set?: string
   first_valid_at: string | null
   last_valid_at: string | null
@@ -297,18 +295,18 @@ export interface TrackRecord {
   cities: number
   pending_points: number
   settle_hours: number
-  /** How often the server issues and scores forecasts; 0 when the job is off. */
+  // How often the server issues and scores forecasts; 0 when the job is off.
   interval_hours: number
   models: { model: string; display_name: string }[]
   totals: TrackStats[]
   daily: (TrackStats & { date: string })[]
   by_lead: (TrackStats & { lead: string })[]
-  /** Per-city scores. Show a city's figures only once city_days reaches min_days_per_city. */
+  // Per-city scores. Show a city's figures only once city_days reaches min_days_per_city.
   by_city: (TrackStats & { city: string })[]
-  /** Different (UTC) days with scores, per city, within the chosen period. */
+  // Different (UTC) days with scores, per city, within the chosen period.
   city_days: Record<string, number>
   min_days_per_city: number
-  /** The ensemble's stored chances of rain, scored (Brier, lower is better); null without a table. */
+  // The ensemble's stored chances of rain, scored (Brier, lower is better); null without a table.
   rain_chance?: {
     wet_mm: number
     usual_share: number
@@ -325,13 +323,14 @@ export interface TrackRecord {
   baseline: string
 }
 
+// Live track record over the last `days` days.
 export async function getTrackRecord(days: number, signal?: AbortSignal): Promise<TrackRecord> {
   const { status, body } = await getJson(`/api/track-record?days=${days}`, signal)
   if (status !== 200) throw new ApiError('http', detailOf(body, `The track record returned an error (${status}).`), status)
   return body as TrackRecord
 }
 
-/** An official warning, as issued (CAP fields). */
+// An official warning, as issued (CAP fields).
 export interface OfficialAlert {
   id: string | null
   event: string | null
@@ -359,6 +358,7 @@ export interface AlertsResult {
   alerts: OfficialAlert[]
 }
 
+// Official warnings near a point. The country code helps the server pick the right feed.
 export async function getAlerts(latitude: number, longitude: number, country: string | undefined, signal?: AbortSignal): Promise<AlertsResult> {
   const params = new URLSearchParams({ latitude: latitude.toFixed(4), longitude: longitude.toFixed(4) })
   if (country && /^[A-Za-z]{2}$/.test(country)) params.set('country', country)
@@ -369,7 +369,7 @@ export async function getAlerts(latitude: number, longitude: number, country: st
 
 export interface AssistantStatus {
   configured: boolean
-  /** "hosted" (Hosted, paid), "local" (a free model on the server's computer) or null when off. */
+  // "hosted" (Hosted, paid), "local" (a free model on the server's computer) or null when off.
   provider: 'hosted' | 'local' | null
   model: string
   daily_limit_per_visitor: number
@@ -386,7 +386,7 @@ export interface AssistantReply {
   model: string
 }
 
-/** Thrown when the assistant can't answer: not set up, over a limit, or the service failed. */
+// Thrown when the assistant can't answer: not set up, over a limit, or the service failed.
 export class AssistantError extends ApiError {
   readonly code: string
 
@@ -396,13 +396,14 @@ export class AssistantError extends ApiError {
   }
 }
 
+// Whether the assistant is set up on the server.
 export async function getAssistantStatus(signal?: AbortSignal): Promise<AssistantStatus> {
   const { status, body } = await getJson('/api/assistant/status', signal)
   if (status !== 200) throw new ApiError('http', detailOf(body, `The assistant service returned an error (${status}).`), status)
   return body as AssistantStatus
 }
 
-/** Ask the assistant. Answers can take a while (it looks data up first), so the timeout is long. */
+// Ask the assistant. Answers can take a while (it looks data up first), so the timeout is long.
 export async function askAssistant(
   clientId: string,
   messages: AssistantTurn[],
@@ -420,7 +421,7 @@ export async function askAssistant(
   throw new AssistantError(code, detailOf(body, `The assistant returned an error (${status}).`), status)
 }
 
-/** The cities behind Wetcast's models: those they trained on and those held out to test them. */
+// The cities behind Wetcast's models: those they trained on and those held out to test them.
 export async function getCoverage(signal?: AbortSignal): Promise<CoveredCity[]> {
   const { status, body } = await getJson('/api/coverage', signal)
   if (status !== 200) throw new ApiError('http', detailOf(body, `The prediction service returned an error (${status}).`), status)
@@ -433,13 +434,14 @@ export interface Health {
   models: string[]
 }
 
+// Server health, used for the status shown in the app.
 export async function getHealth(signal?: AbortSignal): Promise<Health> {
   const { status, body } = await getJson('/api/health', signal)
   if (status !== 200) throw new ApiError('http', detailOf(body, `The prediction service returned an error (${status}).`), status)
   return body as Health
 }
 
-/** Saved places as stored on the server, keyed by an anonymous per-browser id. */
+// Saved places as stored on the server, keyed by an anonymous per-browser id.
 export interface ServerPlace {
   place_id: string
   name: string
@@ -450,12 +452,14 @@ export interface ServerPlace {
   is_home: boolean
 }
 
+// Saved places stored on the server for this browser's client id.
 export async function getPlaces(clientId: string, signal?: AbortSignal): Promise<ServerPlace[]> {
   const { status, body } = await getJson('/api/places', signal, { headers: { 'X-Client-Id': clientId } })
   if (status !== 200) throw new ApiError('http', detailOf(body, `Saved places couldn't be loaded (${status}).`), status)
   return body as ServerPlace[]
 }
 
+// Replace the server's saved places for this client with the given list.
 export async function replacePlaces(
   clientId: string,
   places: Omit<ServerPlace, 'is_home'>[],
@@ -471,6 +475,7 @@ export async function replacePlaces(
   return body as ServerPlace[]
 }
 
+// Names and units for the quantities the models predict.
 export const TARGET_LABELS: Record<Target, string> = {
   temperature: 'Temperature',
   humidity: 'Humidity',

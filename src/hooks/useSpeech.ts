@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { pickVoice } from '../lib/speechHelp'
 
-/**
- * Text-to-speech through the browser's Web Speech API. Supported in current
- * Chrome, Edge, Safari and Firefox; `supported` is false elsewhere so the UI
- * can hide the control instead of showing a dead button.
- *
- * Text is spoken one sentence at a time: Chrome stops long utterances after
- * about 15 seconds without firing `onend`, which would leave the button stuck.
- */
+// Text-to-speech through the browser's Web Speech API. Supported in current
+// Chrome, Edge, Safari and Firefox; `supported` is false elsewhere so the UI
+// can hide the control instead of showing a dead button.
+//
+// Text is spoken one sentence at a time: Chrome stops long utterances after
+// about 15 seconds without firing `onend`, which would leave the button stuck.
 export function useSpeech() {
   const supported = typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
   const [speaking, setSpeaking] = useState(false)

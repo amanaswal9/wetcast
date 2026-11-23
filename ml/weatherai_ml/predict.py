@@ -25,6 +25,8 @@ class InsufficientHistoryError(ValueError):
 
 @dataclass
 class Prediction:
+    """One forecast: a value and an 80% range for every target at each hour ahead."""
+
     issued_at: pd.Timestamp  # last observed input hour (UTC)
     times: list[pd.Timestamp]  # valid times, UTC
     values: np.ndarray  # (horizon, n_targets)
@@ -34,10 +36,11 @@ class Prediction:
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance between two points, in kilometres."""
     r = 6371.0
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp, dl = p2 - p1, math.radians(lon2 - lon1)
-    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    a = pow(math.sin(dp / 2), 2) + math.cos(p1) * math.cos(p2) * pow(math.sin(dl / 2), 2)
     return 2 * r * math.asin(math.sqrt(a))
 
 
@@ -69,6 +72,8 @@ class Ranges:
 
 
 class Predictor:
+    """Live inference for one saved Keras network, using its own preprocessor.json."""
+
     def __init__(self, model_dir: Path):
         self.model_dir = model_dir
         self.name = model_dir.name
@@ -79,6 +84,7 @@ class Predictor:
 
     @property
     def model(self):
+        """The Keras model, loaded on first use."""
         if self._model is None:
             import keras  # deferred: TensorFlow import is slow
 
@@ -100,6 +106,7 @@ class Predictor:
         return features.iloc[: last + 1]
 
     def input_window(self, features: pd.DataFrame) -> np.ndarray:
+        """The scaled (1, lookback, features) input, after checking the hours are complete and contiguous."""
         self.preprocessor.check_columns(features)
         lookback = self.preprocessor.lookback
         window = self.usable(features).iloc[-lookback:]
@@ -121,6 +128,7 @@ class Predictor:
         return out
 
     def predict(self, features: pd.DataFrame) -> Prediction:
+        """Forecast the next `horizon` hours from recent features (built by features.build_frames)."""
         x = self.input_window(features)
         scaled = np.asarray(self.model(x, training=False))[0]
         values = self.preprocessor.inverse_targets(scaled, self.yesterday(features))
@@ -152,6 +160,7 @@ class GBMPredictor:
         self.preprocessor = InputSpec(lookback=self.forecaster.lookback, horizon=len(self.ranges.flat))
 
     def predict(self, features: pd.DataFrame) -> Prediction:
+        """Forecast the next `horizon` hours, with the same checks as Predictor.predict."""
         from .config import FEATURE_ORDER
         from .gbm import build_matrix
         from .preprocess import FeatureOrderError
@@ -179,6 +188,7 @@ class GBMPredictor:
 
 
 def apply_ranges(values: np.ndarray, halfwidth: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Lower and upper ends of the range, kept within physical limits (no negative rain, humidity 0 to 100)."""
     lower = values - halfwidth
     upper = values + halfwidth
     p, h = TARGETS.index("precipitation"), TARGETS.index("humidity")
@@ -199,7 +209,7 @@ class EnsemblePredictor:
         chance_file = model_dir / "rain_chance.json"  # see rain_chance.py
         self.rain_chance = json.loads(chance_file.read_text()) if chance_file.exists() else None
         if self.rain_chance is not None:  # its scores travel with the metrics (the lookup table stays here)
-            self.metrics = {**self.metrics, "rain_chance": {k: v for k, v in self.rain_chance.items() if k != "leads"}}
+            self.metrics = self.metrics | {"rain_chance": {k: v for k, v in self.rain_chance.items() if k != "leads"}}
         self.rain_amount = None  # expected rain amounts (rain_amount.py); needs the chance-of-rain table
         if (model_dir / "rain_amount.txt").exists() and self.rain_chance is not None:
             from .rain_amount import RainAmount
@@ -222,6 +232,7 @@ class EnsemblePredictor:
         )
 
     def predict(self, features: pd.DataFrame, outlook: np.ndarray | None = None) -> Prediction:
+        """Run every member, then combine them."""
         return self.combine([m.predict(features) for m in self.members], features, outlook)
 
     def combine(self, preds: list[Prediction], features: pd.DataFrame | None = None, outlook: np.ndarray | None = None) -> Prediction:

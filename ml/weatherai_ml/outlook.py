@@ -33,6 +33,7 @@ START = "2024-12-30"  # a little before the validation year, so its first window
 
 
 def folder(region: str):
+    """Where a region's day-old forecasts are kept, one parquet file per city."""
     return raw_dir(region) / "outlook"
 
 

@@ -15,7 +15,7 @@ function Link({ href, children }: { href: string; children: ReactNode }) {
   )
 }
 
-/** One-line summary of the live evaluation results, read from the API. */
+// One-line summary of the live evaluation results, read from the API.
 function ResultsLine({ models }: { models: ModelMetrics[] }) {
   const best = [...models].sort((a, b) => a.test.temperature.mae - b.test.temperature.mae)[0]
   const t = best.test.temperature
@@ -39,6 +39,7 @@ function Swatch({ children }: { children: ReactNode }) {
   )
 }
 
+// About page: how the forecasts are made, where the data comes from and their limits.
 export function AboutPage({ theme }: { theme: Theme }) {
   const models = useResource('models', ({ signal }) => getModels(signal))
   const colors = CHART_COLORS[theme]
@@ -237,6 +238,26 @@ export function AboutPage({ theme }: { theme: Theme }) {
         </p>
       </GroupBox>
 
+      <GroupBox title="Keep the weather on screen">
+        <p className="m-0 mb-2 max-w-[75ch]">
+          Wetcast Mini is a small window with the weather now and for the next few hours, for the place you last opened here.
+          Open it from the Start menu, or go to <a href="/mini/">/mini/</a>. Then keep it where you can see it:
+        </p>
+        <ul className="m-0 flex max-w-[75ch] flex-col gap-1.5 pl-5">
+          <li>
+            Windows PC or laptop: in Chrome or Edge, use the install button at the right of the address bar. It becomes its own
+            small window and a Start menu app, which you can pin to the taskbar.
+          </li>
+          <li>Mac: in Safari, File, then Add to Dock. In Chrome, use the install button in the address bar.</li>
+          <li>iPhone and iPad: in Safari, the Share button, then Add to Home Screen.</li>
+          <li>Android phone: in Chrome, the menu, then Add to Home screen (or Install app).</li>
+        </ul>
+        <p className="m-0 mt-2 max-w-[75ch] text-[var(--text-muted)]">
+          These open Wetcast Mini with one tap. True home-screen widgets on iPhone, Mac and Android can only come from apps
+          built with Apple&apos;s and Google&apos;s own tools, which a website can&apos;t provide.
+        </p>
+      </GroupBox>
+
       <GroupBox title="Limits worth knowing">
         <ul className="m-0 flex max-w-[75ch] flex-col gap-1.5 pl-5">
           <li>
@@ -279,9 +300,27 @@ export function AboutPage({ theme }: { theme: Theme }) {
         </dl>
         <p className="m-0 mt-3 max-w-[75ch]">
           The look is a tribute to late-1990s desktop software, rebuilt with modern accessibility: every control works from the
-          keyboard, charts have table views, there&apos;s a high-contrast theme, and animation stops when your system asks for reduced
+          keyboard, charts have table views, there&apos;s a dark mode and a high-contrast theme, and animation stops when your system asks for reduced
           motion.
         </p>
+      </GroupBox>
+
+      <GroupBox title="Made by">
+        <p className="m-0 max-w-[75ch]">Wetcast was designed and built by Aman Singh Aswal.</p>
+        <dl className="m-0 mt-2 grid max-w-[75ch] grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5">
+          <dt className="font-bold">GitHub</dt>
+          <dd className="m-0">
+            <a href="https://github.com/amanaswal9" target="_blank" rel="noopener noreferrer">
+              github.com/amanaswal9
+            </a>
+          </dd>
+          <dt className="font-bold">LinkedIn</dt>
+          <dd className="m-0">
+            <a href="https://www.linkedin.com/in/amannaswal/" target="_blank" rel="noopener noreferrer">
+              linkedin.com/in/amannaswal
+            </a>
+          </dd>
+        </dl>
       </GroupBox>
     </div>
   )

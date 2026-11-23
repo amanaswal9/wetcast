@@ -18,9 +18,12 @@ NOW = datetime(2026, 11, 19, 18, 0, tzinfo=timezone.utc)
 SQUARE = "19.9,84.9 19.9,85.3 20.3,85.3 20.3,84.9 19.9,84.9"
 INSIDE = (20.13, 85.10)
 OUTSIDE = (20.30, 85.82)
+INSIDE_LAT, INSIDE_LON = INSIDE
+OUTSIDE_LAT, OUTSIDE_LON = OUTSIDE
 
 
-def rss(*guids: str) -> bytes:
+def rss(guids: list[str]) -> bytes:
+    """A feed listing the given message ids, one minute apart."""
     items = "".join(
         f"<item><title>t</title><category>Met</category>"
         f"<link>https://sachet.example/cap?identifier={g}</link>"
@@ -31,7 +34,7 @@ def rss(*guids: str) -> bytes:
     return f'<?xml version="1.0"?><rss version="2.0"><channel><title>All India</title>{items}</channel></rss>'.encode()
 
 
-def cap(guid: str, *, msg_type="Alert", status="Actual", expires="2026-11-20T02:30:00+05:30", refs="", event="Heavy Rain", polygon_url=True) -> bytes:
+def cap(guid: str, msg_type="Alert", status="Actual", expires="2026-11-20T02:30:00+05:30", refs="", event="Heavy Rain", polygon_url=True) -> bytes:
     param = (
         f"<cap:parameter><cap:valueName>Polygon URL</cap:valueName><cap:value>https://sachet.example/poly?identifier={guid}</cap:value></cap:parameter>"
         if polygon_url
@@ -78,7 +81,7 @@ def poll(feed: bytes, caps: dict[str, bytes], calls: list[str] | None = None, no
         return alerts.poll_sachet(session, client, now=now, gap=0)
 
 
-# ---- parsing and geometry -------------------------------------------------------------
+# Parsing and geometry.
 
 
 def test_cap_uses_the_english_block_and_reads_references():
@@ -91,15 +94,15 @@ def test_cap_uses_the_english_block_and_reads_references():
 
 
 def test_rss_reads_guid_link_and_issuer():
-    items = alerts.parse_rss(rss("1", "2"))
+    items = alerts.parse_rss(rss(["1", "2"]))
     assert [i.guid for i in items] == ["1", "2"]
     assert items[0].author == "IMD Bhubaneswar"
 
 
 def test_point_in_polygon():
-    assert alerts.covers(SQUARE, *INSIDE)
-    assert not alerts.covers(SQUARE, *OUTSIDE)
-    assert not alerts.covers(None, *INSIDE)
+    assert alerts.covers(SQUARE, INSIDE_LAT, INSIDE_LON)
+    assert not alerts.covers(SQUARE, OUTSIDE_LAT, OUTSIDE_LON)
+    assert not alerts.covers(None, INSIDE_LAT, INSIDE_LON)
 
 
 def test_unsafe_xml_is_refused():
@@ -116,16 +119,16 @@ def test_coverage(lat, lon, country, expected):
     assert alerts.coverage_for(lat, lon, country) == expected
 
 
-# ---- polling --------------------------------------------------------------------------
+# Polling the feed.
 
 
 def test_poll_stores_new_alerts_once_with_polygons(client):
     calls: list[str] = []
-    summary = poll(rss("1"), {"1": cap("1")}, calls)
+    summary = poll(rss(["1"]), {"1": cap("1")}, calls)
     assert summary == {"items": 1, "new": 1, "stored": 1, "failed": 0}
     assert len(calls) == 3  # feed, message, polygon
     calls.clear()
-    assert poll(rss("1"), {"1": cap("1")}, calls)["stored"] == 0
+    assert poll(rss(["1"]), {"1": cap("1")}, calls)["stored"] == 0
     assert len(calls) == 1  # only the feed: known messages aren't fetched again
     with db.new_session() as s:
         row = s.scalars(select(db.Alert)).one()
@@ -133,14 +136,14 @@ def test_poll_stores_new_alerts_once_with_polygons(client):
 
 
 def test_updates_and_cancellations_retire_earlier_messages(client):
-    poll(rss("1"), {"1": cap("1")})
-    poll(rss("1", "2"), {"2": cap("2", msg_type="Update", refs="IMD,IN-1,2026-11-19T22:00:00+05:30")})
+    poll(rss(["1"]), {"1": cap("1")})
+    poll(rss(["1", "2"]), {"2": cap("2", msg_type="Update", refs="IMD,IN-1,2026-11-19T22:00:00+05:30")})
     with db.new_session() as s:
-        active = alerts.active_sachet_alerts(s, *INSIDE, NOW)
+        active = alerts.active_sachet_alerts(s, INSIDE_LAT, INSIDE_LON, NOW)
         assert [a.identifier for a in active] == ["IN-2"]
-    poll(rss("1", "2", "3"), {"3": cap("3", msg_type="Cancel", refs="IMD,IN-2,2026-11-19T22:30:00+05:30")})
+    poll(rss(["1", "2", "3"]), {"3": cap("3", msg_type="Cancel", refs="IMD,IN-2,2026-11-19T22:30:00+05:30")})
     with db.new_session() as s:
-        assert alerts.active_sachet_alerts(s, *INSIDE, NOW) == []
+        assert alerts.active_sachet_alerts(s, INSIDE_LAT, INSIDE_LON, NOW) == []
 
 
 def test_expired_test_and_unreadable_messages(client):
@@ -148,25 +151,25 @@ def test_expired_test_and_unreadable_messages(client):
         "1": cap("1", expires="2026-11-19T20:00:00+05:30"),  # expired before NOW
         "2": cap("2", status="Exercise"),
     }
-    summary = poll(rss("1", "2", "3"), caps)  # "3" returns 404
+    summary = poll(rss(["1", "2", "3"]), caps)  # "3" returns 404
     assert summary["failed"] == 1 and summary["stored"] == 2
     with db.new_session() as s:
-        assert alerts.active_sachet_alerts(s, *INSIDE, NOW) == []
+        assert alerts.active_sachet_alerts(s, INSIDE_LAT, INSIDE_LON, NOW) == []
         assert all(r.polygons is None for r in s.scalars(select(db.Alert)))  # no polygon fetched for dead alerts
 
 
 def test_old_alerts_are_removed_a_week_after_expiry(client):
-    poll(rss("1"), {"1": cap("1")})
-    poll(rss(), {}, now=NOW + timedelta(days=8))
+    poll(rss(["1"]), {"1": cap("1")})
+    poll(rss([]), {}, now=NOW + timedelta(days=8))
     with db.new_session() as s:
         assert s.scalars(select(db.Alert)).all() == []
 
 
-# ---- endpoint -------------------------------------------------------------------------
+# The endpoint.
 
 
 def test_endpoint_india_inside_and_outside(client, monkeypatch):
-    poll(rss("1"), {"1": cap("1", expires="2099-01-01T00:00:00+05:30")})
+    poll(rss(["1"]), {"1": cap("1", expires="2099-01-01T00:00:00+05:30")})
     monkeypatch.setattr(alerts.POLL, "last_ok", datetime.now(timezone.utc))
     body = client.get("/api/alerts", params={"latitude": INSIDE[0], "longitude": INSIDE[1], "country": "IN"}).json()
     assert body["coverage"] == "india" and body["stale"] is False

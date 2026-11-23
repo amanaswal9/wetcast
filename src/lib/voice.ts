@@ -1,10 +1,8 @@
 import type { PageId } from '../app/pages'
 
-/**
- * Turns a spoken phrase into a place name and/or a page, using fixed rules
- * (no AI): "weather in New Delhi", "will it rain in Mumbai this week",
- * "Lisbon", "open the models page".
- */
+// Turns a spoken phrase into a place name and/or a page, using fixed rules
+// (no AI): "weather in New Delhi", "will it rain in Mumbai this week",
+// "Lisbon", "open the models page".
 export interface VoiceCommand {
   place: string | null
   page: PageId | null
@@ -42,6 +40,7 @@ function titleCase(words: string): string {
     .join(' ')
 }
 
+// Work out what a spoken phrase asks for: a page, a place, or a search.
 export function parseVoiceCommand(transcript: string): VoiceCommand {
   const text = transcript
     .toLowerCase()

@@ -7,6 +7,7 @@ import json
 from datetime import date, timedelta
 from types import SimpleNamespace
 
+import hosted
 import pytest
 
 from app import assistant, assistant_data
@@ -24,20 +25,27 @@ def tool_use(id_, name, args):
     return SimpleNamespace(type="tool_use", id=id_, name=name, input=args)
 
 
-def response(stop_reason, *content, model="hosted-opus-5-5"):
+def response(stop_reason, content=(), model="hosted-opus-5-5"):
+    """A fake Messages API response with the given content blocks."""
     return SimpleNamespace(stop_reason=stop_reason, content=list(content), model=model, usage=SimpleNamespace(input_tokens=1000, output_tokens=100))
 
 
 class FakeClient:
-    """Plays back scripted responses and records every request."""
+    """Plays back scripted responses and records every request. Like the real SDK, it leaves
+    out arguments passed as hosted.omit."""
 
-    def __init__(self, *responses):
+    def __init__(self, responses):
         self.responses = list(responses)
         self.requests: list[dict] = []
         self.beta = SimpleNamespace(messages=SimpleNamespace(create=self.create))
 
-    def create(self, **kwargs):
-        self.requests.append(json.loads(json.dumps(kwargs, default=lambda o: o.__dict__)))
+    def create(self, model, max_tokens, system, tools, messages, output_config, betas=hosted.omit, fallbacks=hosted.omit):
+        request = {
+            "model": model, "max_tokens": max_tokens, "system": system, "tools": tools,
+            "messages": messages, "output_config": output_config, "betas": betas, "fallbacks": fallbacks,
+        }
+        request = {k: v for k, v in request.items() if v is not hosted.omit}
+        self.requests.append(json.loads(json.dumps(request, default=lambda o: o.__dict__)))
         return self.responses.pop(0)
 
 
@@ -50,20 +58,21 @@ def stub_weather(monkeypatch):
 
 
 def ask(client, question="Will it rain tomorrow?", place=PLACE):
+    """Ask one question through the Hosted path with a fake client."""
     from app import db
 
     with db.new_session() as session:
         return assistant.answer([{"role": "user", "content": question}], place, session, get_registry(), client=client)
 
 
-# ---- the loop -------------------------------------------------------------------------
+# The answer loop.
 
 
 def test_looks_up_data_then_answers(client, stub_weather):
-    fake = FakeClient(
-        response("tool_use", tool_use("t1", "get_weather", {"latitude": 26.92, "longitude": 75.79})),
-        response("end_turn", text("Open-Meteo's forecast shows 24 °C and clear skies now.")),
-    )
+    fake = FakeClient([
+        response("tool_use", [tool_use("t1", "get_weather", {"latitude": 26.92, "longitude": 75.79})]),
+        response("end_turn", [text("Open-Meteo's forecast shows 24 °C and clear skies now.")]),
+    ])
     reply = ask(fake)
     assert reply.text.startswith("Open-Meteo's forecast")
     assert reply.sources == ["Open-Meteo forecast"] and reply.rounds == 2
@@ -74,7 +83,7 @@ def test_looks_up_data_then_answers(client, stub_weather):
 
 
 def test_request_shape(client, stub_weather):
-    fake = FakeClient(response("end_turn", text("Hello.")))
+    fake = FakeClient([response("end_turn", [text("Hello.")])])
     ask(fake)
     req = fake.requests[0]
     assert req["model"] == "hosted-opus-5-5"
@@ -91,13 +100,13 @@ def test_no_fallback_for_models_without_it(client, monkeypatch, stub_weather):
     from app.config import get_settings
 
     monkeypatch.setattr(get_settings(), "assistant_model", "hosted-haiku-5-5")
-    fake = FakeClient(response("end_turn", text("Hi."), model="hosted-haiku-5-5"))
+    fake = FakeClient([response("end_turn", [text("Hi.")], model="hosted-haiku-5-5")])
     ask(fake)
     assert "fallbacks" not in fake.requests[0] and fake.requests[0]["model"] == "hosted-haiku-5-5"
 
 
 def test_refusal_gets_a_polite_reply(client):
-    reply = ask(FakeClient(response("refusal")))
+    reply = ask(FakeClient([response("refusal")]))
     assert "weather" in reply.text
 
 
@@ -106,10 +115,10 @@ def test_failed_lookup_is_reported_to_the_model(client, monkeypatch):
         raise RuntimeError("Open-Meteo couldn't be reached.")
 
     monkeypatch.setattr(assistant_data, "weather", broken)
-    fake = FakeClient(
-        response("tool_use", tool_use("t1", "get_weather", {"latitude": 1.0, "longitude": 2.0})),
-        response("end_turn", text("I couldn't get the forecast right now.")),
-    )
+    fake = FakeClient([
+        response("tool_use", [tool_use("t1", "get_weather", {"latitude": 1.0, "longitude": 2.0})]),
+        response("end_turn", [text("I couldn't get the forecast right now.")]),
+    ])
     reply = ask(fake)
     result = fake.requests[1]["messages"][-1]["content"][0]
     assert result["is_error"] is True and "couldn't be reached" in result["content"]
@@ -117,17 +126,17 @@ def test_failed_lookup_is_reported_to_the_model(client, monkeypatch):
 
 
 def test_out_of_range_coordinates_are_refused(client):
-    fake = FakeClient(
-        response("tool_use", tool_use("t1", "get_weather", {"latitude": 123.0, "longitude": 2.0})),
-        response("end_turn", text("That place isn't valid.")),
-    )
+    fake = FakeClient([
+        response("tool_use", [tool_use("t1", "get_weather", {"latitude": 123.0, "longitude": 2.0})]),
+        response("end_turn", [text("That place isn't valid.")]),
+    ])
     ask(fake)
     assert fake.requests[1]["messages"][-1]["content"][0]["is_error"] is True
 
 
 def test_rounds_are_capped(client, stub_weather):
-    loop = [response("tool_use", tool_use(f"t{i}", "get_weather", {"latitude": 1.0, "longitude": 2.0})) for i in range(assistant.MAX_ROUNDS)]
-    fake = FakeClient(*loop)
+    loop = [response("tool_use", [tool_use(f"t{i}", "get_weather", {"latitude": 1.0, "longitude": 2.0})]) for i in range(assistant.MAX_ROUNDS)]
+    fake = FakeClient(loop)
     reply = ask(fake)
     assert len(fake.requests) == assistant.MAX_ROUNDS
     assert "more lookups" in reply.text
@@ -165,7 +174,7 @@ def test_nan_becomes_null():
     assert assistant_data.nan_safe({"a": [1.0, float("nan")]}) == {"a": [1.0, None]}
 
 
-# ---- limits ---------------------------------------------------------------------------
+# Daily limits.
 
 
 @pytest.fixture()
@@ -218,10 +227,11 @@ def test_daily_limits_survive_a_restart(sessions, monkeypatch):
         assert [(r.client_id, r.day) for r in s.query(AssistantUsage)] == [("b", day + timedelta(days=8))]
 
 
-# ---- endpoint -------------------------------------------------------------------------
+# The endpoint.
 
 
 def body(question="Will it rain?"):
+    """A request body for /api/assistant."""
     return {"messages": [{"role": "user", "content": question}], "place": PLACE}
 
 
@@ -257,7 +267,7 @@ def test_endpoint_validation(client, monkeypatch):
     assert client.post("/api/assistant", json=last_is_answer, headers=CLIENT).status_code == 422
     too_long = body("x" * 2001)
     assert client.post("/api/assistant", json=too_long, headers=CLIENT).status_code == 422
-    bad_place = {**body(), "place": {**PLACE, "latitude": 95}}
+    bad_place = body() | {"place": PLACE | {"latitude": 95}}
     assert client.post("/api/assistant", json=bad_place, headers=CLIENT).status_code == 422
     assert client.post("/api/assistant", json=body()).status_code == 422  # no client id
 

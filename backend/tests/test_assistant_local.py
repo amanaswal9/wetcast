@@ -31,20 +31,22 @@ FAKE_WEATHER = {
 
 
 def chat(content="", tool_calls=None):
+    """A fake /api/chat reply."""
     message = {"role": "assistant", "content": content}
     if tool_calls:
         message["tool_calls"] = tool_calls
     return {"message": message, "prompt_eval_count": 500, "eval_count": 40}
 
 
-def call(name, **args):
+def call(name, args):
+    """A tool call as Ollama sends it."""
     return {"function": {"name": name, "arguments": args}}
 
 
 class FakeOllama:
     """Plays back scripted /api/chat replies and records each request body."""
 
-    def __init__(self, *replies, status=200):
+    def __init__(self, replies=(), status=200):
         self.replies, self.status, self.requests = list(replies), status, []
 
     def client(self) -> httpx.Client:
@@ -63,6 +65,7 @@ def stub_weather(monkeypatch):
 
 
 def ask(fake: FakeOllama, question="How warm is it?"):
+    """Ask one question through the local path with a fake Ollama."""
     from app import db
 
     with db.new_session() as session:
@@ -70,10 +73,10 @@ def ask(fake: FakeOllama, question="How warm is it?"):
 
 
 def test_looks_up_then_answers(stub_weather):
-    fake = FakeOllama(
-        chat(tool_calls=[call("get_weather", latitude=26.9, longitude=75.8)]),
+    fake = FakeOllama([
+        chat(tool_calls=[call("get_weather", {"latitude": 26.9, "longitude": 75.8})]),
         chat("<think>scratch</think>It's about 24 °C and clear, says Open-Meteo's forecast."),
-    )
+    ])
     reply = ask(fake)
     assert reply.text == "It's about 24 °C and clear, says Open-Meteo's forecast."  # reasoning stripped
     assert reply.sources == ["Open-Meteo forecast"] and reply.tools_used == ["get_weather"]
@@ -92,18 +95,18 @@ def test_looks_up_then_answers(stub_weather):
 
 
 def test_numbers_without_lookup_are_sent_back_once(stub_weather):
-    fake = FakeOllama(
+    fake = FakeOllama([
         chat("Jaipur is usually 30 °C."),  # from memory
-        chat(tool_calls=[call("get_weather", latitude=26.9, longitude=75.8)]),
+        chat(tool_calls=[call("get_weather", {"latitude": 26.9, "longitude": 75.8})]),
         chat("Open-Meteo's forecast says 24 °C now."),
-    )
+    ])
     reply = ask(fake)
     assert reply.text == "Open-Meteo's forecast says 24 °C now."
     assert "Look the data up" in fake.requests[1]["messages"][-1]["content"]
 
 
 def test_plain_answers_without_numbers_pass(stub_weather):
-    reply = ask(FakeOllama(chat("I can answer questions about the weather.")), "What can you do?")
+    reply = ask(FakeOllama([chat("I can answer questions about the weather.")]), "What can you do?")
     assert reply.text == "I can answer questions about the weather." and reply.tools_used == []
 
 
@@ -112,10 +115,10 @@ def test_string_arguments_and_failed_lookups(monkeypatch):
         raise RuntimeError("Open-Meteo down")
 
     monkeypatch.setattr(assistant_data, "weather", broken)
-    fake = FakeOllama(
+    fake = FakeOllama([
         chat(tool_calls=[{"function": {"name": "get_weather", "arguments": '{"latitude": 26.9, "longitude": 75.8}'}}]),
         chat("I couldn't get the forecast just now."),
-    )
+    ])
     reply = ask(fake)
     assert reply.text == "I couldn't get the forecast just now."
     assert fake.requests[1]["messages"][-1]["content"].startswith("The lookup failed")
@@ -134,7 +137,7 @@ def test_status_reports_local_provider(client, monkeypatch):
     monkeypatch.setattr(assistant, "api_key", lambda: None)
     monkeypatch.setattr(assistant_local, "is_available", lambda: True)
     body = client.get("/api/assistant/status").json()
-    assert body == {**body, "configured": True, "provider": "local", "model": "qwen3:4b-instruct"}
+    assert body == body | {"configured": True, "provider": "local", "model": "qwen3:4b-instruct"}
 
 
 def test_hosted_wins_when_a_key_is_set(client, monkeypatch):
@@ -155,7 +158,7 @@ def test_endpoint_reports_local_failures(client, monkeypatch):
     monkeypatch.setattr(assistant_local, "is_available", lambda: True)
     monkeypatch.setattr(assistant, "LIMITS", assistant.DailyLimits())
 
-    def down(*args, **kwargs):
+    def down(conversation, place, session, registry):
         raise assistant.AssistantUnavailable("upstream", "The local model isn't running. Start Ollama and try again.", 502)
 
     monkeypatch.setattr(assistant_local, "answer", down)

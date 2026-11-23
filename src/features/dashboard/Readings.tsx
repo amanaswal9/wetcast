@@ -14,7 +14,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-/** Arrow pointing where the wind blows to (it comes from `degrees`). */
+// Arrow pointing where the wind blows to (it comes from `degrees`).
 function WindArrow({ degrees }: { degrees: number }) {
   return (
     <svg
@@ -40,6 +40,7 @@ interface ReadingsProps {
   air: ResourceState<AirQuality>
 }
 
+// The grid of current readings: wind, humidity, rain chance, air quality and so on.
 export function Readings({ forecast, air }: ReadingsProps) {
   const fmt = useFormat()
   const { current, hourly } = forecast

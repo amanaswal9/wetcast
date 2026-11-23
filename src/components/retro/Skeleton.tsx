@@ -3,18 +3,16 @@ interface SkeletonProps {
   height?: number | string
 }
 
-/** Dithered placeholder block shown while data loads. */
+// Dithered placeholder block shown while data loads.
 export function Skeleton({ className = '', height = 16 }: SkeletonProps) {
   return <div aria-hidden="true" className={`r-skeleton ${className}`} style={{ height }} />
 }
 
-/*
- * Content-shaped placeholders: each one has the outline of what will replace it (a chart's
- * axes, a table's rows, lines of text), so the page keeps its shape and nothing jumps when
- * the data arrives. All are hidden from screen readers; the surrounding page announces loading.
- */
+// Content-shaped placeholders: each one has the outline of what will replace it (a chart's
+// axes, a table's rows, lines of text), so the page keeps its shape and nothing jumps when
+// the data arrives. All are hidden from screen readers; the surrounding page announces loading.
 
-/** Placeholder for a chart: sunken frame, y-axis labels, gridlines and x-axis labels. */
+// Placeholder for a chart: sunken frame, y-axis labels, gridlines and x-axis labels.
 export function ChartSkeleton({ height = 260, className = '' }: { height?: number; className?: string }) {
   return (
     <div aria-hidden="true" className={`r-sunken p-1 ${className}`}>
@@ -36,7 +34,7 @@ export function ChartSkeleton({ height = 260, className = '' }: { height?: numbe
   )
 }
 
-/** Placeholder for a table: a header row and body rows, with the first column narrower. */
+// Placeholder for a table: a header row and body rows, with the first column narrower.
 export function TableSkeleton({ rows = 5, columns = 4 }: { rows?: number; columns?: number }) {
   return (
     <div aria-hidden="true" className="r-sunken p-1.5">
@@ -52,7 +50,7 @@ export function TableSkeleton({ rows = 5, columns = 4 }: { rows?: number; column
   )
 }
 
-/** Placeholder for a paragraph: full lines with a shorter last one. */
+// Placeholder for a paragraph: full lines with a shorter last one.
 export function TextSkeleton({ lines = 2, className = '' }: { lines?: number; className?: string }) {
   return (
     <div aria-hidden="true" className={`flex max-w-[75ch] flex-col gap-1.5 py-0.5 ${className}`}>

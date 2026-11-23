@@ -1,4 +1,4 @@
-/** WMO weather interpretation codes, as returned by Open-Meteo. */
+// WMO weather interpretation codes, as returned by Open-Meteo.
 const DESCRIPTIONS: Record<number, string> = {
   0: 'Clear sky',
   1: 'Mainly clear',
@@ -30,6 +30,7 @@ const DESCRIPTIONS: Record<number, string> = {
   99: 'Severe thunderstorm with hail',
 }
 
+// Words for a WMO weather code. At night "sunny" codes read as clear.
 export function describeWeather(code: number, isDay = true): string {
   if (code === 0 && !isDay) return 'Clear'
   if (code === 1 && !isDay) return 'Mainly clear'
@@ -38,6 +39,7 @@ export function describeWeather(code: number, isDay = true): string {
 
 export type WeatherKind = 'clear' | 'partly' | 'cloudy' | 'fog' | 'drizzle' | 'rain' | 'snow' | 'storm' | 'unknown'
 
+// Group a WMO code into the few kinds the pixel icons draw.
 export function weatherKind(code: number): WeatherKind {
   if (code === 0 || code === 1) return 'clear'
   if (code === 2) return 'partly'

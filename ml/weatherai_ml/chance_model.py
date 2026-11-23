@@ -33,6 +33,7 @@ MODEL_FILE = "rain_chance_model.txt"
 
 
 def main() -> None:
+    # Heavy imports stay inside main so that importing this module (the API does, indirectly) stays cheap.
     import lightgbm as lgb
 
     from .dataset import load_dataset

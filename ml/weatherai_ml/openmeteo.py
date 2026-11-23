@@ -19,6 +19,7 @@ FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
 
 def point_coords(city: City) -> list[tuple[str, float, float]]:
+    """(name, latitude, longitude) of the city centre and its four neighbour points."""
     return [(name, round(city.latitude + dlat, 4), round(city.longitude + dlon, 4)) for name, dlat, dlon in POINTS]
 
 
@@ -82,6 +83,7 @@ def _get(client: httpx.Client, url: str, params: dict, retries: int = 5, patient
 
 
 def fetch_history(client: httpx.Client, city: City, start: str, end: str) -> tuple[pd.DataFrame, float]:
+    """Archived hourly weather at all five points between two dates, for training."""
     coords = point_coords(city)
     params = {
         "latitude": ",".join(str(lat) for _, lat, _ in coords),

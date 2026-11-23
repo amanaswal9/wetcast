@@ -5,7 +5,7 @@ import { readHome } from './useSavedPlaces'
 
 const KEY = 'weatherai.place'
 
-/** Shown on first visit until someone searches or uses their location. */
+// Shown on first visit until someone searches or uses their location.
 export const DEFAULT_PLACE: Place = {
   id: '2643743',
   name: 'London',
@@ -29,9 +29,15 @@ function isPlace(value: unknown): value is Place {
   )
 }
 
+// The place to open on: the home location when one is set, otherwise the last place viewed.
+// Wetcast Mini reads it too, so it always shows the same place as the app.
+export function readPlace(): Place {
+  return readHome() ?? readJson(KEY, DEFAULT_PLACE, isPlace)
+}
+
+// The place being viewed, remembered in this browser.
 export function usePlace() {
-  // Open on the home location when one is set, otherwise the last place viewed.
-  const [place, setPlaceState] = useState<Place>(() => readHome() ?? readJson(KEY, DEFAULT_PLACE, isPlace))
+  const [place, setPlaceState] = useState<Place>(readPlace)
 
   const setPlace = useCallback((next: Place) => {
     setPlaceState(next)

@@ -1,3 +1,5 @@
+"""Shared test setup: a throwaway SQLite database, no background jobs and no network."""
+
 import os
 import sys
 from pathlib import Path
@@ -19,7 +21,7 @@ def no_rain_outlook(monkeypatch):
     """Tests never reach Open-Meteo's live rain forecast; the ensemble then does without it."""
     from app import predictions
 
-    def offline(*args, **kwargs):
+    def offline(client, city, issued, hours):
         raise RuntimeError("offline in tests")
 
     monkeypatch.setattr(predictions, "fetch_outlook", offline)
@@ -28,6 +30,7 @@ def no_rain_outlook(monkeypatch):
 
 @pytest.fixture()
 def client():
+    """A test client for the API on a fresh database, deleted afterwards."""
     from fastapi.testclient import TestClient
 
     from app import db, predictions

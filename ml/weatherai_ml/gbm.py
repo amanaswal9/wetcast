@@ -63,6 +63,7 @@ RAIN_PARAMS = {"objective": "tweedie", "tweedie_variance_power": 1.3}
 
 
 def feature_names() -> list[str]:
+    """Column names of the matrix `build_matrix` returns, in order. Saved with the model and checked on load."""
     lags = [f"{v}_lag{lag}" for v in LAG_VARS for lag in LAGS]
     extra = ["hours_ahead", "target_hour_sin", "target_hour_cos", "prev_temperature", "prev_humidity", "prev_precipitation"]
     return list(FEATURE_ORDER) + lags + extra
@@ -73,7 +74,7 @@ def build_matrix(F: np.ndarray, hour_of_t: np.ndarray, ends: np.ndarray, prev: n
 
     F: (rows, 42) physical features in FEATURE_ORDER. hour_of_t: (n,) UTC hour at each t.
     ends: (n,) row index of t in F. prev: (n, H, 3) observed targets 24 h before each predicted hour.
-    Returns (n * H, n_features) float32, ordered forecast-major.
+    Returns float32 rows of n_features: H rows per forecast (n times H in all), forecast-major.
     """
     n = len(ends)
     base = F[ends].astype(np.float32)  # (n, 42)
@@ -118,6 +119,8 @@ def to_physical(raw: np.ndarray, prev: np.ndarray, rain_target: str = RAIN_TARGE
 
 @dataclass
 class GBMForecaster:
+    """The saved LightGBM boosters (one per target) and their config, loaded from `folder`."""
+
     folder: Path
 
     def __post_init__(self):
@@ -132,6 +135,7 @@ class GBMForecaster:
 
     @property
     def lookback(self) -> int:
+        """Hours of history the features reach back (the longest lag)."""
         return int(self.config["lookback_hours"])
 
     @property
@@ -139,17 +143,20 @@ class GBMForecaster:
         return self.config.get("rain_target", "log1p")  # artifacts from before the Tweedie rain model
 
     def predict_matrix(self, X: np.ndarray, prev: np.ndarray) -> np.ndarray:
+        """(n, H, 3) forecasts in physical units from a `build_matrix` matrix and its `prev` values."""
         n = prev.shape[0]
         raw = np.stack([self.boosters[t].predict(X, num_threads=0).reshape(n, H) for t in TARGETS], axis=2)
         return to_physical(raw, prev, self.rain_target)
 
     def predict_ends(self, ds, ends: np.ndarray) -> np.ndarray:
+        """Forecasts for the windows ending at rows `ends` of a loaded dataset."""
         prev = ds.targets[ends[:, None] + np.arange(1, H + 1)[None, :] - 24]
         X = build_matrix(ds.features, ds.times[ends].hour.to_numpy(), ends, prev)
         return self.predict_matrix(X, prev)
 
 
 def main() -> None:
+    # Imported here so that serving, which only needs GBMForecaster, never loads the training code.
     import lightgbm as lgb
 
     from .dataset import load_dataset, residual_targets, window_ends
@@ -176,6 +183,7 @@ def main() -> None:
     L = LOOKBACK_HOURS
 
     def matrices(ends):
+        """Training rows and targets for the windows ending at `ends`."""
         prev = ds.targets[future_index(ends) - 24]
         X = build_matrix(ds.features, ds.times[ends].hour.to_numpy(), ends, prev)
         Y = training_targets(ds.targets[future_index(ends)], prev).reshape(len(ends) * H, len(TARGETS))  # rain in mm
@@ -198,7 +206,7 @@ def main() -> None:
         dtrain = lgb.Dataset(Xtr, Ytr[:, k], feature_name=names, free_raw_data=False)
         dval = lgb.Dataset(Xva, Yva[:, k], reference=dtrain)
         booster = lgb.train(
-            {**PARAMS, **(RAIN_PARAMS if target == "precipitation" else {})},
+            PARAMS | (RAIN_PARAMS if target == "precipitation" else {}),
             dtrain,
             num_boost_round=3000,
             valid_sets=[dval],
@@ -219,6 +227,7 @@ def main() -> None:
     forecaster = GBMForecaster(out)
 
     def timing(ends):
+        """Median time of a single forecast, and the time per forecast in a batch of 256."""
         one = ends[:1]
         forecaster.predict_ends(ds, one)
         runs = []

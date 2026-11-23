@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-/** False while the browser reports no network connection. */
+// False while the browser reports no network connection.
 export function useOnline(): boolean {
   return useSyncExternalStore(
     (onChange) => {

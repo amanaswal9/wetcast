@@ -1,4 +1,7 @@
-"""Single source of truth for the forecasting setup."""
+"""The forecasting setup in one place: paths, cities, input features, targets and data splits.
+
+Training and the API both read these values, so they can never drift apart.
+"""
 
 import json
 from dataclasses import dataclass
@@ -13,6 +16,8 @@ REGIONS_DIR = Path(__file__).resolve().parent / "regions"
 
 @dataclass(frozen=True)
 class City:
+    """A forecast location, with its coordinates in degrees."""
+
     id: str
     name: str
     latitude: float
@@ -61,12 +66,14 @@ def region_cities(region: str) -> tuple[City, ...]:
 
 
 def raw_dir(region: str) -> Path:
+    """Where a region's downloaded weather history lives."""
     return RAW_DIR if region == "north_india" else DATA_DIR / f"raw_{region}"
 
 
 def artifacts_dir(region: str) -> Path:
     """North India keeps its original location; other regions get a subfolder."""
     return ARTIFACTS_DIR if region == "north_india" else ARTIFACTS_DIR / region
+
 
 # Spatial context: the city plus four neighbours ~55 km away (0.5 degrees).
 NEIGHBOUR_OFFSET_DEG = 0.5

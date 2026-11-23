@@ -53,6 +53,7 @@ def station_check(ds, ends: np.ndarray, lead6: np.ndarray, lead24: np.ndarray) -
     """Metrics vs stations for temperature and humidity, at 6 h and 24 h lead.
     Training cities and held-out cities are pooled separately."""
     def empty():
+        """Lists of (observed, predicted) arrays to pool, per target and lead."""
         return {t: {"lead6": ([], []), "lead24": ([], []), "open_meteo": ([], [])} for t in COLUMNS}
 
     per_city, groups = {}, {"train": empty(), "holdout": empty()}
@@ -88,6 +89,7 @@ def station_check(ds, ends: np.ndarray, lead6: np.ndarray, lead24: np.ndarray) -
         per_city[city.id] = entry
 
     def pool(group: dict) -> dict:
+        """Scores over all cities of a group at once."""
         out = {}
         for target, parts in group.items():
             out[target] = {key: summary(np.concatenate(ys), np.concatenate(ps)) for key, (ys, ps) in parts.items() if ys}

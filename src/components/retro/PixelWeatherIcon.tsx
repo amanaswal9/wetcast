@@ -1,9 +1,7 @@
 import { weatherKind, type WeatherKind } from '../../lib/weatherCodes'
 
-/**
- * 16×16 pixel-art weather icons, drawn as SVG so they stay sharp at any
- * size. "K" uses currentColor so outlines follow the theme's text colour.
- */
+// 16×16 pixel-art weather icons, drawn as SVG so they stay sharp at any
+// size. "K" uses currentColor so outlines follow the theme's text colour.
 const PALETTE: Record<string, string> = {
   Y: '#ffd800',
   O: '#c86400',
@@ -118,7 +116,7 @@ function layersFor(kind: WeatherKind, isDay: boolean): Layer[] {
   }
 }
 
-/** Merge horizontal runs of the same colour into one rect each. */
+// Merge horizontal runs of the same colour into one rect each.
 function toRects(layers: Layer[]) {
   const rects: { x: number; y: number; w: number; fill: string }[] = []
   for (const { rows, dx = 0, dy = 0 } of layers) {
@@ -147,6 +145,7 @@ interface PixelWeatherIconProps {
   className?: string
 }
 
+// Pixel-art icon for a WMO weather code, drawn as crisp SVG squares at any size.
 export function PixelWeatherIcon({ code, isDay = true, size = 48, className = '' }: PixelWeatherIconProps) {
   const rects = toRects(layersFor(weatherKind(code), isDay))
   return (

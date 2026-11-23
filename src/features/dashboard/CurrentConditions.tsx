@@ -4,6 +4,7 @@ import { useFormat } from '../../lib/units'
 import { describeWeather } from '../../lib/weatherCodes'
 import type { Forecast } from '../../types/weather'
 
+// The "Now" box: icon, current temperature and today's range.
 export function CurrentConditions({ forecast }: { forecast: Forecast }) {
   const { current, daily } = forecast
   const today = daily[0]
@@ -14,8 +15,10 @@ export function CurrentConditions({ forecast }: { forecast: Forecast }) {
     <GroupBox title="Now">
       <div className="flex items-center gap-4">
         <PixelWeatherIcon code={current.weatherCode} isDay={current.isDay} size={72} className="shrink-0" />
-        {/* LCD readout: the lit number over faint unlit "8"s, as on a CD player's display. */}
-        <p className="r-lcd m-0 font-pixel text-[60px] leading-none tabular-nums sm:text-[68px]">
+        <p
+          // LCD readout: the lit number over faint unlit "8"s, as on a CD player's display.
+          className="r-lcd m-0 font-pixel text-[60px] leading-none tabular-nums sm:text-[68px]"
+        >
           <span className="r-lcd-digits">
             <span className="r-lcd-ghost" aria-hidden="true">
               {String(round(fmt.temp(current.temperature))).replace(/[0-9-]/g, '8').padStart(2, '8')}

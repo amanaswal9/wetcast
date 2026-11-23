@@ -12,6 +12,7 @@ from .config import get_settings
 from .registry import ModelRegistry
 from .track_record import SETTLE_HOURS
 
+# Hours ahead, grouped into four bands for the "by lead time" view.
 LEAD_BUCKETS = ((1, 6), (7, 12), (13, 18), (19, 24))
 
 # A city's own accuracy is only shown once it has this many different days scored. A few days
@@ -27,6 +28,7 @@ def _day(session: Session):
 
 
 def _lead_bucket():
+    """SQL expression naming the lead-time band of a point, such as "1-6"."""
     return case(
         *[(PredictionPoint.lead_hours <= hi, f"{lo}-{hi}") for lo, hi in LEAD_BUCKETS],
         else_="other",
@@ -34,6 +36,8 @@ def _lead_bucket():
 
 
 def _stats():
+    """SQL aggregates for a group of scored points: count, model error, persistence error and
+    the share of hours that fell inside the predicted range."""
     error = func.abs(PredictionPoint.value - PredictionPoint.observed)
     baseline = func.abs(PredictionPoint.persistence - PredictionPoint.observed)
     inside = case(
@@ -58,6 +62,7 @@ def _iso(value: datetime | None) -> str | None:
 
 
 def _row(r) -> dict:
+    """The aggregates from _stats as plain, rounded numbers."""
     return {
         "n": int(r.n),
         "mae": round(float(r.mae), 4),
@@ -66,6 +71,7 @@ def _row(r) -> dict:
     }
 
 
+# Bands for the reliability table: (upper limit, label). Chances of 0.9 and above go in "90-100%".
 CHANCE_BINS = ((0.1, "0-10%"), (0.3, "10-30%"), (0.5, "30-50%"), (0.7, "50-70%"), (0.9, "70-90%"))
 
 
@@ -80,7 +86,8 @@ def rain_chance_summary(session: Session, registry: ModelRegistry, scored: list)
     chance = PredictionPoint.rain_chance
     wet = case((PredictionPoint.observed >= wet_mm, 1.0), else_=0.0)
     yesterday = case((PredictionPoint.persistence.is_(None), None), (PredictionPoint.persistence >= wet_mm, 1.0), else_=0.0)
-    where = [*scored, PredictionPoint.target == "precipitation", chance.is_not(None), PredictionRun.model == "ensemble"]
+    where = scored + [PredictionPoint.target == "precipitation", chance.is_not(None), PredictionRun.model == "ensemble"]
+    # Brier score: the mean squared gap between the stated chance and what happened (1 wet, 0 dry).
     row = session.execute(
         select(
             func.count(),
@@ -108,8 +115,7 @@ def rain_chance_summary(session: Session, registry: ModelRegistry, scored: list)
         select(band, func.count(), func.avg(chance), func.avg(wet)).join(PredictionRun).where(*where).group_by(band)
     ).all()
     order = [label for _, label in CHANCE_BINS] + ["90-100%"]
-    return {
-        **out,
+    return out | {
         "brier": round(float(row[1]), 5),
         "usual_brier": round(float(row[2]), 5),
         "yesterday_brier": round(float(row[3]), 5) if row[3] is not None else None,
@@ -122,6 +128,7 @@ def rain_chance_summary(session: Session, registry: ModelRegistry, scored: list)
 
 
 def track_record_summary(session: Session, registry: ModelRegistry, days: int, city: str | None) -> dict:
+    """Everything the Track record page shows for the last `days` days, for all cities or one."""
     since = datetime.now(timezone.utc) - timedelta(days=days)
     # Only the served model set: older sets reuse the same model names.
     current = PredictionRun.model_set == registry.region_id
@@ -129,20 +136,19 @@ def track_record_summary(session: Session, registry: ModelRegistry, days: int, c
     if city is not None:
         scored.append(PredictionRun.city_id == city)
 
-    def grouped(*columns):
+    def grouped(split=None):
+        # Error statistics per model and target, and per value of `split` when one is given.
+        keys = [PredictionRun.model, PredictionPoint.target] + ([split] if split is not None else [])
         return session.execute(
-            select(PredictionRun.model, PredictionPoint.target, *columns, *_stats())
-            .join(PredictionRun)
-            .where(*scored)
-            .group_by(PredictionRun.model, PredictionPoint.target, *columns)
+            select(*keys, *_stats()).join(PredictionRun).where(*scored).group_by(*keys)
         ).all()
 
     day = _day(session).label("day")
     lead = _lead_bucket().label("lead")
-    totals = [{"model": r.model, "target": r.target, **_row(r)} for r in grouped()]
-    daily = [{"model": r.model, "target": r.target, "date": str(r.day), **_row(r)} for r in grouped(day)]
-    by_lead = [{"model": r.model, "target": r.target, "lead": r.lead, **_row(r)} for r in grouped(lead)]
-    by_city = [{"model": r.model, "target": r.target, "city": r.city_id, **_row(r)} for r in grouped(PredictionRun.city_id)]
+    totals = [{"model": r.model, "target": r.target} | _row(r) for r in grouped()]
+    daily = [{"model": r.model, "target": r.target, "date": str(r.day)} | _row(r) for r in grouped(day)]
+    by_lead = [{"model": r.model, "target": r.target, "lead": r.lead} | _row(r) for r in grouped(lead)]
+    by_city = [{"model": r.model, "target": r.target, "city": r.city_id} | _row(r) for r in grouped(PredictionRun.city_id)]
     # How many different days each city has scores for (any model, any target).
     days_per_city = dict(
         session.execute(
@@ -169,6 +175,7 @@ def track_record_summary(session: Session, registry: ModelRegistry, days: int, c
         pending_filters.append(PredictionRun.city_id == city)
     pending = session.scalar(select(func.count()).select_from(PredictionPoint).join(PredictionRun).where(*pending_filters))
 
+    # Served models in the registry's order, then any older names still in the record.
     names = sorted({r["model"] for r in totals}, key=lambda m: (m not in registry.names, registry.names.index(m) if m in registry.names else 0, m))
     return {
         "days": days,

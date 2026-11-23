@@ -6,7 +6,7 @@ import { ChartLegend, HourlyChart } from './HourlyChart'
 import { useFormat } from '../../lib/units'
 import { buildRows, findNowTime, modeUnit, MODES, type ChartPoint, type Mode, type Row } from './series'
 
-/** Temperature / Rain / Wind tabs over one hourly series. Used by Dashboard and Forecast. */
+// Temperature / Rain / Wind tabs over one hourly series. Used by Dashboard and Forecast.
 export function HourlyTabs({ points, theme }: { points: ChartPoint[]; theme: Theme }) {
   const [mode, setMode] = useState<Mode>('temperature')
   const colors = CHART_COLORS[theme]

@@ -42,20 +42,20 @@ from .config import (
     artifacts_dir,
     raw_dir,
 )
-
-REGION_LABELS = {"north_india": "North India", "india": "India"}
 from .dataset import Dataset, load_dataset, residual_targets, split_rows, window_ends
 from .metrics import mae, monthly_halfwidths, summary
 from .models import DISPLAY_NAMES, MODEL_NAMES, TRANSFORMER_DEFAULTS, TRANSFORMER_NAME, build_model
 from .preprocess import RESIDUAL_INDICES, Preprocessor
 from .stations import station_check
 
+REGION_LABELS = {"north_india": "North India", "india": "India"}
 H = HORIZON_HOURS
 SAMPLE_DAYS = 14
 EXPERIMENTS_DIR = ML_ROOT / "experiments"
 
 
 def windows(X: np.ndarray, ends: np.ndarray, Y: np.ndarray | None, lookback: int, batch: int, shuffle: bool) -> tf.data.Dataset:
+    """Batches of input windows (and their targets, when Y is given) cut on the fly from the full arrays."""
     Xt = tf.constant(X)
     Yt = tf.constant(Y) if Y is not None else None
 
@@ -70,10 +70,12 @@ def windows(X: np.ndarray, ends: np.ndarray, Y: np.ndarray | None, lookback: int
 
 
 def future_index(ends: np.ndarray) -> np.ndarray:
+    """(n, H) row indexes of the hours each window forecasts."""
     return ends[:, None] + np.arange(1, H + 1)[None, :]
 
 
 def predict(model: keras.Model, pre: Preprocessor, ds: Dataset, X: np.ndarray, ends: np.ndarray) -> np.ndarray:
+    """A network's forecasts in physical units for the windows ending at `ends`."""
     scaled = model.predict(windows(X, ends, None, pre.lookback, 1024, False), verbose=0)
     # The same hour on the previous day lies inside the input window, so this uses no future data.
     yesterday = ds.targets[future_index(ends) - 24]
@@ -81,6 +83,7 @@ def predict(model: keras.Model, pre: Preprocessor, ds: Dataset, X: np.ndarray, e
 
 
 def inference_timing(model: keras.Model, X: np.ndarray, ends: np.ndarray, lookback: int) -> dict[str, float]:
+    """Median time of one forecast and of one forecast within a batch of 256, after a warm-up call."""
     one = X[ends[0] - lookback + 1 : ends[0] + 1][None, ...]
     batch = np.stack([X[e - lookback + 1 : e + 1] for e in ends[:256]])
     model(one, training=False)
@@ -124,12 +127,13 @@ def samples_for_analytics(ds: Dataset, ends: np.ndarray, pred: np.ndarray) -> di
 
 
 def split_metrics(ds: Dataset, ends: np.ndarray, pred: np.ndarray) -> tuple[dict, dict]:
+    """Scores for the model and for persistence (the same hour yesterday) on the same windows."""
     true = ds.targets[future_index(ends)]
     persistence = ds.targets[future_index(ends) - 24]
     model_m, base_m = {}, {}
     for k, target in enumerate(TARGETS):
-        model_m[target] = {**summary(true[..., k], pred[..., k]), "unit": TARGET_UNITS[target]}
-        base_m[target] = {**summary(true[..., k], persistence[..., k]), "unit": TARGET_UNITS[target]}
+        model_m[target] = summary(true[..., k], pred[..., k]) | {"unit": TARGET_UNITS[target]}
+        base_m[target] = summary(true[..., k], persistence[..., k]) | {"unit": TARGET_UNITS[target]}
     return model_m, base_m
 
 
@@ -173,6 +177,7 @@ def interval_block(
 
 
 def coverage_of(true: np.ndarray, pred: np.ndarray, hw, target: str) -> float:
+    """Share of observations inside the range, after the same physical limits the API applies."""
     lower = pred - np.asarray(hw)
     upper = pred + np.asarray(hw)
     if target == "precipitation":
@@ -261,6 +266,7 @@ def evaluate(
 
 
 def main() -> None:
+    # Fit the scaler once, then train, save and score each requested network in turn.
     parser = argparse.ArgumentParser()
     parser.add_argument("--models", nargs="+", default=list(MODEL_NAMES), choices=MODEL_NAMES)
     parser.add_argument("--epochs", type=int, default=25)

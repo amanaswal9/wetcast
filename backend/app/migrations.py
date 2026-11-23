@@ -31,18 +31,21 @@ logging.getLogger("alembic.runtime.migration").setLevel(logging.WARNING)
 
 
 def alembic_config() -> Config:
+    """Alembic's config with paths that work from any working directory."""
     cfg = Config(str(BACKEND_DIR / "alembic.ini"))
     cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
     return cfg
 
 
 def head_revision() -> str:
+    """The newest migration revision on disk."""
     head = ScriptDirectory.from_config(alembic_config()).get_current_head()
     assert head is not None
     return head
 
 
 def current_revision(engine: Engine) -> str | None:
+    """The revision the database is at, or None if it has never been migrated."""
     with engine.connect() as conn:
         return MigrationContext.configure(conn).get_current_revision()
 

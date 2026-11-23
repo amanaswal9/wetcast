@@ -15,12 +15,16 @@ from weatherai_ml.predict import EnsemblePredictor, GBMPredictor, Predictor
 from .config import get_settings
 
 log = logging.getLogger("weatherai.registry")
+# Files a model folder must have before the model is served.
 REQUIRED = ("model.keras", "preprocessor.json", "metrics.json", "evaluation.json")
 REQUIRED_ENSEMBLE = ("ensemble.json", "metrics.json", "evaluation.json")
 REQUIRED_GBM = ("gbm_config.json", "metrics.json", "evaluation.json", "model_temperature.txt", "model_humidity.txt", "model_precipitation.txt")
 
 
 class ModelRegistry:
+    """The served models, loaded once from the artifacts folder. A model with missing files is
+    skipped with a warning instead of stopping the API."""
+
     def __init__(self, artifacts_dir: Path):
         self.artifacts_dir = artifacts_dir
         self._predictors: dict[str, Predictor | GBMPredictor | EnsemblePredictor] = {}
@@ -75,15 +79,19 @@ class ModelRegistry:
 
     @property
     def names(self) -> list[str]:
+        """Served model names: the neural networks, then the boosted trees, then the ensemble."""
         return list(self._predictors)
 
     def get(self, name: str) -> Predictor | GBMPredictor | EnsemblePredictor | None:
+        """The predictor called `name`, or None if it isn't served."""
         return self._predictors.get(name)
 
     def metrics(self, name: str) -> dict:
+        """The model's metrics.json (test-period errors, interval coverage, training data)."""
         return self._predictors[name].metrics
 
     def evaluation(self, name: str) -> dict:
+        """The model's evaluation.json, read from disk each time because it is large."""
         return json.loads((self.artifacts_dir / name / "evaluation.json").read_text())
 
     def evaluation_summary(self, name: str) -> dict:
@@ -94,9 +102,11 @@ class ModelRegistry:
 
     @staticmethod
     def display_name(name: str) -> str:
+        """The name shown to people, such as "ST-Transformer"."""
         return DISPLAY_NAMES.get(name, name)
 
 
 @lru_cache
 def get_registry() -> ModelRegistry:
+    """The registry for the configured artifacts folder, built once per process."""
     return ModelRegistry(get_settings().artifacts_dir)

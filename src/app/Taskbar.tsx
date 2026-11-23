@@ -11,13 +11,16 @@ interface TaskbarProps {
   page: PageId | null
   minimized: boolean
   onToggleWindow: () => void
+  darkMode: boolean
+  onToggleDark: () => void
   highContrast: boolean
   onToggleContrast: () => void
   warningNotifications: boolean
   onToggleNotifications: () => void
 }
 
-export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: TaskbarProps) {
+// The bar along the bottom of the screen: Start menu, quick launch, the window button and the clock.
+export function Taskbar({ title, page, minimized, onToggleWindow, darkMode, onToggleDark, highContrast, onToggleContrast, warningNotifications, onToggleNotifications }: TaskbarProps) {
   const now = useClock()
   const fmt = useFormat()
   return (
@@ -31,13 +34,18 @@ export function Taskbar({ title, page, minimized, onToggleWindow, highContrast, 
     >
       <StartMenu
         page={page}
+        darkMode={darkMode}
+        onToggleDark={onToggleDark}
         highContrast={highContrast}
         onToggleContrast={onToggleContrast}
         warningNotifications={warningNotifications}
         onToggleNotifications={onToggleNotifications}
       />
-      {/* Quick launch: the three most-used pages, one tap away on phones (the menu bar covers wider screens). */}
-      <nav aria-label="Quick launch" className="flex shrink-0 gap-0.5 sm:hidden">
+      <nav
+        // Quick launch: the three most-used pages, one tap away on phones. The menu bar covers wider screens.
+        aria-label="Quick launch"
+        className="flex shrink-0 gap-0.5 sm:hidden"
+      >
         {QUICK_LAUNCH.map((id) => {
           const Icon = PAGE_ICONS[id]
           const label = PAGES.find((p) => p.id === id)?.label ?? id

@@ -1,4 +1,4 @@
-import * as RadixTabs from '@radix-ui/react-tabs'
+import { Tabs as TabsRoot, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs'
 import { useState } from 'react'
 import { Chart } from '../../components/chart/Chart'
 import { Button, ChartSkeleton, GroupBox, MessageBox } from '../../components/retro'
@@ -18,11 +18,11 @@ interface Row {
   model: number
   band: [number, number]
   openMeteo: number | null
-  /** Chance of rain in the hour (0-1), from the model that has one (the ensemble), shown with every model. */
+  // Chance of rain in the hour (0-1), from the model that has one (the ensemble), shown with every model.
   chance: number | null
 }
 
-/** Rows in the viewer's units: temperatures (model, its range and Open-Meteo) are converted together. */
+// Rows in the viewer's units: temperatures (model, its range and Open-Meteo) are converted together.
 function buildRows(data: Predictions, model: string, target: Target, week: WeekForecast, fmt: Format): Row[] {
   const prediction = data.models.find((m) => m.model === model)
   if (!prediction) return []
@@ -61,7 +61,7 @@ function buildRows(data: Predictions, model: string, target: Target, week: WeekF
   })
 }
 
-/** Values are already in the viewer's units (see buildRows). */
+// Values are already in the viewer's units (see buildRows).
 function format(value: number, target: Target, fmt: Format): string {
   return target === 'precipitation' ? `${value.toFixed(1)} mm` : `${round(value)}${target === 'temperature' ? fmt.tempUnit : '%'}`
 }
@@ -186,7 +186,7 @@ function PredictionChart({
   )
 }
 
-/** What kind of place this is for the models, and the average error measured for that kind of place. */
+// What kind of place this is for the models, and the average error measured for that kind of place.
 function CoverageNote({ coverage, modelName }: { coverage: PredictionCoverage; modelName: string }) {
   const fmt = useFormat()
   const { mae, basis, temperature_range: range } = coverage.expected_error
@@ -216,6 +216,7 @@ interface ModelPredictionPanelProps {
   onSelectPlace: (place: Place) => void
 }
 
+// Wetcast's own model predictions for the place, one tab per model.
 export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: ModelPredictionPanelProps) {
   const result = useResource(
     `pred:${coordKey(place)}:${place.countryCode ?? ''}`,
@@ -275,16 +276,16 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
             </Button>
           ))}
         </div>
-        <RadixTabs.Root value={active} onValueChange={setModel}>
-          <RadixTabs.List aria-label="Model" className="r-tablist">
+        <TabsRoot value={active} onValueChange={setModel}>
+          <TabsList aria-label="Model" className="r-tablist">
             {data.models.map((m) => (
-              <RadixTabs.Trigger key={m.model} value={m.model} className="r-tab">
+              <TabsTrigger key={m.model} value={m.model} className="r-tab">
                 {m.display_name}
-              </RadixTabs.Trigger>
+              </TabsTrigger>
             ))}
-          </RadixTabs.List>
+          </TabsList>
           {data.models.map((m) => (
-            <RadixTabs.Content key={m.model} value={m.model} className="r-tabpanel">
+            <TabsContent key={m.model} value={m.model} className="r-tabpanel">
               <PredictionChart
                 rows={buildRows(data, m.model, target, week, fmt)}
                 target={target}
@@ -293,9 +294,9 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
                 modelName={m.display_name}
                 halfHour={week.utcOffsetSeconds % 3600 !== 0}
               />
-            </RadixTabs.Content>
+            </TabsContent>
           ))}
-        </RadixTabs.Root>
+        </TabsRoot>
         <p className="m-0 text-[0.92em] text-[var(--text-muted)]">
           Issued from data up to {fmt.time(issuedLocal)} local time for {data.coverage?.kind === 'untrained' ? `${place.name} (computed at ${data.city.name})` : data.city.name}. {data.note} {data.source}{' '}
           <a href="#/models" className="text-[inherit]">

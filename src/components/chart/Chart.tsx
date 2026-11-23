@@ -2,13 +2,11 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type P
 import { CHART_FONT } from '../../lib/chartTheme'
 import { isNum, linearPath, monotonePath, nearestIndex, niceScale, segments, type Num } from './chartMath'
 
-/**
- * Wetcast's SVG chart: lines, dithered bands and bars over evenly spaced rows (or a
- * numeric x axis), with a hover / touch / keyboard cursor and tooltip. It replaces a
- * general charting library at a fraction of the size, and draws crisp 1-pixel retro
- * axes. Charts stay decorative for screen readers: every chart in the app has a table
- * or text alternative next to it.
- */
+// Wetcast's SVG chart: lines, dithered bands and bars over evenly spaced rows (or a
+// numeric x axis), with a hover / touch / keyboard cursor and tooltip. It replaces a
+// general charting library at a fraction of the size, and draws crisp 1-pixel retro
+// axes. Charts stay decorative for screen readers: every chart in the app has a table
+// or text alternative next to it.
 
 export type Series<R> =
   | {
@@ -20,7 +18,7 @@ export type Series<R> =
       dash?: string
       curve?: 'monotone' | 'linear'
       dots?: boolean
-      /** Draw straight on across missing values instead of breaking the line. */
+      // Draw straight on across missing values instead of breaking the line.
       connectGaps?: boolean
     }
   | { type: 'band'; key: string; lower: (r: R) => Num; upper: (r: R) => Num; color: string; opacity?: number }
@@ -37,24 +35,24 @@ export interface ChartProps<R> {
   series: Series<R>[]
   colors: ChartColors
   height: number
-  /** Numeric x positions (e.g. hours ahead) and their domain; otherwise rows are evenly spaced categories. */
+  // Numeric x positions (e.g. hours ahead) and their domain; otherwise rows are evenly spaced categories.
   x?: { value: (r: R, i: number) => number; domain: [number, number] }
-  /** Tick marks on the x axis: at a row index (category axis) or an x value (numeric axis). */
+  // Tick marks on the x axis: at a row index (category axis) or an x value (numeric axis).
   xTicks: { at: number; label: string }[]
-  /** Rotate x labels (degrees, negative = slant up to the left) when they're long. */
+  // Rotate x labels (degrees, negative = slant up to the left) when they're long.
   xTickAngle?: number
   y?: { domain?: [number | 'auto', number | 'auto']; format?: (v: number) => string; ticks?: number }
-  /** Vertical marker lines, positioned like xTicks. */
+  // Vertical marker lines, positioned like xTicks.
   markers?: { at: number; label?: string }[]
-  /** Content for the tooltip of the row under the cursor; omit for no tooltip. */
+  // Content for the tooltip of the row under the cursor; omit for no tooltip.
   tooltip?: (row: R, index: number) => ReactNode
-  /** Label used for keyboard users when the chart has a tooltip. */
+  // Label used for keyboard users when the chart has a tooltip.
   label?: string
-  /** A sentence or two saying what the chart shows (e.g. lowest and highest), read out by screen readers. */
+  // A sentence or two saying what the chart shows (e.g. lowest and highest), read out by screen readers.
   summary?: string
   yWidth?: number
   top?: number
-  /** Gap between bars as a share of the slot (bars only). */
+  // Gap between bars as a share of the slot (bars only).
   barGap?: number
 }
 
@@ -235,8 +233,10 @@ export function Chart<R>({
             )}
           </defs>
 
-          {/* grid and y axis */}
-          <g shapeRendering="crispEdges">
+          <g
+            // Horizontal grid lines and the two axis lines, kept pixel-sharp.
+            shapeRendering="crispEdges"
+          >
             {scale.ticks.map((t) => (
               <line key={t} x1={yWidth} x2={yWidth + plotW} y1={Math.round(yAt(t)) + 0.5} y2={Math.round(yAt(t)) + 0.5} stroke={colors.grid} />
             ))}
@@ -249,8 +249,8 @@ export function Chart<R>({
             </text>
           ))}
 
-          {/* x ticks */}
           {xTicks.map((t) => {
+            // One tick mark and label on the x axis.
             const px = Math.round(xAt(t.at)) + 0.5
             return (
               <g key={`${t.at}-${t.label}`}>

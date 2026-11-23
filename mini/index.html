@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- Its own manifest, so Wetcast Mini installs as a separate small app next to Wetcast. -->
+    <link rel="manifest" href="/mini/manifest.webmanifest" />
+    <meta name="theme-color" content="#000080" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- iPhone and iPad: open full screen from the home screen, with this name under the icon. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Wetcast Mini" />
+    <meta name="description" content="Wetcast Mini: the current weather and the next few hours, small enough to keep on screen." />
+    <title>Wetcast Mini</title>
+    <script>
+      // Same theme as the main app, applied before first paint.
+      try {
+        var saved = localStorage.getItem('weatherai.theme')
+        var theme = saved === 'light' || saved === 'night' || saved === 'dark' ? saved
+          : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'light'
+        document.documentElement.dataset.theme = theme
+        var bar = { light: '#000080', night: '#1f4e8c', dark: '#800080' }[theme]
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', bar)
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light'
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/mini/main.tsx"></script>
+  </body>
+</html>

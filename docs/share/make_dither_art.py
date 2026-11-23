@@ -66,7 +66,7 @@ sky[d < sun_r] = 1.0
 
 # Clouds: noise shaped into puffy banks, lit from above (bright tops, grey undersides).
 noise = fractal(W, H)
-band = np.exp(-(((y - 118) / 30) ** 2)) + 0.75 * np.exp(-(((y - 66) / 16) ** 2) - ((x - 85) / 75) ** 2)
+band = np.exp(-np.square((y - 118) / 30)) + 0.75 * np.exp(-np.square((y - 66) / 16) - np.square((x - 85) / 75))
 density = np.clip((noise * 1.4 + band * 0.6 - 0.86) * 6.0, 0, 1)
 shade = np.clip(1.0 - (np.roll(density, -6, axis=0) - density) * 1.8 - (y / H) * 0.25, 0.35, 1.0)
 img = sky * (1 - density) + shade * density

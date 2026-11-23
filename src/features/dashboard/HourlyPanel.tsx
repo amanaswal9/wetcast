@@ -36,6 +36,7 @@ function HourlyTable({ hourly }: { hourly: HourlyPoint[] }) {
   )
 }
 
+// Hourly box, as a chart or as a table for anyone who prefers numbers.
 export function HourlyPanel({ forecast, theme }: { forecast: Forecast; theme: Theme }) {
   const [asTable, setAsTable] = useState(false)
 

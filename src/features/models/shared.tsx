@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+// Plain scrolling table with a caption for screen readers.
 export function Table({ caption, head, rows }: { caption: string; head: string[]; rows: ReactNode[][] }) {
   return (
     <div className="r-sunken overflow-x-auto">

@@ -28,6 +28,7 @@ from playwright.sync_api import Browser, Page, Route, sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "e2e" / "fixtures"
 SHOTS = ROOT / "e2e" / "screenshots" / sys.platform
+FAILED_SHOTS = ROOT / "e2e" / "screenshots-failed" / sys.platform  # git-ignored
 PORT = 4173
 BASE = f"http://127.0.0.1:{PORT}"
 API = "http://127.0.0.1:8000"
@@ -45,7 +46,7 @@ WEATHER_HOSTS = ("open-meteo.com",)
 BLOCKED_HOSTS = ("tile.openstreetmap.org",)
 
 
-# ---- the app server -------------------------------------------------------------------
+# The app server
 
 
 def _port_open(port: int) -> bool:
@@ -82,7 +83,7 @@ def browser():
         b.close()
 
 
-# ---- recorded network -----------------------------------------------------------------
+# Recorded network
 
 
 def fixture_key(method: str, url: str, body: bytes | None) -> str:
@@ -134,10 +135,13 @@ class Network:
         route.fulfill(status=503, content_type="application/json", body='{"detail": "not recorded"}')
 
 
-def open_app(browser: Browser, server: str, device: dict, *, theme: str = "light", place: dict = DELHI, units: str = "metric"):
+def open_app(browser: Browser, server: str, device: dict, theme: str = "light", place: dict = DELHI, units: str = "metric"):
     """A fresh page of the app with fixed time, place, theme and units, and recorded network."""
     context = browser.new_context(
-        **device,
+        viewport=device["viewport"],
+        is_mobile=device.get("is_mobile", False),
+        has_touch=device.get("has_touch", False),
+        device_scale_factor=device.get("device_scale_factor", 1),
         locale="en-GB",
         timezone_id="Asia/Kolkata",
         reduced_motion="reduce",
@@ -153,7 +157,7 @@ def open_app(browser: Browser, server: str, device: dict, *, theme: str = "light
         "} catch (e) {}"
     )
     network = Network()
-    context.route("**/*", network.handle)
+    context.route(lambda url: True, network.handle)  # every request goes through the recorder
     page = context.new_page()
     page.clock.set_fixed_time(FIXED_TIME)
     page.network = network  # type: ignore[attr-defined]
@@ -193,7 +197,7 @@ def goto(page: Page, hash_path: str = "") -> None:
     page.wait_for_load_state("networkidle")
 
 
-# ---- screenshots ----------------------------------------------------------------------
+# Screenshots
 
 COMPARE_JS = """async ([a, b]) => {
   const load = (src) => new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = src })
@@ -212,10 +216,11 @@ COMPARE_JS = """async ([a, b]) => {
 MAX_DIFF = 0.003  # share of pixels allowed to differ (anti-aliasing noise)
 
 
-def expect_screenshot(page: Page, name: str, **options) -> None:
+def expect_screenshot(page: Page, name: str) -> None:
     """Compare with the reference image for this operating system (fonts render differently
     on Windows and Linux). With no reference yet, or E2E_UPDATE=1, save one instead."""
-    shot = page.screenshot(animations="disabled", caret="hide", **options)
+    # The personal desktop picture (src/local, not in git) is hidden, so screenshots match on every computer.
+    shot = page.screenshot(animations="disabled", caret="hide", style=".r-desktop-art { display: none; }")
     reference = SHOTS / f"{name}.png"
     if UPDATE or not reference.exists():
         SHOTS.mkdir(parents=True, exist_ok=True)
@@ -225,7 +230,8 @@ def expect_screenshot(page: Page, name: str, **options) -> None:
     uri = lambda data: "data:image/png;base64," + base64.b64encode(data).decode()  # noqa: E731
     result = page.evaluate(COMPARE_JS, [uri(reference.read_bytes()), uri(shot)])
     if not result["size"] or result["diff"] > MAX_DIFF:
-        actual = reference.with_name(f"{name}.actual.png")
+        FAILED_SHOTS.mkdir(parents=True, exist_ok=True)
+        actual = FAILED_SHOTS / f"{name}.png"
         actual.write_bytes(shot)
         pytest.fail(
             f"Screenshot {name} changed ({result['diff']:.2%} of pixels"
@@ -234,7 +240,7 @@ def expect_screenshot(page: Page, name: str, **options) -> None:
         )
 
 
-# ---- accessibility --------------------------------------------------------------------
+# Accessibility
 
 AXE = (ROOT / "node_modules" / "axe-core" / "axe.min.js").read_text(encoding="utf-8")
 

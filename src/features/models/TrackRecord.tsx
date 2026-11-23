@@ -24,7 +24,7 @@ function dateTime(iso: string): string {
   return dateFormatter(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: getUnits().clock === '12' }).format(new Date(iso))
 }
 
-/** Daily rows for the chart: one MAE per model plus persistence on the same hours (weighted by hours scored). */
+// Daily rows for the chart: one MAE per model plus persistence on the same hours (weighted by hours scored).
 function dailyRows(record: TrackRecord, target: Target) {
   const byDate = new Map<string, { mae: Record<string, number>; n: number; persistence: number }>()
   for (const r of record.daily) {
@@ -102,11 +102,9 @@ function DailyChart({ record, target, theme }: { record: TrackRecord; target: Ta
   )
 }
 
-/**
- * Accuracy city by city. A city's numbers appear only once it has enough different days scored
- * (min_days_per_city); until then it shows how far along it is, so a few days of one city's
- * weather are never presented as that city's accuracy.
- */
+// Accuracy city by city. A city's numbers appear only once it has enough different days scored
+// (min_days_per_city); until then it shows how far along it is, so a few days of one city's
+// weather are never presented as that city's accuracy.
 function ByCity({ record, models, target, digits, unit }: { record: TrackRecord; models: ModelMetrics[]; target: Target; digits: number; unit: string }) {
   const need = record.min_days_per_city
   const cities = models[0]?.data.cities ?? []
@@ -136,6 +134,7 @@ function ByCity({ record, models, target, digits, unit }: { record: TrackRecord;
   )
 }
 
+// How the models did on real days since going live, over a chosen window.
 export function TrackRecordPanel({ models, target, theme }: { models: ModelMetrics[]; target: Target; theme: Theme }) {
   const [days, setDays] = useState<(typeof WINDOWS)[number]>(30)
   const record = useResource(`track:${days}`, ({ signal }) => getTrackRecord(days, signal))
@@ -234,7 +233,7 @@ export function TrackRecordPanel({ models, target, theme }: { models: ModelMetri
   )
 }
 
-/** The Ensemble's chance of rain, scored on the live record (Brier score: lower is better). */
+// The Ensemble's chance of rain, scored on the live record (Brier score: lower is better).
 function RainChanceRecord({ chance: c }: { chance: NonNullable<TrackRecord['rain_chance']> }) {
   const pct = (v: number) => `${Math.round(v * 100)}%`
   if (c.n === 0 || c.brier === undefined) {

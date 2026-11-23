@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 interface WindowProps {
   title: string
   icon?: ReactNode
-  /** Title-bar buttons (minimise, maximise, close), rendered on the right. */
+  // Title-bar buttons (minimise, maximise, close), rendered on the right.
   controls?: ReactNode
   inactive?: boolean
   headingLevel?: 1 | 2
@@ -11,6 +11,7 @@ interface WindowProps {
   children: ReactNode
 }
 
+// A classic window: title bar with optional icon and buttons, then the content.
 export function Window({ title, icon, controls, inactive, headingLevel = 2, className = '', children }: WindowProps) {
   const Heading = headingLevel === 1 ? 'h1' : 'h2'
   return (
@@ -63,6 +64,7 @@ interface TitleButtonProps {
   className?: string
 }
 
+// Small title-bar button (minimise, close and so on) with a pixel glyph.
 export function TitleButton({ glyph, label, onClick, className = '' }: TitleButtonProps) {
   return (
     <button type="button" className={`r-btn r-title-btn ${className}`} aria-label={label} title={label} onClick={onClick}>

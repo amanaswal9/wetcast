@@ -16,6 +16,7 @@ CLIENT = {"X-Client-Id": "test-client-0001"}
 
 
 def fake_fetch(client, city, past_hours):
+    """Synthetic recent hours in place of Open-Meteo, with an elevation of 0 m."""
     return synthetic_long_frame(past_hours), 0.0
 
 
@@ -176,7 +177,7 @@ def test_transformer_is_served(client, monkeypatch):
 
 @pytest.mark.skipif(not HAS_MODELS, reason="no trained models yet")
 def test_upstream_failure_is_502(client, monkeypatch):
-    def broken(*_args, **_kwargs):
+    def broken(client, city, past_hours):
         raise httpx.ConnectError("down")
 
     monkeypatch.setattr(predictions, "fetch_recent", broken)
@@ -240,7 +241,7 @@ def test_places_replace_validates(client):
     one = {"place_id": "a1", "name": "Delhi", "latitude": 28.6, "longitude": 77.2}
     assert client.put("/api/places", json={"places": [one, one]}, headers=CLIENT).status_code == 422
     assert client.put("/api/places", json={"places": [one], "home_place_id": "zz"}, headers=CLIENT).status_code == 422
-    nine = [{**one, "place_id": f"p{i}"} for i in range(9)]
+    nine = [one | {"place_id": f"p{i}"} for i in range(9)]
     assert client.put("/api/places", json={"places": nine}, headers=CLIENT).status_code == 422
 
 

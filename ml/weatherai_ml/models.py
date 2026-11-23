@@ -34,15 +34,18 @@ TRANSFORMER_DEFAULTS = {"patch": 6, "dim": 64, "layers": 2, "heads": 4, "dropout
 
 @keras.saving.register_keras_serializable(package="weatherai")
 class SpatialPatchTokens(layers.Layer):
-    """(batch, lookback, features) -> (batch, points * patches, patch * (point features + shared features)).
+    """Cuts the input window into tokens: one per patch of hours at each point.
 
-    The feature order is point-major (see config.FEATURE_ORDER): each point's
+    Input is (batch, lookback, features). Output is (batch, tokens, token size), with
+    points times patches tokens, each holding a patch of the point's own features
+    plus the shared features for the same hours. The feature order is point-major (see config.FEATURE_ORDER): each point's
     features come first, then the shared time and location features, which are
     attached to every point's tokens. Tokens are ordered point by point, so the
     city's tokens (point 0) are the first `patches`."""
 
-    def __init__(self, n_points: int, n_point_features: int, patch: int, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, n_points: int, n_point_features: int, patch: int, name=None, trainable=True, dtype=None):
+        # Keras hands name, trainable and dtype back in when it loads a saved model.
+        super().__init__(name=name, trainable=trainable, dtype=dtype)
         self.n_points, self.n_point_features, self.patch = n_points, n_point_features, patch
 
     def build(self, input_shape):
@@ -66,7 +69,7 @@ class SpatialPatchTokens(layers.Layer):
         return (input_shape[0], self.n_points * (lookback // self.patch), self.patch * (features - self.n_points * self.n_point_features + self.n_point_features))
 
     def get_config(self):
-        return {**super().get_config(), "n_points": self.n_points, "n_point_features": self.n_point_features, "patch": self.patch}
+        return super().get_config() | {"n_points": self.n_points, "n_point_features": self.n_point_features, "patch": self.patch}
 
 
 @keras.saving.register_keras_serializable(package="weatherai")
@@ -86,8 +89,8 @@ class TokenPositions(layers.Layer):
 class PointTokens(layers.Layer):
     """The tokens of one point (default the city, point 0)."""
 
-    def __init__(self, n_points: int, point: int = 0, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, n_points: int, point: int = 0, name=None, trainable=True, dtype=None):
+        super().__init__(name=name, trainable=trainable, dtype=dtype)
         self.n_points, self.point = n_points, point
 
     def call(self, x):
@@ -98,10 +101,11 @@ class PointTokens(layers.Layer):
         return (input_shape[0], int(input_shape[1]) // self.n_points, input_shape[2])
 
     def get_config(self):
-        return {**super().get_config(), "n_points": self.n_points, "point": self.point}
+        return super().get_config() | {"n_points": self.n_points, "point": self.point}
 
 
 def _encoder_block(x, dim: int, heads: int, dropout: float):
+    """One pre-norm Transformer encoder layer: self-attention, then a small feed-forward network."""
     h = layers.LayerNormalization(epsilon=1e-6)(x)
     h = layers.MultiHeadAttention(num_heads=heads, key_dim=dim // heads, dropout=dropout)(h, h)
     x = layers.Add()([x, layers.Dropout(dropout)(h)])
@@ -120,6 +124,7 @@ def build_model(
     loss: str = "mse",
     options: dict | None = None,
 ) -> keras.Model:
+    """A compiled network by name. Every architecture maps the same input window to (horizon, n_targets)."""
     inputs = keras.Input(shape=(lookback, n_features), name="history")
     if name == "lstm":
         x = layers.LSTM(64, return_sequences=True)(inputs)
@@ -138,7 +143,7 @@ def build_model(
         x = layers.Dropout(0.2)(x)
         x = layers.LSTM(64)(x)
     elif name == TRANSFORMER_NAME:
-        o = {**TRANSFORMER_DEFAULTS, **(options or {})}
+        o = TRANSFORMER_DEFAULTS | (options or {})
         tokens = SpatialPatchTokens(len(POINTS), len(POINT_FEATURES), o["patch"], name="patch_tokens")(inputs)
         x = TokenPositions(name="positions")(layers.Dense(o["dim"], name="token_embedding")(tokens))
         for _ in range(o["layers"]):
