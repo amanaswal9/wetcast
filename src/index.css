@@ -332,6 +332,14 @@ a:not([class]):focus-visible {
     padding: calc(15px + 0.75em) 11px 11px 11px; /* content box exactly as before: 1 px border + 10 px */
   }
 
+  /* For boxes that always open at the top of a page. On the frame a box first appears, Chrome sizes an
+     auto box at its 320 px guess before measuring it, and the page below jumps; these skip the guess but
+     keep the same containment, so they draw exactly like the others. */
+  .r-group-eager {
+    content-visibility: visible;
+    contain: layout style paint;
+  }
+
   .r-group::before {
     content: '';
     position: absolute;

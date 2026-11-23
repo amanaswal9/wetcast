@@ -130,7 +130,7 @@ export function AlertsPanel({ place }: { place: Place }) {
   const result = useResource(key, ({ signal }) => getAlerts(place.latitude, place.longitude, place.countryCode, signal), REFRESH_MS)
   if (!result.data) {
     if (result.status === 'error') return <StatusLine short="Official warnings: unavailable right now">Official warnings: unavailable right now (Wetcast's server isn't reachable).</StatusLine>
-    return <StatusLine>Official warnings: checking…</StatusLine>
+    return <StatusLine short="Official warnings: checking…">Official warnings: checking…</StatusLine>
   }
   return (
     <section aria-label="Official weather warnings">
