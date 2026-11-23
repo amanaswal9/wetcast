@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { toVoiceError, type VoiceError } from '../lib/speechHelp'
 
 /**
  * Voice input through the browser's speech recognition (Web Speech API).
@@ -35,14 +36,7 @@ function getRecognition(): RecognitionConstructor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
-export type VoiceError = 'blocked' | 'no-speech' | 'network' | 'other'
-
-function toVoiceError(code: string): VoiceError {
-  if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture') return 'blocked'
-  if (code === 'no-speech' || code === 'aborted') return 'no-speech'
-  if (code === 'network') return 'network'
-  return 'other'
-}
+export type { VoiceError }
 
 export function useSpeechRecognition() {
   const supported = getRecognition() !== null && typeof window !== 'undefined' && window.isSecureContext
