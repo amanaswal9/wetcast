@@ -1,4 +1,4 @@
-"""The WeatherAI assistant on a free local model, run by Ollama on this computer.
+"""Javed, the WeatherAI assistant, on a free local model, run by Ollama on this computer.
 
 Same rules, tools and data as the Hosted version (assistant.py): the model may only answer
 from what the read-only tools return. Nothing leaves the machine except the tools' own

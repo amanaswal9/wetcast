@@ -87,9 +87,9 @@ export function AssistantPage({ place }: { place: Place }) {
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <GroupBox title="Ask WeatherAI">
+      <GroupBox title="Ask Javed">
         <p className="m-0 mb-2 max-w-[75ch]">
-          Ask about the weather in {placeShortLabel(place)} or anywhere else. For every question the assistant looks up Open-Meteo&apos;s forecast,
+          Ask about the weather in {placeShortLabel(place)} or anywhere else. Javed is WeatherAI&apos;s AI weather assistant: for every question it looks up Open-Meteo&apos;s forecast,
           WeatherAI&apos;s own models and official warnings, and answers only from what it finds.{' '}
           {status.data?.provider === 'local'
             ? `It runs on ${status.data.model}, a small free model on WeatherAI's own computer, so it is slower and makes more mistakes than a large model: check the numbers against the Dashboard. `
@@ -101,13 +101,13 @@ export function AssistantPage({ place }: { place: Place }) {
 
         {status.status === 'loading' && <TextSkeleton lines={3} />}
         {status.status === 'error' && (
-          <MessageBox kind="warning" title="The assistant isn't reachable">
+          <MessageBox kind="warning" title="Javed isn't reachable">
             WeatherAI&apos;s server isn&apos;t responding, so questions can&apos;t be answered right now.
           </MessageBox>
         )}
         {status.data && !configured && (
           <div className="r-sunken" style={{ background: 'var(--face)' }}>
-            <MessageBox kind="info" title="The assistant isn't switched on on this server">
+            <MessageBox kind="info" title="Javed isn't switched on on this server">
               It needs either a free local model (Ollama running on the server&apos;s computer) or an Hosted API key, where each answer costs
               a small amount. Everything else in WeatherAI works without it. The README explains how to switch it on.
             </MessageBox>
@@ -121,7 +121,7 @@ export function AssistantPage({ place }: { place: Place }) {
               <ol className="m-0 flex list-none flex-col gap-2 p-0">
                 {chat.map((m, i) => (
                   <li key={i} className={m.role === 'user' ? 'self-end' : 'self-start'} style={{ maxWidth: 'min(62ch, 92%)' }}>
-                    <div className="mb-0.5 text-[0.85em] font-bold">{m.role === 'user' ? 'You' : 'WeatherAI assistant'}</div>
+                    <div className="mb-0.5 text-[0.85em] font-bold">{m.role === 'user' ? 'You' : 'Javed'}</div>
                     <div
                       className="whitespace-pre-line px-2 py-1.5"
                       style={
@@ -139,7 +139,7 @@ export function AssistantPage({ place }: { place: Place }) {
                 ))}
                 {busy && (
                   <li className="self-start" role="status">
-                    <div className="mb-0.5 text-[0.85em] font-bold">WeatherAI assistant</div>
+                    <div className="mb-0.5 text-[0.85em] font-bold">Javed</div>
                     <div className="px-2 py-1.5 text-[var(--text-muted)]" style={{ background: 'var(--face)', border: '1px solid var(--shadow)' }}>
                       Looking up the data…
                     </div>
@@ -169,7 +169,7 @@ export function AssistantPage({ place }: { place: Place }) {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Ask about the weather. Enter sends, Shift+Enter starts a new line."
+                placeholder="Ask Javed about the weather. Enter sends, Shift+Enter starts a new line."
                 disabled={busy}
               />
               <div className="flex gap-1.5">
@@ -190,8 +190,10 @@ export function AssistantPage({ place }: { place: Place }) {
               ))}
             </div>
             <p className="m-0 mt-2 text-[0.92em] text-[var(--text-muted)]">
-              Up to {status.data?.daily_limit_per_visitor} questions a day. Your questions go to WeatherAI&apos;s server and to Hosted to be
-              answered; the chat is not saved.
+              Up to {status.data?.daily_limit_per_visitor} questions a day.{' '}
+              {status.data?.provider === 'hosted'
+                ? "Your questions go to WeatherAI's server and to Hosted to be answered; the chat is not saved."
+                : "Your questions go only to WeatherAI's server, where Javed answers them; the chat is not saved."}
             </p>
           </>
         )}
