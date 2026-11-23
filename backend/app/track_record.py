@@ -28,7 +28,7 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from weatherai_ml.config import TARGETS, City
+from weatherai_ml.config import City
 from weatherai_ml.features import build_frames
 from weatherai_ml.openmeteo import fetch_centre_recent, fetch_recent
 from weatherai_ml.predict import InsufficientHistoryError

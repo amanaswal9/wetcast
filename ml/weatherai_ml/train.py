@@ -9,7 +9,7 @@ Experiments (validation set ONLY; the test set is never touched, nothing is save
 Artifacts per model:
   model.keras         trained weights
   preprocessor.json   fitted scaler, exact feature order, lookback and target mode (training rows only)
-  metrics.json        test-set metrics, persistence baseline, error ranges, timing, station check
+  metrics.json        test-set metrics, persistence baseline, error ranges, timing
   evaluation.json     per-horizon and per-city errors plus actual-vs-predicted samples
   history.json        training curves
 """
@@ -46,7 +46,6 @@ from .dataset import Dataset, load_dataset, residual_targets, split_rows, window
 from .metrics import mae, monthly_halfwidths, summary
 from .models import DISPLAY_NAMES, MODEL_NAMES, TRANSFORMER_DEFAULTS, TRANSFORMER_NAME, build_model
 from .preprocess import RESIDUAL_INDICES, Preprocessor
-from .stations import station_check
 
 REGION_LABELS = {"north_india": "North India", "india": "India"}
 H = HORIZON_HOURS
@@ -257,11 +256,6 @@ def evaluate(
         "samples": samples_for_analytics(ds, all_ends, all_pred),
     }
     np.savez_compressed(out_dir / "test_predictions.npz", ends=all_ends, lead6=all_pred[:, 5, :], lead24=all_pred[:, 23, :])
-    try:
-        metrics["station_check"] = station_check(ds, all_ends, all_pred[:, 5, :], all_pred[:, 23, :])
-    except Exception as exc:  # noqa: BLE001 - the station check is extra; never lose a trained model over it
-        print(f"station check skipped: {exc}")
-        metrics["station_check"] = {"available": False, "reason": str(exc)}
     return metrics, evaluation
 
 

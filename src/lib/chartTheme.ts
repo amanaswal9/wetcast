@@ -71,4 +71,4 @@ export const MODEL_COLORS: Record<Theme, Record<string, string>> = {
 }
 
 // Font for chart labels, matching the rest of the interface.
-export const CHART_FONT = "Tahoma, 'MS Sans Serif', Verdana, sans-serif"
+export const CHART_FONT = "'Noto Sans', sans-serif"

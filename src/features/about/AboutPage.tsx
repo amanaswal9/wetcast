@@ -4,6 +4,7 @@ import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import { getModels, type ModelMetrics } from '../../lib/api/weatherai'
 import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
+import { LICENSE_NAME, LICENSE_URL, SOURCE_URL } from '../../lib/project'
 
 const APP_VERSION = '0.3.0'
 
@@ -92,8 +93,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
           </li>
           <li>
             <b>Test honestly.</b> Settings were chosen on 2025 only; the 2026 test set was scored once. Every model is compared with
-            a naive baseline, checked against real weather-station readings, and given an error range sized from its past
-            mistakes.
+            a naive baseline and given an error range sized from its past mistakes.
           </li>
           <li>
             <b>Serve.</b> When you open a place in India, the server fetches the latest 48 hours, prepares them with exactly the same
@@ -188,13 +188,6 @@ export function AboutPage({ theme }: { theme: Theme }) {
               </tr>
               <tr>
                 <th scope="row">
-                  <Link href="https://meteostat.net/">Meteostat</Link>
-                </th>
-                <td>Weather-station readings used to check the models</td>
-                <td>CC BY-NC 4.0</td>
-              </tr>
-              <tr>
-                <th scope="row">
                   <Link href="https://sachet.ndma.gov.in/">NDMA Sachet</Link> (IMD and state authorities)
                 </th>
                 <td>Official weather warnings in India</td>
@@ -209,17 +202,10 @@ export function AboutPage({ theme }: { theme: Theme }) {
               </tr>
               <tr>
                 <th scope="row">
-                  <Link href="https://www.hosted.com/">Hosted</Link> (Hosted), optional
+                  <Link href="https://ollama.com/">Ollama</Link> with <Link href="https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507">Qwen3 4B Instruct</Link>
                 </th>
-                <td>Javed, the Ask page&apos;s assistant, when switched on; it answers only from the data above</td>
-                <td>Paid API, Hosted&apos;s terms</td>
-              </tr>
-              <tr>
-                <th scope="row">
-                  <Link href="https://ollama.com/">Ollama</Link> with <Link href="https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507">Qwen3 4B Instruct</Link>, optional
-                </th>
-                <td>The free alternative for the Ask page: a small model running on Wetcast&apos;s own computer, with the same data and rules</td>
-                <td>Free; Ollama MIT licence, Qwen3 Apache 2.0</td>
+                <td>Javed, the Ask page&apos;s assistant: a small open model running on Wetcast&apos;s own computer; it answers only from the data above</td>
+                <td>Open source: Ollama MIT, Qwen3 Apache 2.0</td>
               </tr>
               <tr>
                 <th scope="row">
@@ -233,7 +219,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
           </table>
         </div>
         <p className="m-0 mt-2 text-[0.92em] text-[var(--text-muted)]">
-          Weather data by Open-Meteo.com. Station data by Meteostat. Map data © OpenStreetMap contributors. None of these services needs an API key, and none of them
+          Weather data by Open-Meteo.com. Map data © OpenStreetMap contributors. None of these services needs an API key, and none of them
           endorses this project.
         </p>
       </GroupBox>
@@ -265,8 +251,8 @@ export function AboutPage({ theme }: { theme: Theme }) {
             measured on the eight held-out cities; each forecast says which kind of place it is for.
           </li>
           <li>
-            They learn from Open-Meteo&apos;s model data, so they inherit its errors. Against weather stations, that data is itself
-            off by about a degree on average.
+            They learn from Open-Meteo&apos;s model data, so they inherit its errors: they forecast what that model data will say,
+            not a reading from a weather station.
           </li>
           <li>Rain is the hardest part: most hours are dry, and the models rarely predict heavy rain well.</li>
           <li>The error ranges were sized on 2025 and came out a little narrow for 2026 temperatures.</li>
@@ -294,9 +280,9 @@ export function AboutPage({ theme }: { theme: Theme }) {
           <dt className="font-bold">Testing</dt>
           <dd className="m-0">pytest for the pipeline and API, TypeScript and oxlint for the interface</dd>
           <dt className="font-bold">Deployment</dt>
-          <dd className="m-0">Docker, nginx</dd>
+          <dd className="m-0">Docker or Podman, nginx</dd>
           <dt className="font-bold">Type</dt>
-          <dd className="m-0">Tahoma, Pixelify Sans and VT323</dd>
+          <dd className="m-0">Noto Sans, Noto Sans Mono, Pixelify Sans and VT323, all under the SIL Open Font License and shipped with the app</dd>
         </dl>
         <p className="m-0 mt-3 max-w-[75ch]">
           The look is a tribute to late-1990s desktop software, rebuilt with modern accessibility: every control works from the
@@ -305,9 +291,31 @@ export function AboutPage({ theme }: { theme: Theme }) {
         </p>
       </GroupBox>
 
+      <GroupBox title="Free and open source">
+        <p className="m-0 max-w-[75ch]">
+          Wetcast is free software: you can use, study, share and change it under the{' '}
+          <a href={LICENSE_URL} target="_blank" rel="noopener noreferrer">
+            {LICENSE_NAME}
+          </a>
+          . If you run a changed copy as a website, the licence asks you to offer its source to your visitors too.
+        </p>
+        <p className="m-0 mt-2 max-w-[75ch]">
+          Everything it is built from is open as well: every library and font is under an open-source licence, Javed runs on an
+          open model on Wetcast&apos;s own computer, and the data comes from open or public-domain sources (listed above). It uses no
+          paid services, no trackers and no advertising.
+        </p>
+      </GroupBox>
+
       <GroupBox title="Made by">
         <p className="m-0 max-w-[75ch]">Wetcast was designed and built by Aman Singh Aswal.</p>
         <dl className="m-0 mt-2 grid max-w-[75ch] grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5">
+          <dt className="font-bold">Source code</dt>
+          <dd className="m-0">
+            <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
+              {SOURCE_URL.replace('https://', '')}
+            </a>{' '}
+            on Codeberg
+          </dd>
           <dt className="font-bold">GitHub</dt>
           <dd className="m-0">
             <a href="https://github.com/amanaswal9" target="_blank" rel="noopener noreferrer">

@@ -3,10 +3,11 @@ name = "weatherai-ml"
 version = "0.1.0"
 description = "Wetcast training pipeline and shared preprocessing (used by training and by the API)."
 requires-python = ">=3.11"
+license = "AGPL-3.0-or-later"
 dependencies = ["numpy", "pandas", "httpx"]
 
 [project.optional-dependencies]
-train = ["tensorflow>=2.20", "lightgbm>=4.5", "scikit-learn", "pyarrow", "meteostat"]
+train = ["tensorflow>=2.20", "lightgbm>=4.5", "scikit-learn", "pyarrow"]
 
 [build-system]
 requires = ["setuptools>=68"]

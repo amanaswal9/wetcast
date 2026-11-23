@@ -94,9 +94,7 @@ export function AssistantPage({ place }: { place: Place }) {
           Wetcast&apos;s own models and official warnings, and answers only from what it finds.{' '}
           {status.data?.provider === 'local'
             ? `It runs on ${status.data.model}, a small free model on Wetcast's own computer, so it is slower and makes more mistakes than a large model: check the numbers against the Dashboard. `
-            : status.data?.provider === 'hosted'
-              ? 'It runs on Hosted, made by Hosted. '
-              : ''}
+            : ''}
           Answers can still be wrong, so for anything dangerous, follow your national weather service.
         </p>
 
@@ -109,8 +107,8 @@ export function AssistantPage({ place }: { place: Place }) {
         {status.data && !configured && (
           <div className="r-sunken" style={{ background: 'var(--face)' }}>
             <MessageBox kind="info" title="Javed isn't switched on on this server">
-              It needs either a free local model (Ollama running on the server&apos;s computer) or an Hosted API key, where each answer costs
-              a small amount. Everything else in Wetcast works without it. The README explains how to switch it on.
+              It needs Ollama running on the server&apos;s computer with its free local model installed. Everything else in Wetcast works
+              without it. The README explains how to switch it on.
             </MessageBox>
           </div>
         )}
@@ -192,9 +190,7 @@ export function AssistantPage({ place }: { place: Place }) {
             </div>
             <p className="m-0 mt-2 text-[0.92em] text-[var(--text-muted)]">
               Up to {status.data?.daily_limit_per_visitor} questions a day.{' '}
-              {status.data?.provider === 'hosted'
-                ? "Your questions go to Wetcast's server and to Hosted to be answered; the chat is not saved."
-                : "Your questions go only to Wetcast's server, where Javed answers them; the chat is not saved."}
+              Your questions go only to Wetcast&apos;s server, where Javed answers them; the chat is not saved.
             </p>
           </>
         )}

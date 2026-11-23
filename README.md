@@ -16,7 +16,7 @@ Only the title card, captions and pointer are drawn on top. Re-record it with `d
   `docs/share/make_wallpaper_ascii.py` into the git-ignored `src/local/`; without it the desktop is plain.
 - Official warnings (top of the Dashboard): alerts in effect at the place from India's NDMA Sachet portal
   (IMD and state authorities) or the US National Weather Service, shown exactly as issued.
-- Ask (optional: a free local model through Ollama, or Hosted with an Hosted API key): Javed, a weather assistant that answers questions using
+- Ask (optional: an open model running locally through Ollama): Javed, a weather assistant that answers questions using
   only data it looks up (Open-Meteo, Wetcast's models, official warnings), with its sources under each answer.
 - Map: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
   points, with the cities Wetcast's own models cover marked.
@@ -24,8 +24,8 @@ Only the title card, captions and pointer are drawn on top. Re-record it with `d
   ST-Transformer, LightGBM and their ensemble)
   for the next 24 hours with error ranges, side by side with Open-Meteo's forecast.
 - Analytics: actual vs predicted on the held-out test period, error by city, and historical trends for any place.
-- Models: test-set MAE, RMSE and R², a persistence baseline, error-range coverage, a check against real
-  weather stations, and inference time. All numbers come from the `metrics.json` file in each folder of `ml/artifacts/`.
+- Models: test-set MAE, RMSE and R², a persistence baseline, error-range coverage, the live track record and
+  inference time. All numbers come from the `metrics.json` file in each folder of `ml/artifacts/`.
 - Locations: up to 8 saved places, a home location, and a 2 to 4 city comparison.
 
 - About: the project in plain words, how the forecasts are made, how to read the charts, data sources
@@ -73,8 +73,7 @@ These are Tailwind CSS v4's requirements and are set as the build target. Older 
 
 Tested layouts: 320 px (small phones), 375 px (phones), 768 px (tablets) and desktop, with no sideways scrolling.
 On touch screens buttons grow to 40 px and text fields use 16 px text so iOS doesn't zoom in when you type.
-The interface font is Tahoma on Windows, falling back to Verdana on Mac and iPhone and the system sans-serif
-on Android; all three were checked for clipped text. Read aloud uses the browser's speech engine, which is
+The interface font is Noto Sans, shipped with the app, so text looks the same on every system. Read aloud uses the browser's speech engine, which is
 available in current Chrome, Edge, Safari and Firefox; the button is hidden where it isn't.
 
 Voice search (the microphone next to the city search) uses the browser's speech recognition: Chrome, Edge and
@@ -96,7 +95,7 @@ below use the Windows virtual-environment path `Scripts/`; on macOS and Linux us
 ```bash
 # 1. Python environment (keep the path short on Windows: TensorFlow's DLLs fail on long paths)
 python -m venv ~/.venvs/weatherai
-~/.venvs/weatherai/Scripts/python -m pip install -r backend/requirements.txt pytest meteostat scikit-learn pyarrow
+~/.venvs/weatherai/Scripts/python -m pip install -r backend/requirements.txt pytest scikit-learn pyarrow
 ~/.venvs/weatherai/Scripts/python -m pip install -e ml
 
 # 2. Database: create a role and database, then copy backend/.env.example to backend/.env and fill it in
@@ -153,11 +152,12 @@ screenshots after an intended visual change.
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on every push and pull request once the repository is on GitHub: a
-frontend job (`npm ci`, lint, Vitest, type-check, build and the bundle-size budget), a browser job (the
+`.forgejo/workflows/ci.yml` runs on Codeberg's Forgejo Actions (hosted `codeberg-medium` runners, enabled under
+the repository's Settings, Units, "Enable Actions") on every push and pull request: a frontend job (`npm ci`, lint, Vitest, type-check, build and the bundle-size budget), a browser job (the
 `e2e` tests; the first Linux run saves its own reference screenshots as a download to commit) and a Python job (ML pipeline and API tests on
-Python 3.13 with CPU TensorFlow). It needs no secrets. After the first push, add a status badge to the top of
-this README with `![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)`, replacing OWNER/REPO.
+Python 3.13 with CPU TensorFlow). It needs no secrets and uses only open-source actions from code.forgejo.org.
+Codeberg's hosted runners allow 10 minutes a job; if installing TensorFlow runs over, change the Python job's
+`runs-on` to `codeberg-medium-lazy` or register a self-hosted Forgejo runner.
 
 The API tests replace the Open-Meteo call with clearly labelled synthetic data (`weatherai_ml/synthetic.py`),
 so they are offline and deterministic. Synthetic data is never used for training, evaluation or the app.
@@ -241,8 +241,7 @@ Test period (Jan–Oct 2026), evaluated once after the choice. Version 1 → ver
 | CNN-LSTM | 1.374 → 1.196 | 6.431 → 6.449 | 0.129 → 0.117 |
 | Persistence | 1.383 | 7.592 | 0.183 |
 
-The result is mixed and reported as measured: temperature improved for every model (8–13% lower MAE, and better
-against weather stations), but humidity got slightly worse on the test year although it improved on validation,
+The result is mixed and reported as measured: temperature improved for every model (8–13% lower MAE), but humidity got slightly worse on the test year although it improved on validation,
 and rain's typical error fell while its RMSE and R² got worse (Huber loss trades big-storm accuracy for typical
 hours). Tuning further against these test numbers would leak the test set into model selection, so it wasn't done.
 
@@ -306,8 +305,6 @@ whole training job (about 4 hours on an ordinary CPU).
   `python -m weatherai_ml.imerg_check` tests it. As an input to the rain correction it did not help, even
   without its 14-hour delay, so the app does not use it. As an independent judge on the 2026 test period, the
   Ensemble's rain matches the satellite better (correlation 0.29) than Open-Meteo's own day-old forecast (0.22).
-- A station check compares test predictions with Meteostat weather-station measurements, and scores
-  Open-Meteo's own data against the same stations to show the data source's error floor.
 - Where the models predict: anywhere in India within 310 km of a training city (the farthest a held-out
   city lies from one). Each forecast says whether the place is a training city, a held-out city or an untrained
   location, with the error measured for that kind of place. Elsewhere the API answers `unsupported_location`.
@@ -357,11 +354,15 @@ Interactive docs: http://localhost:8000/docs.
 ## Configuration
 
 All settings come from environment variables with the `WEATHERAI_` prefix (see `backend/.env.example`).
-Secrets live only in `backend/.env`, which is git-ignored. Open-Meteo and Meteostat need no API keys.
+Secrets live only in `backend/.env`, which is git-ignored. Open-Meteo needs no API key.
 
 ## Deployment
 
 `docker compose up --build` runs PostgreSQL, the API and the nginx-served frontend on http://localhost:8080.
+The fully open-source way is Docker Engine (Linux) or Podman: `podman compose up --build` works with the same files.
+nginx sends strict security headers (`deploy/security-headers.conf`): a content security policy that allows only the
+app's own scripts and Open-Meteo and OpenStreetMap as outside sources, no framing, no MIME sniffing, a limited
+referrer, and location and microphone for this site only.
 Set `POSTGRES_PASSWORD` in a `.env` next to `docker-compose.yml`, and `WEB_PORT` if port 8080 is taken on your
 computer. Tested 2026-11-23 with Docker Desktop on Windows: all three containers start, the API loads the six models
 and serves predictions, and the site works.
@@ -384,65 +385,44 @@ arrows pointing where the wind blows. Values between points are not interpolated
 
 ## Weather assistant (optional)
 
-The Ask page's assistant, Javed, answers weather questions with one of two models, chosen by `WEATHERAI_ASSISTANT_PROVIDER`
-(default `auto`: Hosted if an Hosted key is set, otherwise the local model if Ollama is running with it
-installed, otherwise off):
-
-- Free, local: a small open model (default `qwen3:4b-instruct`, about 2.5 GB) run by [Ollama](https://ollama.com/) on
-  the same computer as the API (`backend/app/assistant_local.py`). Nothing is billed and questions don't leave
-  the machine (only the tools' own lookups do). It is slower and makes more mistakes than Hosted, and the Ask
-  page says so.
-- Hosted (Hosted), paid: every answer is an API call.
+The Ask page's assistant, Javed, runs on a small open model (default `qwen3:4b-instruct`, Apache 2.0, about
+2.5 GB) through [Ollama](https://ollama.com/) (MIT) on the same computer as the API
+(`backend/app/assistant_local.py`). Nothing is billed and questions don't leave the machine; only the tools' own
+lookups do. A small model is slower and makes more mistakes than a large one, and the Ask page says so. Without
+Ollama the Ask page simply says the assistant isn't switched on; everything else works.
 
 How it answers (`backend/app/assistant.py`, data tools in `backend/app/assistant_data.py`):
 
-- Both models get the same five read-only tools: `find_place`, `get_weather` (Open-Meteo: now, next 48 hours, 7 days),
+- Five read-only tools: `find_place`, `get_weather` (Open-Meteo: now, next 48 hours, 7 days),
   `get_weatherai_prediction` (Wetcast's ensemble with 80% ranges, covered cities only), `get_official_alerts`
-  (NDMA Sachet / US NWS) and `get_model_accuracy` (test results and the live track record). Tool schemas are
-  strict, and the tools only read data.
+  (NDMA Sachet / US NWS) and `get_model_accuracy` (test results and the live track record).
 - The instructions tell it to answer only from what the tools return, to say when data isn't available, to name
-  the source of every number, to give ranges rather than certainties, to repeat official warnings as issued
-  and point people to their weather service for safety questions, and to stay on weather.
-- At most 5 model calls per answer. The fixed instructions and tool definitions are prompt-cached. For models
-  that support it, Hosted's server-side fallback (`fallbacks: "default"`) answers if the main model declines.
-- The page sends the last 10 turns with each question; the server keeps no chat history. Questions go to
-  Wetcast's server and to Hosted.
+  the source of every number, to give ranges rather than certainties, to repeat official warnings as issued and
+  point people to their weather service for safety questions, and to stay on weather. Replies are cleaned to
+  plain text.
+- At most 5 model calls per answer. If it gives numbers without any lookup, it is sent back once to look first.
+- The page sends the last 10 turns with each question; the server keeps no chat history.
 
-Switch on the free local model:
+Switch it on:
 
 1. Install Ollama: `winget install Ollama.Ollama` (it starts with Windows and listens on `127.0.0.1:11434`).
 2. Download the model once: `ollama pull qwen3:4b-instruct`.
 3. That's all: `GET /api/assistant/status` reports `configured: true, provider: "local"` within 30 seconds.
-   A small model is told firmly to look data up first; if it gives numbers without any lookup, it is sent back
-   once to do so.
-
-Or switch on Hosted:
-
-1. Create an Hosted account, add credits, and set a monthly spend limit in the Hosted Console.
-2. Put the key in `backend/.env` (never in the frontend): `WEATHERAI_HOSTED_API_KEY=...`
-   (`HOSTED_API_KEY` also works).
-3. Restart the API. `GET /api/assistant/status` then reports `configured: true`.
 
 Settings (all optional, in `backend/.env`):
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| `WEATHERAI_ASSISTANT_PROVIDER` | `auto` | `auto`, `local`, `hosted` or `off` |
+| `WEATHERAI_ASSISTANT_PROVIDER` | `auto` | `auto` or `local` (use Ollama when it is running) or `off` |
 | `WEATHERAI_OLLAMA_URL` | `http://127.0.0.1:11434` | Where Ollama listens |
 | `WEATHERAI_OLLAMA_MODEL` | `qwen3:4b-instruct` | Any installed Ollama model that supports tool calling (use an instruct, non-thinking edition) |
 | `WEATHERAI_OLLAMA_CONTEXT` | `4096` | Context window in tokens; larger needs more graphics memory |
-| `WEATHERAI_ASSISTANT_MODEL` | `hosted-opus-5-5` | `hosted-haiku-5-5` is about 40× cheaper per answer; `hosted-sonnet-5-5` is in between |
-| `WEATHERAI_ASSISTANT_EFFORT` | `low` | Hosted's effort level (`low` to `max`); higher costs more |
 | `WEATHERAI_ASSISTANT_DAILY_LIMIT_PER_CLIENT` | `20` | Questions per visitor (anonymous browser id) per UTC day |
 | `WEATHERAI_ASSISTANT_DAILY_LIMIT_TOTAL` | `200` | Questions for the whole server per UTC day |
 
-Rough cost per answer (about 6,000 tokens in and 800 out, before caching), at Hosted's published prices on
-2026-11-20: Opus 5.5 about $0.04, Sonnet 5.5 about $0.02, Haiku 5.5 about $0.001. The daily limits cap the
-worst case at 200 answers a day. The counts are kept in the database (table `assistant_usage`), so restarting the API
-doesn't reset them; the Console spend limit is the backstop.
-
-Tests (`backend/tests/test_assistant.py`, `test_assistant_local.py`) replace Hosted and Ollama with scripted
-fakes and never call either.
+The daily counts are kept in the database (table `assistant_usage`), so restarting the API doesn't reset them.
+Tests (`backend/tests/test_assistant.py`, `test_assistant_local.py`) replace Ollama with a scripted fake and never
+call it.
 
 ## Official warnings
 
@@ -476,7 +456,6 @@ How it works (`backend/app/alerts.py`):
 | Forecast | Open-Meteo forecast | "Open-Meteo forecast" / dashed line |
 | Wetcast predictions | Our LSTM, GRU, CNN-LSTM, ST-Transformer, LightGBM, ensemble | Model colour, dithered error range |
 | Historical trends | Open-Meteo archive (ERA5) | Named under the chart |
-| Station check | Meteostat | Models page |
 | Official warnings | NDMA Sachet (India), US National Weather Service | Source named under the warnings |
 | Weather map | Open-Meteo forecast at grid points, on OpenStreetMap tiles | "About this map" box under the map |
 
@@ -484,7 +463,8 @@ How it works (`backend/app/alerts.py`):
 
 - Colours are CSS variables in `src/index.css` (light, dark and high contrast; the first visit follows the device setting). Chart colours are mirrored in
   `src/lib/chartTheme.ts` because SVG attributes can't read CSS variables.
-- Fonts: Tahoma (Verdana fallback) for the interface, Pixelify Sans for big numbers, VT323 for terminal text.
+- Fonts, all under the SIL Open Font License and shipped with the app (no font CDN): Noto Sans for the interface,
+  Noto Sans Mono for the desktop picture, Pixelify Sans for big numbers, VT323 for terminal text.
 - Accessibility: Radix Tabs, an ARIA combobox for search, dotted focus rectangles, table alternatives,
   and reduced motion through Motion's `MotionConfig`.
 
@@ -492,5 +472,26 @@ How it works (`backend/app/alerts.py`):
 
 Designed and built by Aman Singh Aswal.
 
+- Source code: https://codeberg.org/amanaswal9/wetcast
 - GitHub: https://github.com/amanaswal9
 - LinkedIn: https://www.linkedin.com/in/amannaswal/
+
+## Licence
+
+Wetcast is free software, released under the GNU Affero General Public License, version 3 or later
+(AGPL-3.0-or-later); the full text is in `LICENSE`. You may use, study, share and change it. If you run a changed
+version as a website, the licence asks you to offer your visitors its source too (the About page links to this
+repository for that reason).
+
+Everything it depends on is open as well:
+
+- Code libraries: MIT, BSD, Apache-2.0, MPL-2.0, ISC and LGPL-3.0 (psycopg), all open-source licences.
+- Fonts: Noto Sans, Noto Sans Mono, Pixelify Sans and VT323, SIL Open Font License, shipped with the app.
+- Javed: Ollama (MIT) running Qwen3 4B Instruct (Apache-2.0) on the server's own computer.
+- Data: Open-Meteo (CC BY 4.0; its server is open source too), OpenStreetMap (ODbL), NDMA Sachet and the US
+  National Weather Service (public domain), Natural Earth outlines (public domain), NASA IMERG (open, used only
+  for a one-off check).
+- No paid services, no trackers, no advertising. Voice search uses the browser's own speech recognition, which in
+  Chrome and Edge sends the audio to Google's or Microsoft's speech service; Wetcast never receives the audio.
+
+Copyright (C) 2026 Aman Singh Aswal.

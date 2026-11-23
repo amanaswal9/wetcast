@@ -1,9 +1,7 @@
 """The reply cleaner: Javed's answers reach the Ask page as plain text, without markdown asterisks.
-No network is used; the Hosted and Ollama paths run with fakes."""
+No network is used; Ollama is replaced by a fake transport."""
 
 from __future__ import annotations
-
-from types import SimpleNamespace
 
 import httpx
 
@@ -50,28 +48,6 @@ def test_clean_text_is_left_alone():
 def test_system_prompt_asks_for_plain_text():
     assert "no asterisks" in assistant.SYSTEM_PROMPT and '"- "' in assistant.SYSTEM_PROMPT
     assert "Never use asterisks" in assistant_local.LOCAL_RULES
-
-
-class OneReply:
-    """A fake Hosted client that answers once with the given text."""
-
-    def __init__(self, text):
-        block = SimpleNamespace(type="text", text=text)
-        usage = SimpleNamespace(input_tokens=10, output_tokens=5)
-        self.response = SimpleNamespace(stop_reason="end_turn", content=[block], model="hosted-opus-5-5", usage=usage)
-        self.beta = SimpleNamespace(messages=SimpleNamespace(create=self.create))
-
-    def create(self, model, max_tokens, system, tools, messages, output_config, betas=None, fallbacks=None):
-        return self.response
-
-
-def test_hosted_replies_are_cleaned(client):
-    from app import db
-
-    fake = OneReply(f"{BOLD}Hello.{BOLD} I answer {STAR}weather{STAR} questions.")
-    with db.new_session() as session:
-        reply = assistant.answer([{"role": "user", "content": "Hi"}], PLACE, session, get_registry(), client=fake)
-    assert reply.text == "Hello. I answer weather questions."
 
 
 def test_local_replies_are_cleaned():

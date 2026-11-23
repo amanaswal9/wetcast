@@ -224,11 +224,6 @@ def main() -> None:
         return np.stack([lookup[int(e)] for e in ends])
 
     old = json.loads((out / "metrics.json").read_text())
-    def previous_station_check(ds, ends, lead6, lead24) -> dict:
-        """The station check covers temperature and humidity only, which this script leaves unchanged."""
-        return old.get("station_check")
-
-    train.station_check = previous_station_check
     lookback = int(old["data"]["lookback_hours"])
     bad = np.isnan(ds.targets).any(axis=1) | np.isnan(residual_targets(ds, RESIDUAL_INDICES)).any(axis=1)
     if not np.array_equal(window_ends(ds, "test", lookback=lookback, extra_bad=bad, cities=ds.city_indices("train")), np.load(cache / "ensemble__test_train.npz")["ends"]):

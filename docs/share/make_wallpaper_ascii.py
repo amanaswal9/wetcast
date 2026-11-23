@@ -11,7 +11,8 @@ How it works, all inside Chromium so the real desktop font is used:
    everything outside the subject is blanked, so the background doesn't clutter the outline.
 2. Photos (--photo): the tones inside the mask are equalised, so face, hair and clothes each use
    the full range, and the picture is sharpened a little so features keep their edges.
-3. Every printable character is drawn in Consolas and measured on a small grid inside its cell.
+3. Every printable character is drawn in Noto Sans Mono (the desktop font, loaded from
+   node_modules so it is the very same file) and measured on a small grid inside its cell.
    Each cell of the picture is measured the same way, and gets the character whose shape matches
    best: a slash on a slanted edge, an underscore under a brim, a dense letter in a dark patch.
    That keeps lines crisp, which choosing by brightness alone cannot.
@@ -30,13 +31,16 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "src" / "local" / "wallpaper.ts"
 
-# Height over width of one character in the desktop font (Consolas, line-height 1), measured in the browser.
-CHAR_ASPECT = 1.82
+# Height over width of one character in the desktop font (Noto Sans Mono, line-height 1), measured in Chromium.
+CHAR_ASPECT = 1.667
+# The desktop picture's font file, the same one the app ships.
+FONT_FILE = ROOT / "node_modules" / "@fontsource" / "noto-sans-mono" / "files" / "noto-sans-mono-latin-400-normal.woff2"
 # Printable ASCII, without the asterisk (the owner ruled it out) and characters that are awkward in code.
 CHARSET = "".join(ch for ch in map(chr, range(32, 127)) if ch not in "*`$\\")
 
 CONVERT_JS = r"""async (o) => {
   const img = new Image(); img.src = o.src; await img.decode()
+  const face = new FontFace('Desk Mono', `url(${o.font})`); await face.load(); document.fonts.add(face)
   const [cx, cy, cw, chh] = o.crop || [0, 0, img.naturalWidth, img.naturalHeight]
 
   // The cropped picture on white, and the subject mask (1 inside, 0 outside).
@@ -109,15 +113,15 @@ CONVERT_JS = r"""async (o) => {
     for (let i = 0; i < N; i++) ink[i] *= inside[i]
   }
 
-  // Shape of every character: mean ink on the sx x sy grid inside its cell, drawn in Consolas.
+  // Shape of every character: mean ink on the sx x sy grid inside its cell, drawn in the desktop font.
   const gc = document.createElement('canvas'); gc.width = gw; gc.height = gh
   const gg = gc.getContext('2d', { willReadFrequently: true })
-  gg.font = '100px Consolas'; const adv = gg.measureText('M').width / 100
+  gg.font = "100px 'Desk Mono'"; const adv = gg.measureText('M').width / 100
   const fs = gw / adv
   const glyphs = []
   for (const ch of o.charset) {
     gg.fillStyle = '#fff'; gg.fillRect(0, 0, gw, gh); gg.fillStyle = '#000'
-    gg.font = `${fs}px Consolas`; gg.textBaseline = 'middle'; gg.fillText(ch, 0, gh / 2)
+    gg.font = `${fs}px 'Desk Mono'`; gg.textBaseline = 'middle'; gg.fillText(ch, 0, gh / 2)
     const d = gg.getImageData(0, 0, gw, gh).data
     const f = new Float32Array(sx * sy)
     for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++)
@@ -184,6 +188,7 @@ def convert(picture: Path, columns: int, crop, mask, photo: bool, sharpen: float
                 "src": f"data:image/{kind};base64,{data}",
                 "cols": columns,
                 "aspect": CHAR_ASPECT,
+                "font": "data:font/woff2;base64," + base64.b64encode(FONT_FILE.read_bytes()).decode(),
                 "crop": crop,
                 "mask": mask,
                 "photo": photo,

@@ -45,9 +45,10 @@ export default defineConfig({
           'art/*.{js,css,html,svg,png,woff2}',
           'icons/*.{js,css,html,svg,png,woff2}',
         ],
-        // Fonts for alphabets the app doesn't show load on demand instead of being pre-cached.
+        // Only the latin font files are pre-cached (Noto Sans 400 and 700, Noto Sans Mono, Pixelify Sans,
+        // VT323). Other subsets, such as accented letters beyond latin, load on demand when a page needs them.
         // The link-preview image is for other sites' crawlers, not the offline app.
-        globIgnores: ['assets/*-cyrillic-*', 'assets/*-vietnamese-*', 'assets/*-greek-*', 'og-image.png'],
+        globIgnores: ['assets/*-latin-ext-*', 'assets/*-cyrillic-*', 'assets/*-vietnamese-*', 'assets/*-greek-*', 'og-image.png'],
         navigateFallback: '/index.html',
         // Wetcast Mini has its own page, so its address must not fall back to the main app.
         navigateFallbackDenylist: [/^\/api\//, /^\/mini\//],

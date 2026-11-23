@@ -1,31 +1,25 @@
 """Javed, the Wetcast assistant: answers weather questions using only data it looks up
 through the read-only tools in assistant_data.py.
 
-Two providers (WEATHERAI_ASSISTANT_PROVIDER, default "auto"):
-- Hosted, when an Hosted API key is set (WEATHERAI_HOSTED_API_KEY or HOSTED_API_KEY).
-  Every answer costs money.
-- A free local model run by Ollama on this computer (assistant_local.py), used when there is no
-  key and Ollama is running with the model installed.
-Either way there are per-visitor and daily limits, and each answer may use at most MAX_ROUNDS
-model calls.
+The answers come from a free local model run by Ollama on this computer (assistant_local.py).
+This module holds what the model is told, the tools it may use, and the per-visitor and daily
+limits. Each answer may use at most MAX_ROUNDS model calls.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import re
 import threading
 from dataclasses import dataclass, field
 from collections.abc import Callable
 from datetime import date, datetime, timedelta, timezone
 
-import hosted
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from . import assistant_data as data
+from . import assistant_local
 from .config import get_settings
 from . import db
 from .db import AssistantUsage
@@ -34,10 +28,6 @@ from .registry import ModelRegistry
 log = logging.getLogger("weatherai.assistant")
 
 MAX_ROUNDS = 5
-MAX_TOKENS = 16000
-# Models that accept Hosted's server-side refusal fallback.
-FALLBACK_MODELS = {"hosted-opus-5-5", "hosted-opus-5", "hosted-sonnet-5-5", "hosted-fable-5-1", "hosted-fable-5-2"}
-FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
 SYSTEM_PROMPT = """You are Javed, the AI weather assistant inside the Wetcast app. You answer questions about the weather. If asked who you are, say you are Javed, Wetcast's AI assistant; you are not a person.
 
@@ -66,12 +56,14 @@ LAT_LON = {
 
 
 def _tool(name: str, description: str, properties: dict, required: list[str]) -> dict:
-    """One tool definition in the Messages API format, with strict argument checking."""
+    """One tool definition in Ollama's (OpenAI-style) function format."""
     return {
-        "name": name,
-        "description": description,
-        "strict": True,
-        "input_schema": {"type": "object", "properties": properties, "required": required, "additionalProperties": False},
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+            "parameters": {"type": "object", "properties": properties, "required": required, "additionalProperties": False},
+        },
     }
 
 
@@ -107,7 +99,6 @@ TOOLS = [
         [],
     ),
 ]
-TOOLS[-1]["cache_control"] = {"type": "ephemeral"}  # instructions and tools are the same every time, so cache them
 
 # The source names shown under an answer, one per tool that was used.
 SOURCE_LABELS = {
@@ -120,7 +111,7 @@ SOURCE_LABELS = {
 
 
 class AssistantUnavailable(RuntimeError):
-    """The assistant is not configured, over its limits, or the API failed."""
+    """The assistant is not set up, over its limits, or the local model failed."""
 
     def __init__(self, code: str, message: str, status: int):
         super().__init__(message)
@@ -129,7 +120,7 @@ class AssistantUnavailable(RuntimeError):
 
 @dataclass
 class Reply:
-    """An answer for the Ask page, with what it cost and which lookups it used."""
+    """An answer for the Ask page, with the tokens it used and which lookups it made."""
 
     text: str
     sources: list[str]
@@ -140,7 +131,7 @@ class Reply:
     tools_used: list[str] = field(default_factory=list)
 
 
-# Markdown the models sometimes write even when told not to. The Ask page shows text as it is,
+# Markdown the model sometimes writes even when told not to. The Ask page shows text as it is,
 # so a stray asterisk would appear on screen.
 _STAR_BULLET = re.compile(r"^([ \t]*)[*•][ \t]+", re.MULTILINE)
 _EXTRA_SPACES = re.compile(r"(?<=\S)[ \t]{2,}(?=\S)")
@@ -155,40 +146,26 @@ def plain_text(text: str | None) -> str:
     return "\n".join(lines).strip()
 
 
-def api_key() -> str | None:
-    """The Hosted key from settings, or from the SDK's usual HOSTED_API_KEY."""
-    key = get_settings().hosted_api_key
-    return key.get_secret_value() if key else os.environ.get("HOSTED_API_KEY") or None
-
-
 def provider() -> str | None:
-    """"hosted", "local", or None when the assistant is off."""
-    choice = get_settings().assistant_provider
-    if choice == "off":
+    """"local" when the local model can answer, or None when the assistant is off."""
+    if get_settings().assistant_provider == "off":
         return None
-    if choice in ("auto", "hosted") and api_key():
-        return "hosted"
-    if choice in ("auto", "local"):
-        from . import assistant_local
-
-        return "local" if assistant_local.is_available() else None
-    return None
+    return "local" if assistant_local.is_available() else None
 
 
 def is_configured() -> bool:
-    """True when some provider can answer questions right now."""
+    """True when the local model can answer questions right now."""
     return provider() is not None
 
 
-def model_name(which: str | None) -> str:
-    """The model that answers for a provider, as shown on the Ask page."""
-    settings = get_settings()
-    return settings.ollama_model if which == "local" else settings.assistant_model
+def model_name() -> str:
+    """The model that answers, as shown on the Ask page."""
+    return get_settings().ollama_model
 
 
 class DailyLimits:
-    """Questions per visitor and in total for each UTC day. They cap spending even if someone
-    hammers the endpoint; a spending limit in the Hosted Console is the second line of defence.
+    """Questions per visitor and in total for each UTC day. They keep one visitor from tying up
+    the local model, which answers one question at a time on modest hardware.
 
     The counts live in the database (table assistant_usage), so restarting the API doesn't reset
     them. The lock keeps one API process's threads from both taking the last question; the API runs
@@ -248,11 +225,6 @@ class DailyLimits:
 LIMITS = DailyLimits()
 
 
-def make_client() -> hosted.Hosted:
-    """A Hosted client: two retries, and at most 60 seconds per attempt."""
-    return hosted.Hosted(api_key=api_key(), max_retries=2, timeout=60)
-
-
 def run_tool(name: str, args: dict, session: Session, registry: ModelRegistry) -> dict:
     """Run one tool the model asked for. Bad coordinates or an unknown tool raise ValueError,
     which the caller passes back to the model as a failed lookup."""
@@ -282,71 +254,7 @@ def context_message(place: dict) -> str:
     )
 
 
-def answer(conversation: list[dict], place: dict, session: Session, registry: ModelRegistry, client=None) -> Reply:
+def answer(conversation: list[dict], place: dict, session: Session, registry: ModelRegistry) -> Reply:
     """Answer the last user message. `conversation` is the visible chat so far
-    (plain text turns, oldest first, ending with the user's question). Calls Hosted, or hands
-    over to the local model when that is the provider."""
-    if client is None and provider() == "local":
-        from . import assistant_local
-
-        return assistant_local.answer(conversation, place, session, registry)
-    settings = get_settings()
-    model = settings.assistant_model
-    client = client or make_client()
-    # The app context goes first; the API joins it with the first question into one user turn.
-    messages: list[dict] = [{"role": "user", "content": context_message(place)}]
-    messages += [{"role": m["role"], "content": m["content"]} for m in conversation]
-
-    # Models that support it get Hosted's refusal fallback; for the rest these stay unset.
-    use_fallback = model in FALLBACK_MODELS
-    betas = [FALLBACK_BETA] if use_fallback else hosted.omit
-    fallbacks = "default" if use_fallback else hosted.omit
-
-    reply = Reply(text="", sources=[], model=model)
-    for round_no in range(1, MAX_ROUNDS + 1):
-        reply.rounds = round_no
-        response = client.beta.messages.create(
-            model=model,
-            max_tokens=MAX_TOKENS,
-            system=[{"type": "text", "text": SYSTEM_PROMPT}],
-            tools=TOOLS,
-            messages=messages,
-            output_config={"effort": settings.assistant_effort},
-            betas=betas,
-            fallbacks=fallbacks,
-        )
-        usage = getattr(response, "usage", None)
-        reply.input_tokens += getattr(usage, "input_tokens", 0) or 0
-        reply.output_tokens += getattr(usage, "output_tokens", 0) or 0
-        reply.model = getattr(response, "model", model) or model
-
-        if response.stop_reason == "refusal":
-            reply.text = "I can't help with that one. I can answer questions about the weather and how Wetcast's forecasts work."
-            return reply
-        if response.stop_reason != "tool_use":
-            reply.text = plain_text("\n\n".join(b.text for b in response.content if b.type == "text"))
-            if response.stop_reason == "max_tokens":
-                reply.text += "\n\n(The answer was cut short.)"
-            if not reply.text:
-                reply.text = "Sorry, I couldn't put an answer together. Please try asking another way."
-            return reply
-
-        messages.append({"role": "assistant", "content": response.content})
-        results = []
-        for block in response.content:
-            if block.type != "tool_use":
-                continue
-            reply.tools_used.append(block.name)
-            label = SOURCE_LABELS.get(block.name)
-            if label and label not in reply.sources:
-                reply.sources.append(label)
-            try:
-                result = data.nan_safe(run_tool(block.name, dict(block.input), session, registry))
-                results.append({"type": "tool_result", "tool_use_id": block.id, "content": json.dumps(result, ensure_ascii=False)})
-            except Exception as exc:  # noqa: BLE001 - report the failure to the model instead of crashing
-                log.warning("assistant tool %s failed: %s", block.name, exc)
-                results.append({"type": "tool_result", "tool_use_id": block.id, "content": f"The lookup failed: {exc}", "is_error": True})
-        messages.append({"role": "user", "content": results})
-
-    reply.text = "Sorry, that question needed more lookups than I'm allowed for one answer. Try asking about one thing at a time."
-    return reply
+    (plain text turns, oldest first, ending with the user's question)."""
+    return assistant_local.answer(conversation, place, session, registry)

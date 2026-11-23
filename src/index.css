@@ -1,4 +1,10 @@
 @import 'tailwindcss';
+/* Every font ships with the app (free licences, see the About page): Noto Sans for the interface,
+   Noto Sans Mono for the desktop picture, Pixelify Sans and VT323 for the readouts. Latin only for
+   Noto, in the two weights the app uses. */
+@import '@fontsource/noto-sans/latin-400.css';
+@import '@fontsource/noto-sans/latin-700.css';
+@import '@fontsource/noto-sans-mono/latin-400.css';
 @import '@fontsource/pixelify-sans/400.css';
 @import '@fontsource/vt323/400.css';
 
@@ -8,8 +14,8 @@
   high-contrast themes stay in one place.
 */
 @theme {
-  /* Tahoma ships with Windows; Verdana is the closest free fallback elsewhere. */
-  --font-ui: Tahoma, 'MS Sans Serif', Verdana, 'Segoe UI', sans-serif;
+  /* Noto Sans stands in for the old Tahoma: a humanist sans, small and crisp at 13px. */
+  --font-ui: 'Noto Sans', sans-serif;
   --font-pixel: 'Pixelify Sans', ui-monospace, monospace;
   --font-term: 'VT323', ui-monospace, monospace;
 }
@@ -1376,8 +1382,9 @@ html[data-busy] * {
    on the light desktop it is drawn in dark ink, the right way round, and in the dark themes in
    light ink, like a print in negative. */
 .r-desktop-art .r-desktop-picture {
-  /* A crisp monospace font: the pixel font blurs at this size. */
-  font-family: Consolas, Menlo, 'DejaVu Sans Mono', ui-monospace, monospace;
+  /* A crisp monospace font: the pixel font blurs at this size. Keep CHAR_ASPECT in
+     docs/share/make_wallpaper_ascii.py in step with it. */
+  font-family: 'Noto Sans Mono', monospace;
   /* About 60% of the screen height above the taskbar (by row count), never wider than the screen, and 8px at most. */
   font-size: min(0.63vw, calc((100dvh - 110px) * 0.6 / var(--rows, 80)), 8px);
   line-height: 1;

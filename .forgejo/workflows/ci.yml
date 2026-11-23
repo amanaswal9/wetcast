@@ -1,0 +1,109 @@
+# Runs every test on each push and pull request, on Codeberg's hosted Forgejo Actions runners.
+# Nothing here needs secrets or network services: API tests use SQLite and synthetic weather inputs.
+#
+# Codeberg runners (fair use, public free-software repos only): codeberg-small is 2 CPU, 4 GB,
+# about 5 minutes; codeberg-medium is 4 CPU, 8 GB, about 10 minutes. Files written in the
+# container count towards the RAM, so pip runs without its cache. Adding -lazy to a label
+# (codeberg-medium-lazy) queues the job for a quieter time. See https://codeberg.org/actions/meta
+#
+# Jobs run in official Docker images. JavaScript actions such as checkout need node inside the
+# container, so the Python jobs install the official Node.js build from nodejs.org first.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ forgejo.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend (type-check, lint, tests, build)
+    runs-on: codeberg-medium
+    container:
+      image: node:22-bookworm
+    timeout-minutes: 10
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v4
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: Bundle-size budget
+        run: npm run size
+
+  browser:
+    name: Browser journeys and accessibility (Playwright, axe-core)
+    runs-on: codeberg-medium
+    container:
+      image: python:3.13-bookworm
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install Node.js 22
+        run: |
+          base=https://nodejs.org/dist/latest-v22.x
+          file=$(curl -fsSL "$base/SHASUMS256.txt" | awk '/linux-x64\.tar\.xz$/ {print $2}')
+          curl -fsSLO "$base/$file"
+          curl -fsSL "$base/SHASUMS256.txt" | grep " $file\$" | sha256sum -c -
+          tar -xJf "$file" -C /usr/local --strip-components=1 --exclude='*.md' --exclude=LICENSE
+          rm "$file"
+          node --version
+      - uses: https://code.forgejo.org/actions/checkout@v4
+      - run: npm ci
+      - run: npm run build
+      - name: Install Playwright and Chromium
+        run: |
+          python -m pip install --no-cache-dir pytest playwright
+          python -m playwright install --with-deps chromium
+      # Offline: every request is answered from e2e/fixtures. Reference screenshots are kept per
+      # operating system; the first Linux run saves them (uploaded below) to commit afterwards.
+      - name: Journeys, screenshots and accessibility
+        run: python -m pytest e2e -q
+      # Forgejo needs v3 or its own patched v4 of upload-artifact.
+      - name: Keep the screenshots
+        if: always()
+        uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: e2e/screenshots/
+          if-no-files-found: ignore
+
+  python:
+    name: Backend and ML (pytest)
+    runs-on: codeberg-medium
+    container:
+      image: python:3.13-bookworm
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    env:
+      TF_CPP_MIN_LOG_LEVEL: "3"
+      PIP_NO_CACHE_DIR: "1"
+    steps:
+      - name: Install Node.js 22 (for the checkout action)
+        run: |
+          base=https://nodejs.org/dist/latest-v22.x
+          file=$(curl -fsSL "$base/SHASUMS256.txt" | awk '/linux-x64\.tar\.xz$/ {print $2}')
+          curl -fsSLO "$base/$file"
+          curl -fsSL "$base/SHASUMS256.txt" | grep " $file\$" | sha256sum -c -
+          tar -xJf "$file" -C /usr/local --strip-components=1 --exclude='*.md' --exclude=LICENSE
+          rm "$file"
+          node --version
+      - uses: https://code.forgejo.org/actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt pytest
+          pip install -e ml
+      - name: ML pipeline tests
+        working-directory: ml
+        run: python -m pytest tests -q
+      - name: API tests
+        working-directory: backend
+        run: python -m pytest tests -q

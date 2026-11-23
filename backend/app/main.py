@@ -14,7 +14,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-import hosted as hosted_errors
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -346,7 +345,7 @@ def alerts(
     return body
 
 
-# The Javed assistant (Hosted or a free local model).
+# The Javed assistant, on a free local model.
 
 
 @app.get("/api/assistant/status", response_model=AssistantStatus)
@@ -356,14 +355,14 @@ def assistant_status() -> AssistantStatus:
     return AssistantStatus(
         configured=which is not None,
         provider=which,
-        model=weather_assistant.model_name(which),
+        model=weather_assistant.model_name(),
         daily_limit_per_visitor=settings.assistant_daily_limit_per_client,
     )
 
 
 @app.post("/api/assistant", response_model=AssistantOut, responses={429: {}, 502: {}, 503: {}, 504: {}})
 def ask_assistant(body: AssistantIn, session: SessionDep, registry: RegistryDep, client: ClientDep):
-    """Answer a weather question (Hosted or the local model), using only data looked up through read-only tools.
+    """Answer a weather question with the local model, using only data looked up through read-only tools.
     A question that fails before it is answered does not count towards the visitor's daily limit."""
     if body.messages[-1].role != "user":
         raise HTTPException(status_code=422, detail="The last message must be the question.")
@@ -372,7 +371,7 @@ def ask_assistant(body: AssistantIn, session: SessionDep, registry: RegistryDep,
             status_code=503,
             content={
                 "code": "assistant_not_configured",
-                "detail": "The assistant isn't set up on this server (no Hosted API key, and no local model running).",
+                "detail": "The assistant isn't set up on this server (Ollama isn't running with the model installed).",
             },
         )
     try:
@@ -387,22 +386,6 @@ def ask_assistant(body: AssistantIn, session: SessionDep, registry: RegistryDep,
         weather_assistant.LIMITS.give_back(client, day)
         log.warning("assistant unavailable: %s", exc)
         return JSONResponse(status_code=exc.status, content={"code": exc.code, "detail": str(exc)})
-    except hosted_errors.RateLimitError as exc:
-        weather_assistant.LIMITS.give_back(client, day)
-        log.warning("assistant rate limited: %s", exc)
-        return JSONResponse(status_code=429, content={"code": "busy", "detail": "The assistant is busy. Try again in a minute."})
-    except hosted_errors.AuthenticationError as exc:
-        weather_assistant.LIMITS.give_back(client, day)
-        log.error("assistant API key rejected: %s", exc)
-        return JSONResponse(status_code=503, content={"code": "assistant_not_configured", "detail": "The assistant's API key was rejected."})
-    except hosted_errors.APIStatusError as exc:
-        weather_assistant.LIMITS.give_back(client, day)
-        log.warning("assistant API error %s: %s", exc.status_code, exc)
-        return JSONResponse(status_code=502, content={"code": "upstream", "detail": "The assistant couldn't answer right now. Try again."})
-    except hosted_errors.APIConnectionError as exc:
-        weather_assistant.LIMITS.give_back(client, day)
-        log.warning("assistant connection error: %s", exc)
-        return JSONResponse(status_code=502, content={"code": "upstream", "detail": "The assistant couldn't be reached. Try again."})
     log.info(
         "assistant answered with %s in %d round(s), tools %s, %d in / %d out tokens",
         reply.model, reply.rounds, ",".join(reply.tools_used) or "none", reply.input_tokens, reply.output_tokens,

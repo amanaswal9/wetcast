@@ -106,8 +106,11 @@ def test_point_in_polygon():
 
 
 def test_unsafe_xml_is_refused():
+    # defusedxml must refuse the entity expansion itself, not just fail somewhere later.
+    from defusedxml import EntitiesForbidden
+
     bomb = b'<?xml version="1.0"?><!DOCTYPE x [<!ENTITY a "aaaa"><!ENTITY b "&a;&a;&a;">]><rss>&b;</rss>'
-    with pytest.raises(Exception):
+    with pytest.raises(EntitiesForbidden):
         alerts.parse_rss(bomb)
 
 

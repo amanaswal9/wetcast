@@ -73,13 +73,6 @@ export interface MetricSummary {
   unit: string
 }
 
-export interface StationSummary {
-  mae: number
-  rmse: number
-  r2: number
-  n: number
-}
-
 export interface ModelMetrics {
   model: string
   display_name: string
@@ -150,13 +143,6 @@ export interface ModelMetrics {
     horizon_hours: number
     n_features: number
     targets: Target[]
-  }
-  station_check?: {
-    available?: boolean
-    reason?: string
-    source?: string
-    note?: string
-    overall?: Partial<Record<'temperature' | 'humidity', Partial<Record<'lead6' | 'lead24' | 'open_meteo', StationSummary>>>>
   }
 }
 
@@ -369,8 +355,8 @@ export async function getAlerts(latitude: number, longitude: number, country: st
 
 export interface AssistantStatus {
   configured: boolean
-  // "hosted" (Hosted, paid), "local" (a free model on the server's computer) or null when off.
-  provider: 'hosted' | 'local' | null
+  // "local" (the free model on the server's computer) or null when off.
+  provider: 'local' | null
   model: string
   daily_limit_per_visitor: number
 }
