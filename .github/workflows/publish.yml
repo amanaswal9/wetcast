@@ -35,7 +35,7 @@ jobs:
     # After CI only when every check passed; scheduled and manual runs publish main as it is.
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -66,7 +66,8 @@ jobs:
           pip install -e ml
       - name: Run the models for every city
         working-directory: backend
-        run: python -m scripts.export_public_data ../dist/data
+        # A city Open-Meteo won't answer for keeps the forecast published last time (if under 12 hours old).
+        run: python -m scripts.export_public_data ../dist/data "$VITE_PUBLIC_SITE"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

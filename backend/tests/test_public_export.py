@@ -45,3 +45,22 @@ def test_export_writes_every_file_and_skips_a_failed_city(tmp_path, monkeypatch)
     # The summary has no samples; each city's file has that city's samples only.
     assert "samples" not in read("evaluation", "lstm.json")
     assert list(read("evaluation", "lstm", "delhi.json")["samples"]) == ["delhi"]
+
+
+def test_export_stops_asking_when_open_meteo_keeps_refusing(tmp_path, monkeypatch):
+    asked = []
+
+    def refuse(client, city, past_hours):
+        asked.append(city.id)
+        raise RuntimeError("Open-Meteo kept rate-limiting the request")
+
+    monkeypatch.setattr(predictions, "fetch_recent", refuse)
+    monkeypatch.setattr(export_public_data.time, "sleep", lambda s: None)
+    predictions._cache.clear()
+
+    missing = export_public_data.export(tmp_path)
+
+    # Five refusals in a row and the rest aren't asked; with nothing published before, none has a forecast.
+    assert len(asked) == export_public_data.GIVE_UP_AFTER
+    assert missing == len(json.loads((tmp_path / "coverage.json").read_text(encoding="utf-8")))
+    assert json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))["cities"] == []

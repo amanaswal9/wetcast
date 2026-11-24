@@ -15,16 +15,20 @@ import json
 import logging
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import httpx
 from fastapi.testclient import TestClient
 
 from app.db import get_session
 from app.main import app
 
 log = logging.getLogger("weatherai.export")
-PAUSE_SECONDS = 0.5  # between cities, to stay gentle with Open-Meteo's free API
+PAUSE_SECONDS = 2.0  # between cities, to stay gentle with Open-Meteo's free API (shared by everyone on the same machine)
+GIVE_UP_AFTER = 5  # cities refused in a row before the rest keep their last forecast
+CARRY_HOURS = 12  # a kept forecast older than this is mostly in the past, so it is dropped
+TIME_BUDGET_SECONDS = 15 * 60  # after this, the remaining cities keep their last forecast (Open-Meteo waits can add up)
 
 
 class NoDatabase:
@@ -60,16 +64,32 @@ def get(client: TestClient, url: str, params: dict | None = None) -> dict | list
     return res.json()
 
 
-def export(out: Path) -> int:
-    """Write every file; return how many cities have no forecast this time."""
+def export(out: Path, previous: str | None = None) -> int:
+    """Write every file; return how many cities have no forecast at all this time.
+    `previous` is the published site's address: a city whose new forecast fails keeps its last one."""
     app.dependency_overrides[get_session] = no_database
     try:
-        return _export(TestClient(app), out)  # not started as a context manager: no database setup or background jobs
+        return _export(TestClient(app), out, previous)  # not started as a context manager: no database setup or background jobs
     finally:
         app.dependency_overrides.pop(get_session, None)
 
 
-def _export(client: TestClient, out: Path) -> int:
+def last_published(previous: str | None, city_id: str) -> dict | None:
+    """The city's forecast as published last time, if it is still less than a day old."""
+    if not previous:
+        return None
+    try:
+        res = httpx.get(f"{previous.rstrip('/')}/data/predictions/{city_id}.json", timeout=15)
+        body = res.json() if res.status_code == 200 else None
+    except (httpx.HTTPError, ValueError):
+        return None
+    if not body:
+        return None
+    issued = datetime.fromisoformat(body["issued_at"].replace("Z", "+00:00"))
+    return body if datetime.now(timezone.utc) - issued < timedelta(hours=CARRY_HOURS) else None
+
+
+def _export(client: TestClient, out: Path, previous: str | None) -> int:
     """The files themselves, asked of `client`."""
     models = get(client, "/api/models")
     write(out / "models.json", models)
@@ -82,39 +102,61 @@ def _export(client: TestClient, out: Path) -> int:
         for city, samples in full.get("samples", {}).items():
             write(out / "evaluation" / name / f"{city}.json", dict(full, samples={city: samples}))
 
-    done, failed = [], []
+    fresh, carried, missing = [], [], []
+    failures_in_a_row = 0
+    deadline = time.monotonic() + TIME_BUDGET_SECONDS
     for city in cities:
-        params = {"latitude": city["latitude"], "longitude": city["longitude"]}
-        res = client.get("/api/predictions", params=params)
-        if res.status_code == 502:  # Open-Meteo hiccup: try once more
-            time.sleep(5)
-            res = client.get("/api/predictions", params=params)
-        if res.status_code == 200:
-            write(out / "predictions" / f"{city['id']}.json", res.json())
-            done.append(city["id"])
+        cid = city["id"]
+        res = None
+        # Once Open-Meteo has refused several cities in a row it is limiting this machine; asking about
+        # the rest would only wait out more limits, so they keep their last forecast instead.
+        if failures_in_a_row < GIVE_UP_AFTER and time.monotonic() < deadline:
+            started = time.monotonic()
+            res = client.get("/api/predictions", params={"latitude": city["latitude"], "longitude": city["longitude"]})
+            seconds = time.monotonic() - started
+            if res.status_code == 200:
+                write(out / "predictions" / f"{cid}.json", res.json())
+                fresh.append(cid)
+                failures_in_a_row = 0
+                log.info("%s: new forecast (%.1f s)", cid, seconds)
+                time.sleep(PAUSE_SECONDS)
+                continue
+            failures_in_a_row += 1
+            log.warning("%s: no new forecast (%s after %.1f s): %s", cid, res.status_code, seconds, res.text[:200])
+        old = last_published(previous, cid)
+        if old is not None:
+            write(out / "predictions" / f"{cid}.json", old)
+            carried.append(cid)
+            log.info("%s: kept the forecast issued %s", cid, old["issued_at"])
         else:
-            log.warning("no forecast for %s: %s %s", city["id"], res.status_code, res.text[:200])
-            failed.append(city["id"])
-        time.sleep(PAUSE_SECONDS)
+            missing.append(cid)
+        if res is not None:
+            time.sleep(PAUSE_SECONDS)
 
-    write(out / "index.json", {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "cities": done})
-    log.info("wrote forecasts for %d cities (%d failed) to %s", len(done), len(failed), out)
-    return len(failed)
+    write(out / "index.json", {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "cities": fresh + carried,
+        "fresh": fresh,
+        "carried_over": carried,
+    })
+    log.info("%d new forecasts, %d kept from last time, %d cities without one", len(fresh), len(carried), len(missing))
+    return len(missing)
 
 
 def main() -> None:
-    """Command line: the output folder is the only argument."""
-    if len(sys.argv) != 2:
-        sys.exit("usage: python -m scripts.export_public_data <output folder>")
+    """Command line: the output folder, then optionally the published site's address."""
+    if len(sys.argv) not in (2, 3):
+        sys.exit("usage: python -m scripts.export_public_data <output folder> [published site address]")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     # Every forecast tries to store itself and is refused; that's expected here, so keep it out of the log.
     logging.getLogger("weatherai.api").setLevel(logging.ERROR)
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    failed = export(Path(sys.argv[1]).resolve())
-    total = len(json.loads((Path(sys.argv[1]) / "coverage.json").read_text(encoding="utf-8")))
-    # Publish if most cities worked (one missing city shouldn't take the whole site down), else fail the job.
-    if failed > total // 2:
-        sys.exit(f"{failed} of {total} cities have no forecast; not publishing.")
+    out = Path(sys.argv[1]).resolve()
+    missing = export(out, sys.argv[2] if len(sys.argv) == 3 else None)
+    total = len(json.loads((out / "coverage.json").read_text(encoding="utf-8")))
+    # Publish if most cities have a forecast (one missing city shouldn't take the whole site down), else fail the job.
+    if missing > total // 2:
+        sys.exit(f"{missing} of {total} cities have no forecast; not publishing.")
 
 
 if __name__ == "__main__":
