@@ -2,11 +2,11 @@
 
 Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop interface.
 
-Try it: https://wetcast.codeberg.page (the public copy, free on Codeberg Pages; it opens
-https://wetcast.codeberg.page/wetcast/). It shows the live
-weather from Open-Meteo: the Dashboard, the 7-day forecast, the map, search and Wetcast Mini. Wetcast's own trained
-models, their track record, official warnings, saved places on the server and the Javed assistant need the server
-and run on the full setup below; the demo shows them.
+Try it: https://amanaswal9.github.io/wetcast/ (the public copy, free on GitHub Pages). It shows the live weather
+from Open-Meteo (the Dashboard, the 7-day forecast, the map, search and Wetcast Mini) and the forecasts of Wetcast's
+own trained models for their 48 cities, refreshed every 3 hours, with the models' test results. The live track
+record, official warnings, saved places on the server and the Javed assistant need the server and run on the full
+setup below; the demo shows them.
 
 ![Wetcast demo: the Dashboard for Delhi with its LCD readout, searching Jaipur, opening the Forecast from the Start menu, Wetcast's model forecasts next to Open-Meteo, the weather map's temperature and wind tools, the test-period results, and switching to Fahrenheit in the Units dialog](docs/demo/wetcast-demo.gif)
 
@@ -160,21 +160,26 @@ screenshots after an intended visual change.
 
 ### Continuous integration
 
-`.forgejo/workflows/ci.yml` runs on Codeberg's Forgejo Actions (hosted `codeberg-medium` runners, enabled under
-the repository's Settings, Units, "Enable Actions") on every push and pull request: a frontend job (`npm ci`, lint, Vitest, type-check, build and the bundle-size budget), a browser job (the
+`.github/workflows/ci.yml` runs on GitHub Actions (free for public repositories) on every push and pull request: a frontend job (`npm ci`, lint, Vitest, type-check, build and the bundle-size budget), a browser job (the
 `e2e` tests, compared with the Linux reference screenshots in `e2e/screenshots/linux/`, then Lighthouse on four pages with
 the limits in `ci/lighthouse/lighthouserc.js`; its reports are kept as the `lighthouse-reports` artifact) and a Python job (ML pipeline and API tests on
-Python 3.13 with CPU TensorFlow). It needs no secrets and uses only open-source actions from code.forgejo.org.
-Codeberg's hosted runners allow 10 minutes a job; if installing TensorFlow runs over, change the Python job's
-`runs-on` to `codeberg-medium-lazy` or register a self-hosted Forgejo runner.
+Python 3.13 with CPU TensorFlow). The jobs run in the same Debian images as the reference screenshots
+(`node:22-bookworm`, `python:3.13-bookworm`). It needs no secrets.
 
-After all three pass on `main`, a fourth job publishes the public copy to Codeberg Pages
-(https://wetcast.codeberg.page/wetcast/). It builds from the clean checkout with `VITE_PUBLIC_SITE` set to that
-address, which puts every file under `/wetcast/`, gives the link preview its full address and turns off the calls to
-the Wetcast server (`src/lib/site.ts`); `scripts/pages-headers.mjs` writes the same security headers as
-`deploy/security-headers.conf` into a `_headers` file. It uses Codeberg's git-pages action with the job's own token, so
-no secret is needed. To try the public build locally: `VITE_PUBLIC_SITE=http://localhost:4173/wetcast/ npm run build`
-then `npx vite preview --base /wetcast/`.
+`.github/workflows/publish.yml` publishes the public copy to GitHub Pages (https://amanaswal9.github.io/wetcast/)
+after CI passes on `main`, and every 3 hours on its own. It builds from the clean checkout with `VITE_PUBLIC_SITE`
+set to that address (every file under `/wetcast/`, the link preview's full address, no calls to the Wetcast
+server: `src/lib/site.ts`) and `VITE_PUBLIC_DATA=1`. Then `backend/scripts/export_public_data.py` runs the models for
+all 48 cities with live Open-Meteo data, asking the API's own endpoints in-process (no server, no database), and
+writes the answers as plain files under `dist/data/`, which the site reads in place of the server: the latest
+forecast per city, the models' test scores and their evaluations. `scripts/pages-meta.mjs` puts the
+Content-Security-Policy and Referrer-Policy from `deploy/security-headers.conf` into the pages as `<meta>` tags;
+GitHub Pages can't send custom headers, so X-Frame-Options, Permissions-Policy and the CSP's `frame-ancestors` only
+apply on the self-hosted setup. The job's own token publishes the site; no secret is needed. GitHub pauses
+scheduled runs after 60 days without a push; "Enable workflow" on the Actions tab restarts them.
+
+To try the public build locally: `VITE_PUBLIC_SITE=http://localhost:4173/wetcast/ VITE_PUBLIC_DATA=1 npm run build`,
+then from `backend/` run `python -m scripts.export_public_data ../dist/data`, then `npx vite preview --base /wetcast/`.
 
 The API tests replace the Open-Meteo call with clearly labelled synthetic data (`weatherai_ml/synthetic.py`),
 so they are offline and deterministic. Synthetic data is never used for training, evaluation or the app.
@@ -496,7 +501,7 @@ the build stops if a bundled package has no licence file to pass on (`thirdParty
 
 Designed and built by Aman Singh Aswal.
 
-- Source code: https://codeberg.org/wetcast/wetcast (home), mirrored to https://github.com/amanaswal9/wetcast
+- Source code: https://github.com/amanaswal9/wetcast (an older copy is at https://codeberg.org/wetcast/wetcast)
 - GitHub: https://github.com/amanaswal9
 - LinkedIn: https://www.linkedin.com/in/amannaswal/
 

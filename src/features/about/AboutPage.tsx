@@ -331,8 +331,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
           <dd className="m-0">
             <a href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
               {SOURCE_URL.replace('https://', '')}
-            </a>{' '}
-            on Codeberg
+            </a>
           </dd>
           <dt className="font-bold">GitHub</dt>
           <dd className="m-0">
