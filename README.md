@@ -474,6 +474,11 @@ How it works (`backend/app/alerts.py`):
 | Historical trends | Open-Meteo archive (ERA5) | Named under the chart |
 | Official warnings | NDMA Sachet (India), US National Weather Service | Source named under the warnings |
 | Weather map | Open-Meteo forecast at grid points, on OpenStreetMap tiles | "About this map" box under the map |
+| Map outlines | Natural Earth 1:50m countries (public domain) | Listed on the About page |
+
+Every build also writes `third-party-licences.txt` next to `index.html`: the licence text of every open-source package
+and font the site includes (minifying removes their notices from the code itself). The About page links to it, and
+the build stops if a bundled package has no licence file to pass on (`thirdPartyLicences` in `vite.config.ts`).
 
 ## Design system
 

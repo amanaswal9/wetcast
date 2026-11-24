@@ -1,5 +1,6 @@
 import tailwindcss from '@tailwindcss/vite'
 import preact from '@preact/preset-vite'
+import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -38,6 +39,67 @@ function preloadApp(): Plugin {
   }
 }
 
+// The open-source code and fonts the built site includes keep their copyright notices: their
+// licences (MIT, ISC, BSD, OFL) ask for that wherever they are passed on, and minifying strips the
+// comments that carried them. This writes third-party-licences.txt next to index.html, with every
+// package's licence text; the About page links to it. A package without one stops the build.
+function thirdPartyLicences(): Plugin {
+  // Brought in through CSS @import (fonts, Tailwind's base styles) or written into the service
+  // worker by vite-plugin-pwa (Workbox, the registration script), so the JavaScript module list
+  // doesn't show them. Vite adds its own small loader to every page.
+  const ALSO_SHIPPED = [
+    '@fontsource/noto-sans',
+    '@fontsource/noto-sans-mono',
+    '@fontsource/pixelify-sans',
+    '@fontsource/vt323',
+    'tailwindcss',
+    'workbox-cacheable-response',
+    'workbox-core',
+    'workbox-expiration',
+    'workbox-precaching',
+    'workbox-routing',
+    'workbox-strategies',
+    'vite-plugin-pwa',
+    'vite',
+  ]
+  const root = resolve(import.meta.dirname, 'node_modules')
+
+  // "node_modules/@radix-ui/react-tabs/dist/index.mjs" -> "@radix-ui/react-tabs"
+  const packageOf = (id: string) => {
+    const m = /[\\/]node_modules[\\/]((?:@[^\\/]+[\\/])?[^\\/]+)/.exec(id)
+    return m ? m[1].replace(/\\/g, '/') : null
+  }
+
+  return {
+    name: 'wetcast-third-party-licences',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      const names = new Set(ALSO_SHIPPED)
+      for (const file of Object.values(bundle)) {
+        if (file.type !== 'chunk') continue
+        for (const id of file.moduleIds) {
+          const name = packageOf(id)
+          if (name) names.add(name)
+        }
+      }
+      const parts = [...names].sort().map((name) => {
+        const dir = resolve(root, name)
+        const meta = JSON.parse(readFileSync(resolve(dir, 'package.json'), 'utf8')) as { version: string; license?: string }
+        const file = readdirSync(dir).find((f) => /^(licen[cs]e|copying)(\.|$)/i.test(f))
+        if (!file) throw new Error(`thirdPartyLicences: ${name} has no licence file to pass on`)
+        const text = readFileSync(resolve(dir, file), 'utf8').trim()
+        return `${name} ${meta.version} (${meta.license ?? 'see below'})\n\n${text}`
+      })
+      const intro = [
+        'Wetcast is free software under the GNU AGPL 3.0 or later. The built site also includes the open-source',
+        'code and fonts listed below, each under its own licence, reproduced here as those licences ask.',
+      ].join('\n')
+      const rule = `\n\n${'-'.repeat(78)}\n\n`
+      this.emitFile({ type: 'asset', fileName: 'third-party-licences.txt', source: intro + rule + parts.join(rule) + '\n' })
+    },
+  }
+}
+
 // The public copy on Codeberg Pages is built with its address in VITE_PUBLIC_SITE, for example
 // https://amanaswal9.codeberg.page/wetcast/ (see .forgejo/workflows/ci.yml). Its path becomes the base
 // for every file, and its full address goes into the link preview. Left unset, the app is built to
@@ -71,6 +133,7 @@ export default defineConfig({
     preact({ prerender: { enabled: false } }),
     preloadApp(),
     previewImage(),
+    thirdPartyLicences(),
     tailwindcss(),
     // Installable app + instant repeat visits: the app's own files are cached by a service worker
     // (production builds only). Weather and model data are never served from this cache, so the app
@@ -114,8 +177,9 @@ export default defineConfig({
         // The link-preview image is for other sites' crawlers, not the offline app.
         globIgnores: ['assets/*-latin-ext-*', 'assets/*-cyrillic-*', 'assets/*-vietnamese-*', 'assets/*-greek-*', 'og-image.png'],
         navigateFallback: `${base}index.html`,
-        // Wetcast Mini has its own page, so its address must not fall back to the main app.
-        navigateFallbackDenylist: [/\/api\//, /\/mini\//],
+        // Wetcast Mini has its own page, and text files (the third-party licences) are opened as they
+        // are, so neither address may fall back to the main app.
+        navigateFallbackDenylist: [/\/api\//, /\/mini\//, /\.txt$/],
         runtimeCaching: [
           {
             // Wetcast Mini's page: fresh when online, the last copy when offline. These checks are copied
