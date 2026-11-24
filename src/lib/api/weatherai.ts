@@ -1,7 +1,7 @@
 // Client for Wetcast's own FastAPI backend (/api, proxied by Vite in dev).
 // Every number here comes from trained models and real evaluation runs.
 import { log } from '../log'
-import { HAS_SERVER, NO_SERVER_MESSAGE } from '../site'
+import { HAS_PUBLIC_DATA, HAS_SERVER, NO_SERVER_MESSAGE, sitePath } from '../site'
 import { ApiError } from './http'
 
 export type Target = 'temperature' | 'humidity' | 'precipitation'
@@ -156,6 +156,26 @@ export interface Evaluation {
 
 class BackendUnavailable extends ApiError {}
 
+// On a public copy with exported data, the file that holds what this API address would answer
+// (backend/scripts/export_public_data.py writes them), or null when the answer needs the server.
+export function publicDataFile(path: string): string | null {
+  const url = new URL(path, 'http://x')
+  if (url.pathname === '/api/models') return 'data/models.json'
+  if (url.pathname === '/api/coverage') return 'data/coverage.json'
+  // The server takes a point; the public copy's forecasts are per city, asked for as ?city=<id>.
+  if (url.pathname === '/api/predictions') {
+    const city = url.searchParams.get('city')
+    return city && /^[a-z_]+$/.test(city) ? `data/predictions/${city}.json` : null
+  }
+  const evaluation = /^\/api\/models\/([a-z_]+)\/evaluation$/.exec(url.pathname)
+  if (evaluation) {
+    const city = url.searchParams.get('city')
+    if (city) return /^[a-z_]+$/.test(city) ? `data/evaluation/${evaluation[1]}/${city}.json` : null
+    return url.searchParams.get('include_samples') === 'false' ? `data/evaluation/${evaluation[1]}.json` : null
+  }
+  return null
+}
+
 // Calls the Wetcast API with a timeout; a missing or unreachable server becomes a clear message.
 async function getJson(
   path: string,
@@ -163,8 +183,13 @@ async function getJson(
   init: RequestInit = {},
   timeoutMs = 20_000,
 ): Promise<{ status: number; body: unknown }> {
-  // The public copy has no server to ask, so don't send requests that can only fail.
-  if (!HAS_SERVER) throw new BackendUnavailable('no-server', NO_SERVER_MESSAGE)
+  if (!HAS_SERVER) {
+    // The public copy has no server to ask: read the exported file if there is one, and don't send
+    // requests that can only fail.
+    const file = HAS_PUBLIC_DATA && (init.method ?? 'GET') === 'GET' ? publicDataFile(path) : null
+    if (!file) throw new BackendUnavailable('no-server', NO_SERVER_MESSAGE)
+    path = sitePath(file)
+  }
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), timeoutMs)
   const forward = () => controller.abort()
@@ -238,8 +263,39 @@ export function getPredictions(
   return untilAborted(hit.promise, signal)
 }
 
+// Great-circle distance in km, as the server measures it (weatherai_ml.predict.haversine_km).
+function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const rad = Math.PI / 180
+  const dLat = Math.sin(((lat2 - lat1) * rad) / 2)
+  const dLon = Math.sin(((lon2 - lon1) * rad) / 2)
+  const a = dLat * dLat + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * dLon * dLon
+  return 2 * 6371 * Math.asin(Math.sqrt(a))
+}
+
+// A point this close to one of the models' cities gets that city's forecast (the server's CITY_KM).
+const CITY_KM = 30
+
+// The public copy's forecasts: the exported file for the city at this point. The server also
+// forecasts anywhere in India near the cities; without it, other places get the list of cities.
+async function publicPredictions(latitude: number, longitude: number): Promise<PredictionsResult> {
+  const nearby = (await getCoverage())
+    .map((city) => ({ city, km: distanceKm(latitude, longitude, city.latitude, city.longitude) }))
+    .sort((a, b) => a.km - b.km)
+  if (!nearby.length || nearby[0].km > CITY_KM) {
+    return {
+      kind: 'unsupported',
+      supported: nearby.map((n) => n.city),
+      detail: `On this public copy, Wetcast's own models forecast for the ${nearby.length} cities below, updated every 3 hours. The full setup also covers the rest of India near them.`,
+    }
+  }
+  const { status, body } = await getJson(`/api/predictions?city=${encodeURIComponent(nearby[0].city.id)}`)
+  if (status !== 200) throw new ApiError('http', `The latest update has no forecast for ${nearby[0].city.name}. Try again later.`, status)
+  return { kind: 'ok', data: body as Predictions }
+}
+
 // Asks the API for Wetcast's forecasts for a point; outside the models' coverage it returns the covered cities instead.
 async function fetchPredictions(latitude: number, longitude: number, country?: string): Promise<PredictionsResult> {
+  if (HAS_PUBLIC_DATA) return publicPredictions(latitude, longitude)
   const params = new URLSearchParams({ latitude: latitude.toFixed(4), longitude: longitude.toFixed(4) })
   if (country && /^[A-Za-z]{2}$/.test(country)) params.set('country', country.toUpperCase())
   const { status, body } = await getJson(`/api/predictions?${params}`)

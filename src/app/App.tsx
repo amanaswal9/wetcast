@@ -25,7 +25,7 @@ import { loaders, preloadPages } from './pageLoaders'
 import { PAGES, usePage, useUnknownPage } from './pages'
 import { PlannedPage } from './PlannedPage'
 import { Taskbar } from './Taskbar'
-import { HAS_SERVER, sitePath } from '../lib/site'
+import { HAS_PUBLIC_DATA, HAS_SERVER, sitePath } from '../lib/site'
 
 const MINUTE = 60_000
 
@@ -81,7 +81,9 @@ export default function App() {
     : health.status === 'error'
       ? HAS_SERVER
         ? 'Wetcast models: offline'
-        : 'Wetcast models: on the full setup'
+        : HAS_PUBLIC_DATA
+          ? 'Wetcast models: updated every 3 h'
+          : 'Wetcast models: on the full setup'
       : 'Wetcast models: checking…'
 
   const title = `Wetcast – ${placeShortLabel(place)}`
