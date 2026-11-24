@@ -67,7 +67,9 @@ export default function App() {
 
   const placeKey = `${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`
   const forecast = useResource(placeKey, ({ signal, fresh }) => getForecast(place, { signal, fresh }), 10 * MINUTE)
-  const air = useResource(placeKey, ({ signal, fresh }) => getAirQuality(place, { signal, fresh }), 30 * MINUTE)
+  // Air quality is asked for once the forecast is in, so it never holds up the first screen.
+  const airKey = forecast.data !== undefined || forecast.status === 'error' ? placeKey : null
+  const air = useResource(airKey, ({ signal, fresh }) => getAirQuality(place, { signal, fresh }), 30 * MINUTE)
   const fmt = useFormat()
   const summary = forecast.data ? buildSummary(place, forecast.data, fmt) : null
   const health = useResource('health', ({ signal }) => getHealth(signal), 5 * MINUTE)

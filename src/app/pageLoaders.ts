@@ -1,3 +1,5 @@
+import { whenIdle } from '../lib/prefetch'
+
 // Each page is its own JavaScript file, downloaded the first time it's opened,
 // so the first screen loads less code (noticeable on phones). Once the first
 // screen's weather is in, the rest are fetched in the background so switching stays instant.
@@ -14,11 +16,10 @@ export const loaders = {
 
 let preloaded = false
 
-// Fetch every page's code once the browser is idle. Failures are ignored: the page loads on demand anyway.
+// Fetch every page's code a moment later, once the browser is idle. Failures are ignored: the page
+// loads on demand anyway.
 export function preloadPages(): void {
   if (preloaded) return
   preloaded = true
-  const run = () => Object.values(loaders).forEach((load) => load().catch(() => undefined))
-  if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 4000 })
-  else setTimeout(run, 1500)
+  whenIdle(() => Object.values(loaders).forEach((load) => load().catch(() => undefined)))
 }

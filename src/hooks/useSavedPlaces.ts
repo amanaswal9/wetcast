@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, isAbort } from '../lib/api/http'
 import { getPlaces, replacePlaces, type ServerPlace } from '../lib/api/weatherai'
 import { log } from '../lib/log'
+import { EMPTY_SAVED as EMPTY, isSavedState, SAVED_KEY as KEY, type SavedState } from '../lib/openingPlace'
 import { readJson, readString, writeJson, writeString } from '../lib/storage'
 import type { Place } from '../types/weather'
 
@@ -22,16 +23,10 @@ import type { Place } from '../types/weather'
 //    request can't overwrite a newer one.
 //  - If the server can't be reached, changes stay here, marked dirty, and are
 //    sent on the next change, the next load or when the browser comes back online.
-const KEY = 'weatherai.saved'
 const META_KEY = 'weatherai.saved.meta'
 const CLIENT_KEY = 'weatherai.clientId'
 // Most places a viewer can save.
 export const MAX_SAVED = 8
-
-interface SavedState {
-  places: Place[]
-  homeId: string | null
-}
 
 interface SyncMeta {
   dirty: boolean
@@ -40,23 +35,9 @@ interface SyncMeta {
 
 export type SyncStatus = 'connecting' | 'synced' | 'saving' | 'offline' | 'rejected'
 
-function isPlace(value: unknown): value is Place {
-  if (!value || typeof value !== 'object') return false
-  const p = value as Record<string, unknown>
-  return typeof p.id === 'string' && typeof p.name === 'string' && typeof p.latitude === 'number' && typeof p.longitude === 'number'
-}
-
-function isSavedState(value: unknown): value is SavedState {
-  if (!value || typeof value !== 'object') return false
-  const s = value as Record<string, unknown>
-  return Array.isArray(s.places) && s.places.every(isPlace) && (s.homeId === null || typeof s.homeId === 'string')
-}
-
 function isMeta(value: unknown): value is SyncMeta {
   return !!value && typeof value === 'object' && typeof (value as SyncMeta).dirty === 'boolean' && typeof (value as SyncMeta).synced === 'boolean'
 }
-
-const EMPTY: SavedState = { places: [], homeId: null }
 
 function randomId(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
@@ -103,11 +84,7 @@ export function samePlace(a: Place, b: Place): boolean {
   return a.id === b.id || (Math.abs(a.latitude - b.latitude) < 0.01 && Math.abs(a.longitude - b.longitude) < 0.01)
 }
 
-// Home location from this browser's copy, readable before any network request.
-export function readHome(): Place | null {
-  const state = readJson<SavedState>(KEY, EMPTY, isSavedState)
-  return state.places.find((p) => p.id === state.homeId) ?? null
-}
+export { readHome } from '../lib/openingPlace'
 
 export type AddResult = 'added' | 'exists' | 'full'
 

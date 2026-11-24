@@ -1,3 +1,4 @@
+import { useDeferredValue } from 'react'
 import { Button, ChartSkeleton, ErrorStack, GroupBox, MessageBox, Skeleton } from '../../components/retro'
 import type { ResourceState } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
@@ -54,18 +55,28 @@ function SkeletonColumns() {
             <Skeleton height={48} />
           </div>
         </GroupBox>
-        <GroupBox title="Hourly: past 12 hours and next 24">
-          <div className="min-h-[427px] lg:min-h-[398px]">
-            <ChartSkeleton height={260} />
-          </div>
-        </GroupBox>
+        <HourlySkeleton />
       </div>
     </>
   )
 }
 
+function HourlySkeleton() {
+  return (
+    <GroupBox title="Hourly: past 12 hours and next 24">
+      <div className="min-h-[427px] lg:min-h-[398px]">
+        <ChartSkeleton height={260} />
+      </div>
+    </GroupBox>
+  )
+}
+
 // Dashboard page. Shows a loading or error state until the forecast arrives.
 export function Dashboard({ place, forecast, air, summary, theme, speech }: DashboardProps) {
+  // The hourly chart is the slowest part to draw, so it follows a moment after the rest: the
+  // current conditions appear as soon as the weather arrives, with the chart's frame held in place.
+  const hourly = useDeferredValue(forecast.data)
+
   if (!forecast.data && forecast.status === 'error') {
     return (
       <ErrorStack caption="Weather" title="Couldn't load the weather" actions={<Button onClick={forecast.reload}>Try again</Button>}>
@@ -105,7 +116,7 @@ export function Dashboard({ place, forecast, air, summary, theme, speech }: Dash
           </div>
           <div className="flex min-w-0 flex-col gap-3">
             {summary && <Summary text={summary} speech={speech} />}
-            <HourlyPanel forecast={data} theme={theme} />
+            {hourly ? <HourlyPanel forecast={hourly} theme={theme} /> : <HourlySkeleton />}
           </div>
         </>
       )}
