@@ -270,7 +270,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
       <GroupBox title="Built with">
         <dl className="m-0 grid max-w-[75ch] grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5">
           <dt className="font-bold">Interface</dt>
-          <dd className="m-0">React, TypeScript, Vite, Tailwind CSS, Radix, Lucide, Leaflet; charts are hand-drawn SVG</dd>
+          <dd className="m-0">Preact, TypeScript, Vite, Tailwind CSS, Radix, Lucide, Leaflet; charts are hand-drawn SVG</dd>
           <dt className="font-bold">Server</dt>
           <dd className="m-0">Python, FastAPI, SQLAlchemy, PostgreSQL</dd>
           <dt className="font-bold">Models</dt>

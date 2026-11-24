@@ -1,5 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
-import react from '@vitejs/plugin-react'
+import preact from '@preact/preset-vite'
 import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -41,7 +41,10 @@ function preloadApp(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    // Preact runs the app: the same components and hooks as React through preact/compat, in a
+    // fraction of the download (about 10 KB instead of about 68 KB before the first screen).
+    // Imports of react and react-dom, ours and the libraries', are pointed at it.
+    preact({ prerender: { enabled: false } }),
     preloadApp(),
     tailwindcss(),
     // Installable app + instant repeat visits: the app's own files are cached by a service worker
