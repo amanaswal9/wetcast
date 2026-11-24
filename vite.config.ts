@@ -1,13 +1,48 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'node:path'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+
+// src/main.tsx asks for the weather first and then loads the rest of the app (src/start.tsx) with
+// import(). Without help the browser would only find out about that code once main has run, so this
+// lists it in index.html as well, and it downloads at the same time as main and the weather.
+function preloadApp(): Plugin {
+  let base = '/'
+  return {
+    name: 'wetcast-preload-app',
+    apply: 'build',
+    configResolved(config) {
+      base = config.base
+    },
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        if (!ctx.bundle || !ctx.filename.endsWith('index.html') || ctx.filename.includes('mini')) return
+        const chunks = Object.values(ctx.bundle).filter((c) => c.type === 'chunk')
+        const start = chunks.find((c) => c.facadeModuleId?.endsWith('/src/start.tsx'))
+        if (!start) throw new Error('preloadApp: src/start.tsx is not in the build')
+        const files = new Set<string>()
+        const add = (file: string) => {
+          if (files.has(file)) return
+          files.add(file)
+          const chunk = chunks.find((c) => c.fileName === file)
+          chunk?.imports.forEach(add)
+        }
+        add(start.fileName)
+        return [...files]
+          .filter((f) => !html.includes(`/${f}"`))
+          .map((f) => ({ tag: 'link', attrs: { rel: 'modulepreload', crossorigin: true, href: base + f }, injectTo: 'head' as const }))
+      },
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    preloadApp(),
     tailwindcss(),
     // Installable app + instant repeat visits: the app's own files are cached by a service worker
     // (production builds only). Weather and model data are never served from this cache, so the app
