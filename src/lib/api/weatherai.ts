@@ -1,6 +1,7 @@
 // Client for Wetcast's own FastAPI backend (/api, proxied by Vite in dev).
 // Every number here comes from trained models and real evaluation runs.
 import { log } from '../log'
+import { HAS_SERVER, NO_SERVER_MESSAGE } from '../site'
 import { ApiError } from './http'
 
 export type Target = 'temperature' | 'humidity' | 'precipitation'
@@ -161,6 +162,8 @@ async function getJson(
   init: RequestInit = {},
   timeoutMs = 20_000,
 ): Promise<{ status: number; body: unknown }> {
+  // The public copy has no server to ask, so don't send requests that can only fail.
+  if (!HAS_SERVER) throw new BackendUnavailable('no-server', NO_SERVER_MESSAGE)
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), timeoutMs)
   const forward = () => controller.abort()

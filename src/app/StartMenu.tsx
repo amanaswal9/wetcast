@@ -4,6 +4,7 @@ import { loaders } from './pageLoaders'
 import { PAGE_ICONS } from './pageIcons'
 import { PAGES, type PageId } from './pages'
 import { UnitsDialog } from './UnitsDialog'
+import { sitePath } from '../lib/site'
 
 interface StartMenuProps {
   page: PageId | null
@@ -20,7 +21,7 @@ const preload = (id: PageId) => void loaders[id]().catch(() => undefined)
 // Wetcast Mini in a small window of its own. Phones ignore the size and open a new tab,
 // which is fine: there it is meant to be added to the home screen.
 function openMini() {
-  window.open('/mini/', 'wetcast-mini', 'popup,width=380,height=300')
+  window.open(sitePath('mini/'), 'wetcast-mini', 'popup,width=380,height=300')
 }
 
 // Underlined shortcut letter for each item; press it while the menu is open.
@@ -115,7 +116,7 @@ export function StartMenu({ page, darkMode, onToggleDark, highContrast, onToggle
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
       >
-        <img src="/favicon.svg" width={16} height={16} alt="" />
+        <img src={sitePath('favicon.svg')} width={16} height={16} alt="" />
         <span>Start</span>
       </button>
       <div id={panelId} hidden={!open} className="r-raised r-start-menu">

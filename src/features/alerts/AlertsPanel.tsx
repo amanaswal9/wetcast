@@ -3,6 +3,7 @@ import { MessageBox } from '../../components/retro'
 import { useResource } from '../../hooks/useResource'
 import { getAlerts, type AlertsResult, type OfficialAlert } from '../../lib/api/weatherai'
 import { dateFormatter } from '../../lib/format'
+import { HAS_SERVER } from '../../lib/site'
 import { getUnits } from '../../lib/units'
 import type { Place } from '../../types/weather'
 
@@ -129,6 +130,9 @@ export function AlertsPanel({ place }: { place: Place }) {
   const key = `alerts:${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}:${place.countryCode ?? ''}`
   const result = useResource(key, ({ signal }) => getAlerts(place.latitude, place.longitude, place.countryCode, signal), REFRESH_MS)
   if (!result.data) {
+    if (result.status === 'error' && !HAS_SERVER) {
+      return <StatusLine short="Official warnings: on the full setup">Official warnings come from Wetcast's server, which this public copy doesn't have.</StatusLine>
+    }
     if (result.status === 'error') return <StatusLine short="Official warnings: unavailable right now">Official warnings: unavailable right now (Wetcast's server isn't reachable).</StatusLine>
     return <StatusLine short="Official warnings: checking…">Official warnings: checking…</StatusLine>
   }

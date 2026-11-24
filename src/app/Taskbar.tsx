@@ -5,6 +5,7 @@ import { loaders } from './pageLoaders'
 import { PAGE_ICONS, QUICK_LAUNCH } from './pageIcons'
 import { PAGES, type PageId } from './pages'
 import { StartMenu } from './StartMenu'
+import { sitePath } from '../lib/site'
 
 interface TaskbarProps {
   title: string
@@ -69,7 +70,7 @@ export function Taskbar({ title, page, minimized, onToggleWindow, darkMode, onTo
         aria-label={minimized ? `Restore ${title}` : `Minimise ${title}`}
         onClick={onToggleWindow}
         className="min-w-0 flex-1 justify-start font-bold sm:max-w-[320px]"
-        icon={<img src="/favicon.svg" width={16} height={16} alt="" />}
+        icon={<img src={sitePath('favicon.svg')} width={16} height={16} alt="" />}
       >
         <span className="block truncate">{title}</span>
       </Button>

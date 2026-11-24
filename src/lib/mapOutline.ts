@@ -1,3 +1,5 @@
+import { sitePath } from './site'
+
 // A small world outline (Natural Earth, public domain; built by ml/weatherai_ml/build_map_outline.py)
 // drawn under the weather map at once, so the map shows land and sea while OpenStreetMap's tiles are
 // still loading. Each ring is stored as [lat0, lon0, dlat, dlon, ...] in hundredths of a degree.
@@ -5,7 +7,7 @@
 export type Ring = [number, number][]
 
 // Land outline file in public/, fetched when the map first opens.
-export const OUTLINE_URL = '/map-outline.json'
+export const OUTLINE_URL = sitePath('map-outline.json')
 
 // Undo the whole-number steps: [lat, lon] pairs in degrees.
 export function decodeRing(steps: number[]): Ring {

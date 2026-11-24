@@ -5,6 +5,7 @@ import { useResource } from '../../hooks/useResource'
 import { isAbort, toApiError } from '../../lib/api/http'
 import { askAssistant, getAssistantStatus, type AssistantTurn } from '../../lib/api/weatherai'
 import { placeShortLabel } from '../../lib/format'
+import { HAS_SERVER, NO_SERVER_MESSAGE } from '../../lib/site'
 import type { Place } from '../../types/weather'
 
 // The server keeps no chat history; the page sends the recent turns with each question.
@@ -99,7 +100,12 @@ export function AssistantPage({ place }: { place: Place }) {
         </p>
 
         {status.status === 'loading' && <TextSkeleton lines={3} />}
-        {status.status === 'error' && (
+        {status.status === 'error' && !HAS_SERVER && (
+          <MessageBox kind="info" title="Javed runs on the full setup">
+            {NO_SERVER_MESSAGE}
+          </MessageBox>
+        )}
+        {status.status === 'error' && HAS_SERVER && (
           <MessageBox kind="warning" title="Javed isn't reachable">
             Wetcast&apos;s server isn&apos;t responding, so questions can&apos;t be answered right now.
           </MessageBox>

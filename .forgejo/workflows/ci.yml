@@ -124,3 +124,33 @@ jobs:
       - name: API tests
         working-directory: backend
         run: python -m pytest tests -q
+
+  # The public copy at https://amanaswal9.codeberg.page/wetcast/ (Codeberg Pages, free, https). Built from
+  # this clean checkout, so nothing kept only on the owner's computer can end up in it, and published
+  # only from main once every check above has passed. It has no Wetcast server: live weather only, and
+  # the pages that need the server say so (src/lib/site.ts). The job's own token is enough to publish a
+  # site named after its repository; no secret is needed.
+  pages:
+    name: Publish the public copy
+    needs: [frontend, browser, python]
+    if: ${{ forgejo.event_name == 'push' && forgejo.ref == 'refs/heads/main' }}
+    runs-on: codeberg-small
+    container:
+      image: node:22-bookworm
+    timeout-minutes: 10
+    env:
+      VITE_PUBLIC_SITE: https://${{ forgejo.repository_owner }}.codeberg.page/${{ forgejo.event.repository.name }}/
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v4
+      - run: npm ci
+      - run: npm run build
+      - name: Security headers (from deploy/security-headers.conf)
+        run: node scripts/pages-headers.mjs "$VITE_PUBLIC_SITE"
+      - name: Publish
+        uses: https://codeberg.org/git-pages/action@v2
+        with:
+          site: ${{ env.VITE_PUBLIC_SITE }}
+          token: ${{ forgejo.token }}
+          source: dist/
+          strict: true
+          comment: ${{ forgejo.sha }}

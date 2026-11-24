@@ -1,6 +1,7 @@
 import { log } from '../log'
 
-export type ApiErrorKind = 'network' | 'timeout' | 'http' | 'invalid'
+// 'no-server' is the public copy, which has no Wetcast server to ask (src/lib/site.ts).
+export type ApiErrorKind = 'network' | 'timeout' | 'http' | 'invalid' | 'no-server'
 
 // An error with a message that is safe and useful to show to people.
 export class ApiError extends Error {

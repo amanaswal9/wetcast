@@ -5,6 +5,7 @@ import type { Theme } from '../../hooks/useTheme'
 import { getModels, type ModelMetrics } from '../../lib/api/weatherai'
 import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
 import { LICENSE_NAME, LICENSE_URL, SOURCE_URL } from '../../lib/project'
+import { sitePath } from '../../lib/site'
 
 const APP_VERSION = '0.3.0'
 
@@ -227,7 +228,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
       <GroupBox title="Keep the weather on screen">
         <p className="m-0 mb-2 max-w-[75ch]">
           Wetcast Mini is a small window with the weather now and for the next few hours, for the place you last opened here.
-          Open it from the Start menu, or go to <a href="/mini/">/mini/</a>. Then keep it where you can see it:
+          Open it from the Start menu, or go to <a href={sitePath('mini/')}>{sitePath('mini/')}</a>. Then keep it where you can see it:
         </p>
         <ul className="m-0 flex max-w-[75ch] flex-col gap-1.5 pl-5">
           <li>
