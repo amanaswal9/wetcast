@@ -118,129 +118,137 @@ export function StartMenu({ page, darkMode, onToggleDark, highContrast, onToggle
         <span>Start</span>
       </button>
       <div id={panelId} hidden={!open} className="r-raised r-start-menu">
-        <div className="r-start-banner" aria-hidden="true">
-          <span>
-            <b>Weather</b>AI
-          </span>
-        </div>
-        <div className="min-w-0 flex-1 py-[3px]">
-          <nav aria-label="Pages (Start menu)">
-            <ul className="m-0 list-none p-0">
-              {PAGES.map((p) => {
-                const Icon = PAGE_ICONS[p.id]
-                return (
-                  <li key={p.id}>
-                    <a
-                      href={`#/${p.id}`}
-                      className="r-start-item"
-                      data-key={PAGE_KEYS[p.id]}
-                      aria-keyshortcuts={PAGE_KEYS[p.id].toUpperCase()}
-                      aria-current={page === p.id ? 'page' : undefined}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Icon size={16} aria-hidden="true" />
-                      <span>
-                        <KeyLabel text={p.label} letter={PAGE_KEYS[p.id]} />
-                      </span>
-                    </a>
-                  </li>
-                )
-              })}
-            </ul>
-          </nav>
-          <div className="r-divider mx-1 my-[3px]" />
-          <button
-            type="button"
-            className="r-start-item w-full"
-            aria-pressed={darkMode}
-            data-key="k"
-            aria-keyshortcuts="K"
-            onClick={() => {
-              onToggleDark()
-              setOpen(false)
-            }}
-          >
-            <Moon size={16} aria-hidden="true" />
-            <span>
-              <KeyLabel text="Dark mode" letter="k" />
-              {darkMode ? ': on' : ''}
-            </span>
-          </button>
-          <button
-            type="button"
-            className="r-start-item w-full"
-            aria-pressed={highContrast}
-            data-key="h"
-            aria-keyshortcuts="H"
-            onClick={() => {
-              onToggleContrast()
-              setOpen(false)
-            }}
-          >
-            <Contrast size={16} aria-hidden="true" />
-            <span>
-              <KeyLabel text="High contrast" letter="h" />
-              {highContrast ? ': on' : ''}
-            </span>
-          </button>
-          <button
-            type="button"
-            className="r-start-item w-full"
-            data-key="i"
-            aria-keyshortcuts="I"
-            onClick={() => {
-              setOpen(false)
-              openMini()
-            }}
-          >
-            <PanelTop size={16} aria-hidden="true" />
-            <span>
-              <KeyLabel text="Wetcast Mini" letter="i" />
-            </span>
-          </button>
-          <button
-            type="button"
-            className="r-start-item w-full"
-            aria-haspopup="dialog"
-            data-key="u"
-            aria-keyshortcuts="U"
-            onClick={() => {
-              setOpen(false)
-              setUnitsOpen(true)
-            }}
-          >
-            <Ruler size={16} aria-hidden="true" />
-            <span>
-              <KeyLabel text="Units…" letter="u" />
-            </span>
-          </button>
-          <button
-            type="button"
-            className="r-start-item w-full"
-            aria-pressed={warningNotifications}
-            data-key="w"
-            aria-keyshortcuts="W"
-            onClick={() => {
-              onToggleNotifications()
-              setOpen(false)
-            }}
-          >
-            <Bell size={16} aria-hidden="true" />
-            <span>
-              <KeyLabel text="Warning notifications" letter="w" />
-              {warningNotifications ? ': on' : ''}
-            </span>
-          </button>
-        </div>
+        {/* The items are only drawn while the menu is open, so the first screen has less to draw. */}
+        {open && (
+          <>
+            <div className="r-start-banner" aria-hidden="true">
+              <span>
+                <b>Weather</b>AI
+              </span>
+            </div>
+            <div className="min-w-0 flex-1 py-[3px]">
+              <nav aria-label="Pages (Start menu)">
+                <ul className="m-0 list-none p-0">
+                  {PAGES.map((p) => {
+                    const Icon = PAGE_ICONS[p.id]
+                    return (
+                      <li key={p.id}>
+                        <a
+                          href={`#/${p.id}`}
+                          className="r-start-item"
+                          data-key={PAGE_KEYS[p.id]}
+                          aria-keyshortcuts={PAGE_KEYS[p.id].toUpperCase()}
+                          aria-current={page === p.id ? 'page' : undefined}
+                          onClick={() => setOpen(false)}
+                        >
+                          <Icon size={16} aria-hidden="true" />
+                          <span>
+                            <KeyLabel text={p.label} letter={PAGE_KEYS[p.id]} />
+                          </span>
+                        </a>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </nav>
+              <div className="r-divider mx-1 my-[3px]" />
+              <button
+                type="button"
+                className="r-start-item w-full"
+                aria-pressed={darkMode}
+                data-key="k"
+                aria-keyshortcuts="K"
+                onClick={() => {
+                  onToggleDark()
+                  setOpen(false)
+                }}
+              >
+                <Moon size={16} aria-hidden="true" />
+                <span>
+                  <KeyLabel text="Dark mode" letter="k" />
+                  {darkMode ? ': on' : ''}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="r-start-item w-full"
+                aria-pressed={highContrast}
+                data-key="h"
+                aria-keyshortcuts="H"
+                onClick={() => {
+                  onToggleContrast()
+                  setOpen(false)
+                }}
+              >
+                <Contrast size={16} aria-hidden="true" />
+                <span>
+                  <KeyLabel text="High contrast" letter="h" />
+                  {highContrast ? ': on' : ''}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="r-start-item w-full"
+                data-key="i"
+                aria-keyshortcuts="I"
+                onClick={() => {
+                  setOpen(false)
+                  openMini()
+                }}
+              >
+                <PanelTop size={16} aria-hidden="true" />
+                <span>
+                  <KeyLabel text="Wetcast Mini" letter="i" />
+                </span>
+              </button>
+              <button
+                type="button"
+                className="r-start-item w-full"
+                aria-haspopup="dialog"
+                data-key="u"
+                aria-keyshortcuts="U"
+                onClick={() => {
+                  setOpen(false)
+                  setUnitsOpen(true)
+                }}
+              >
+                <Ruler size={16} aria-hidden="true" />
+                <span>
+                  <KeyLabel text="Units…" letter="u" />
+                </span>
+              </button>
+              <button
+                type="button"
+                className="r-start-item w-full"
+                aria-pressed={warningNotifications}
+                data-key="w"
+                aria-keyshortcuts="W"
+                onClick={() => {
+                  onToggleNotifications()
+                  setOpen(false)
+                }}
+              >
+                <Bell size={16} aria-hidden="true" />
+                <span>
+                  <KeyLabel text="Warning notifications" letter="w" />
+                  {warningNotifications ? ': on' : ''}
+                </span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
-      <UnitsDialog
-        // Rendered outside the menu panel, because the menu is hidden while the dialog is open.
-        open={unitsOpen}
-        onClose={() => {
-          setUnitsOpen(false)
-          button.current?.focus()
-        }}
-      />
+      {unitsOpen && (
+        <UnitsDialog
+          // Outside the menu panel, because the menu is hidden while the dialog is open. Only there
+          // while open, so it costs nothing on the first screen.
+          open
+          onClose={() => {
+            setUnitsOpen(false)
+            button.current?.focus()
+          }}
+        />
+      )}
     </div>
   )
 }
