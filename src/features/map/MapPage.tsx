@@ -351,9 +351,12 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     const paper = isDark(theme) ? '#000000' : '#ffffff'
     for (const c of coverage.data ?? []) {
       const held = c.role === 'holdout'
+      // Leaflet reads a string label as HTML, so the name goes in as text: a city name can never run as code.
+      const label = document.createElement('span')
+      label.textContent = held ? `${c.name}: kept out of training to test the models` : `${c.name}: the models trained here`
       // Training cities: hollow dots. Held-out cities (never trained on): solid dots.
       L.circleMarker([c.latitude, c.longitude], { radius: 5, color: ink, weight: 2, fillColor: held ? ink : paper, fillOpacity: 1 })
-        .bindTooltip(held ? `${c.name}: kept out of training to test the models` : `${c.name}: the models trained here`, { direction: 'top' })
+        .bindTooltip(label, { direction: 'top' })
         .addTo(group)
     }
   }, [coverage.data, theme])

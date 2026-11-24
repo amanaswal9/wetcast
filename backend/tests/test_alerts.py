@@ -26,7 +26,7 @@ def rss(guids: list[str]) -> bytes:
     """A feed listing the given message ids, one minute apart."""
     items = "".join(
         f"<item><title>t</title><category>Met</category>"
-        f"<link>https://sachet.example/cap?identifier={g}</link>"
+        f"<link>https://sachet.ndma.gov.in/cap?identifier={g}</link>"
         f"<author>controlroom@ndma.gov.in (IMD Bhubaneswar)</author><guid isPermaLink=\"false\">{g}</guid>"
         f"<pubDate>Thu, 19 Nov 2026 17:{i:02d}:00 GMT</pubDate></item>"
         for i, g in enumerate(guids)
@@ -36,7 +36,7 @@ def rss(guids: list[str]) -> bytes:
 
 def cap(guid: str, msg_type="Alert", status="Actual", expires="2026-11-20T02:30:00+05:30", refs="", event="Heavy Rain", polygon_url=True) -> bytes:
     param = (
-        f"<cap:parameter><cap:valueName>Polygon URL</cap:valueName><cap:value>https://sachet.example/poly?identifier={guid}</cap:value></cap:parameter>"
+        f"<cap:parameter><cap:valueName>Polygon URL</cap:valueName><cap:value>https://sachet.ndma.gov.in/poly?identifier={guid}</cap:value></cap:parameter>"
         if polygon_url
         else ""
     )
@@ -64,7 +64,7 @@ def transport(feed: bytes, caps: dict[str, bytes], calls: list[str] | None = Non
     def handler(request: httpx.Request) -> httpx.Response:
         if calls is not None:
             calls.append(str(request.url))
-        if request.url.host == "sachet.ndma.gov.in":
+        if request.url.path.endswith(".xml"):
             return httpx.Response(200, content=feed)
         guid = request.url.params.get("identifier")
         if request.url.path == "/poly":
@@ -159,6 +159,22 @@ def test_expired_test_and_unreadable_messages(client):
     with db.new_session() as s:
         assert alerts.active_sachet_alerts(s, INSIDE_LAT, INSIDE_LON, NOW) == []
         assert all(r.polygons is None for r in s.scalars(select(db.Alert)))  # no polygon fetched for dead alerts
+
+
+def test_addresses_off_ndma_servers_are_never_fetched(client):
+    # A tampered feed could point anywhere, including this server's own network.
+    feed = rss(["1"]).replace(b"https://sachet.ndma.gov.in/cap?identifier=1", b"http://127.0.0.1:8000/api/places?identifier=1")
+    calls: list[str] = []
+    summary = poll(feed, {"1": cap("1")}, calls)
+    assert summary["failed"] == 1 and summary["stored"] == 0
+    assert calls == [alerts.SACHET_RSS]
+    # An area file elsewhere is skipped too; the message itself is still stored.
+    calls.clear()
+    poll(rss(["2"]), {"2": cap("2").replace(b"https://sachet.ndma.gov.in/poly", b"https://evil.example/poly")}, calls)
+    assert not any("evil.example" in c for c in calls)
+    for url, ok in [("https://sachet.ndma.gov.in/x", True), ("https://ndma.gov.in/x", True), ("http://sachet.ndma.gov.in/x", False),
+                    ("https://ndma.gov.in.evil.example/x", False), ("https://evilndma.gov.in/x", False), (None, False)]:
+        assert alerts.trusted_feed_url(url) is ok, url
 
 
 def test_old_alerts_are_removed_a_week_after_expiry(client):
