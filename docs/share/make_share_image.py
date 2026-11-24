@@ -37,6 +37,7 @@ SHORTCUT_ICONS = {
 }
 
 
+# Wraps one 16x16 pixel icon in a bare page, drawn at the given size with sharp pixel edges.
 def svg_page(body: str, size: int) -> str:
     return (
         f"<html><body style='margin:0;background:transparent'>"

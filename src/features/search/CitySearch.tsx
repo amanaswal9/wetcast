@@ -22,12 +22,13 @@ interface CitySearchProps {
   onVoicePage?: (page: PageId) => void
 }
 
-
+// True when two place names match, ignoring case, spaces and punctuation.
 function sameName(a: string, b: string): boolean {
   const n = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '')
   return n(a) === n(b)
 }
 
+// The search box with its list of matching places, and the microphone button when voice is on.
 export function CitySearch({
   onSelect,
   label = 'Search for a city',

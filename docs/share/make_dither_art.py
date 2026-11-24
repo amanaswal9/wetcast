@@ -44,6 +44,7 @@ def write_png_1bit(path: Path, pixels: np.ndarray) -> None:
     path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(rows, 9)) + chunk(b"IEND", b""))
 
 
+# Layers of value noise from coarse to fine, each fainter than the last, averaged by weight: soft clouds.
 def fractal(width: int, height: int) -> np.ndarray:
     total, amp, norm = np.zeros((height, width), np.float32), 1.0, 0.0
     for cell in (64, 32, 16, 8, 4):
