@@ -24,15 +24,18 @@ export interface Field {
 const PX_PER_STEP = 64
 const MAX_SIDE = 1000
 
+// Latitude to the map's vertical (Web Mercator) position.
 function mercatorY(latitude: number): number {
   const phi = (latitude * Math.PI) / 180
   return Math.log(Math.tan(Math.PI / 4 + phi / 2))
 }
 
+// Back from a Web Mercator position to latitude.
 function latitudeOf(y: number): number {
   return ((2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180) / Math.PI
 }
 
+// "#rrggbb" as red, green and blue numbers.
 function rgb(hex: string): [number, number, number] {
   const n = Number.parseInt(hex.slice(1), 16)
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255]

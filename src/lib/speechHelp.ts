@@ -16,12 +16,14 @@ export function toVoiceError(code: string): VoiceError {
 
 type Computer = 'mac' | 'windows' | 'other'
 
+// Which computer the browser runs on, for the microphone settings hint.
 function computerOf(userAgent: string): Computer {
   if (/Macintosh|Mac OS X/.test(userAgent) && !/iPhone|iPad/.test(userAgent)) return 'mac'
   if (/Windows/.test(userAgent)) return 'windows'
   return 'other'
 }
 
+// Safari itself, not Chrome, Edge or Opera (which also say "Safari" in their user agent).
 function isSafari(userAgent: string): boolean {
   return /Safari\//.test(userAgent) && !/Chrome\/|Chromium\/|Edg\/|OPR\//.test(userAgent)
 }

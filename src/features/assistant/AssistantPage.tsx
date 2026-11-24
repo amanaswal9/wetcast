@@ -16,6 +16,7 @@ interface ChatEntry extends AssistantTurn {
   sources?: string[]
 }
 
+// Starter questions for the place on screen, shown before the first message.
 function suggestions(place: Place): string[] {
   const here = placeShortLabel(place)
   return [

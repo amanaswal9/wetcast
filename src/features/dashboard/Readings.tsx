@@ -5,6 +5,7 @@ import { aqiCategory, compass, round, uvCategory } from '../../lib/format'
 import { useFormat } from '../../lib/units'
 import type { AirQuality, Forecast } from '../../types/weather'
 
+// One label and value pair in the readings grid.
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <>

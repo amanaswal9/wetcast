@@ -10,6 +10,7 @@ const ENABLED_KEY = 'weatherai.alerts.notify'
 const SEEN_KEY = 'weatherai.alerts.seen'
 const MAX_SEEN = 300
 
+// A stored setting, or the fallback when it is missing or storage is blocked.
 function read<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key)
@@ -19,6 +20,7 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 
+// Stores a setting, quietly doing nothing when storage is blocked.
 function write(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value))
@@ -35,6 +37,7 @@ export function notificationsSupported(): boolean {
 let enabled: boolean = notificationsSupported() && read<boolean>(ENABLED_KEY, false) && Notification.permission === 'granted'
 const listeners = new Set<() => void>()
 
+// Tells every component showing the on/off setting that it changed.
 function emit() {
   listeners.forEach((l) => l())
 }
@@ -77,6 +80,7 @@ export async function setAlertNotifications(on: boolean, current?: () => Promise
   return 'on'
 }
 
+// What makes a warning the same warning across checks: its feed id, or else its event, start and area.
 function alertKey(alert: OfficialAlert): string {
   return alert.id ?? `${alert.event}|${alert.onset}|${alert.area}`
 }

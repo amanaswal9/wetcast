@@ -13,6 +13,7 @@ import { ModelPredictionPanel } from './ModelPredictionPanel'
 
 const MINUTE = 60_000
 
+// One labelled figure in a day's details.
 function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
@@ -22,6 +23,7 @@ function Stat({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
+// A day in the 7-day strip: its icon, high and low, rain chance, and a bar placing its range within the week's.
 function DayButton({ day, index, weekMin, weekMax }: { day: DayDetail; index: number; weekMin: number; weekMax: number }) {
   const fmt = useFormat()
   const span = Math.max(1, weekMax - weekMin)
@@ -56,6 +58,7 @@ function DayButton({ day, index, weekMin, weekMax }: { day: DayDetail; index: nu
   )
 }
 
+// The chosen day in full: its figures and its hour-by-hour chart.
 function DayDetailPanel({ week, day, index, theme }: { week: WeekForecast; day: DayDetail; index: number; theme: Theme }) {
   const fmt = useFormat()
   const hours = useMemo(() => week.hourly.filter((h) => h.time.startsWith(day.date)), [week.hourly, day.date])

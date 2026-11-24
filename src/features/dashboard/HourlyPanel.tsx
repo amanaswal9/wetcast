@@ -5,6 +5,7 @@ import { useFormat } from '../../lib/units'
 import type { Forecast, HourlyPoint } from '../../types/weather'
 import { HourlyTabs } from '../charts/HourlyTabs'
 
+// The hourly numbers as a table, for anyone who would rather read than look at a chart.
 function HourlyTable({ hourly }: { hourly: HourlyPoint[] }) {
   const fmt = useFormat()
   return (

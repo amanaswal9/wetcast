@@ -42,14 +42,17 @@ const FIELD_OPACITY = 0.62
 
 type Status = { kind: 'loading'; points: number; done: number } | { kind: 'waiting'; seconds: number } | { kind: 'ready' } | { kind: 'error'; message: string }
 
+// Leaflet's map bounds in the plain form the grid code uses.
 function toBounds(b: L.LatLngBounds): Bounds {
   return { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }
 }
 
+// The time-slider label for an hour, in the chosen clock.
 function hourLabel(time: number, hour12: boolean): string {
   return dateFormatter(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12 }).format(new Date(time))
 }
 
+// A grid point's value for the chosen layer at one hour, or null when it is missing.
 function valueAt(f: PointForecast, layer: MapLayer, hour: number): number | null {
   if (layer === 'temperature') return f.temperature[hour] ?? null
   if (layer === 'rain') return f.precipitation[hour] ?? null
@@ -76,6 +79,7 @@ function windArrow(p: GridPoint, grid: Grid, speed: number, fromDegrees: number)
   ]
 }
 
+// The colour key for the chosen layer, in the chosen units.
 function Legend({ layer }: { layer: MapLayer }) {
   const info = LAYER_INFO[layer]
   const fmt = useFormat()

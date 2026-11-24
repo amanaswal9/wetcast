@@ -77,6 +77,7 @@ const FLAKES = ['   C      C     ', '  CCC    CCC    ', '   C      C     ', '   
 const BOLT = ['        YY      ', '       YY       ', '      YYYYY     ', '        YY      ', '       YY       ', '      Y         ']
 const FOG = ['', '', '', '', '  GGGGGGGGGGGG  ', '', '    GGGGGGGGGGGG', '', 'GGGGGGGGGGGG    ', '', '  GGGGGGGGGGGG  ', '', '    GGGGGGGGGG  ']
 
+// Which pixel pictures to stack for a kind of weather, by day or by night.
 function layersFor(kind: WeatherKind, isDay: boolean): Layer[] {
   const sky = isDay ? SUN : MOON
   switch (kind) {

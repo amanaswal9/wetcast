@@ -9,6 +9,7 @@ import { sitePath } from '../../lib/site'
 
 const APP_VERSION = '0.3.0'
 
+// A link that opens in a new tab and keeps the surrounding text colour.
 function Link({ href, children }: { href: string; children: ReactNode }) {
   return (
     <a href={href} target="_blank" rel="noreferrer" className="text-[inherit]">
@@ -33,6 +34,7 @@ function ResultsLine({ models }: { models: ModelMetrics[] }) {
   )
 }
 
+// A small sample of a chart line or band, for the legend in "Reading the charts".
 function Swatch({ children }: { children: ReactNode }) {
   return (
     <svg width="34" height="14" aria-hidden="true" className="shrink-0">

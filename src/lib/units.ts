@@ -22,6 +22,7 @@ export function defaultUnits(language: string = typeof navigator === 'undefined'
   return { temp: us ? 'f' : 'c', speed: us ? 'mph' : 'kmh', clock: us ? '12' : '24' }
 }
 
+// The saved units, filling any missing choice from the browser's region.
 function load(): Units {
   const fallback = defaultUnits()
   try {
@@ -56,6 +57,7 @@ export function setUnits(next: Units): void {
   listeners.forEach((l) => l())
 }
 
+// Lets components hear when the units change; returns the way to stop listening.
 function subscribe(listener: () => void): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)
@@ -66,6 +68,7 @@ export function useUnits(): Units {
   return useSyncExternalStore(subscribe, getUnits, getUnits)
 }
 
+// A whole number, without the "-0" that rounding a small negative value gives.
 function roundNum(value: number): number {
   const r = Math.round(value)
   return Object.is(r, -0) ? 0 : r

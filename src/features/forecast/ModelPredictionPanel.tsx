@@ -66,6 +66,7 @@ function format(value: number, target: Target, fmt: Format): string {
   return target === 'precipitation' ? `${value.toFixed(1)} mm` : `${round(value)}${target === 'temperature' ? fmt.tempUnit : '%'}`
 }
 
+// The hover box: the model's value for that hour, with its range.
 function PredictionTooltip({ row, target, modelName }: { row: Row; target: Target; modelName: string }) {
   const fmt = useFormat()
   return (
@@ -80,6 +81,7 @@ function PredictionTooltip({ row, target, modelName }: { row: Row; target: Targe
   )
 }
 
+// The next 24 hours from one of Wetcast's models, with its range drawn as a dithered band.
 function PredictionChart({
   rows,
   target,

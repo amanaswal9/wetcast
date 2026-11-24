@@ -32,6 +32,7 @@ const FILLER = new Set(
 // Trailing time words after the place: "in Delhi tomorrow".
 const TRAILING_TIME = /\s+(?:today|tomorrow|tonight|now|right now|this week|next week|this weekend|next few days|please)$/
 
+// Capitalises each word of a spoken place name: "new delhi" -> "New Delhi".
 function titleCase(words: string): string {
   return words
     .split(' ')

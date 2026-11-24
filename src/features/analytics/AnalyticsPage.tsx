@@ -19,6 +19,7 @@ const RANGES = [
   { days: 365, label: '1 year' },
 ]
 
+// A labelled row of toggle buttons, one per option.
 function PickerRow<T extends string | number>({ label, options, value, onChange }: { label: string; options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={label}>
@@ -32,6 +33,7 @@ function PickerRow<T extends string | number>({ label, options, value, onChange 
   )
 }
 
+// A test-period value with its unit: rain to a tenth of a millimetre, the rest rounded.
 function fmtValue(v: number, target: Target) {
   return target === 'precipitation' ? `${v.toFixed(1)} mm` : `${round(v)}${TARGET_UNITS[target]}`
 }
@@ -42,6 +44,7 @@ function istLabel(utc: string): string {
   return d.toISOString().slice(0, 10)
 }
 
+// The test period, hour by hour: one model's forecasts against what happened, for one city and one measure.
 function ActualVsPredicted({ theme }: { theme: Theme }) {
   const selectId = useId()
   const models = useResource('models', ({ signal }) => getModels(signal))
@@ -208,6 +211,7 @@ function ActualVsPredicted({ theme }: { theme: Theme }) {
   )
 }
 
+// Daily highs, lows and rain for the place over the last 30, 90 or 365 days, from the ERA5 archive.
 function HistoricalTrends({ place, theme }: { place: Place; theme: Theme }) {
   const [days, setDays] = useState(90)
   const history = useResource(`hist:${coordKey(place)}:${days}`, ({ signal }) => getDailyHistory(place, days, { signal }))

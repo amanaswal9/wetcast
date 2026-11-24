@@ -9,6 +9,7 @@ import type { Place } from '../../types/weather'
 
 const REFRESH_MS = 10 * 60_000
 
+// A warning's start or end as "Thu 20 Nov, 14:30" in the chosen clock; null when missing or unreadable.
 function when(iso: string | null): string | null {
   if (!iso) return null
   const date = new Date(iso)
@@ -16,6 +17,7 @@ function when(iso: string | null): string | null {
   return dateFormatter(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: getUnits().clock === '12' }).format(date)
 }
 
+// Just the time, for "checked at" lines; "never" before the first check.
 function clock(iso: string | null | undefined): string {
   return iso ? dateFormatter(undefined, { hour: '2-digit', minute: '2-digit', hour12: getUnits().clock === '12' }).format(new Date(iso)) : 'never'
 }
@@ -47,6 +49,7 @@ function StatusLine({ short, children }: { short?: string; children: ReactNode }
   )
 }
 
+// One warning, exactly as issued: the event and severity, where and when, and its full text behind "Details".
 function AlertItem({ alert }: { alert: OfficialAlert }) {
   const until = when(alert.expires)
   const from = when(alert.onset)
@@ -75,6 +78,7 @@ function AlertItem({ alert }: { alert: OfficialAlert }) {
   )
 }
 
+// The warnings in force, or a one-line status when there are none, the feed is late, or the country isn't covered.
 function Body({ result }: { result: AlertsResult }) {
   const source = result.source
   if (result.alerts.length > 0) {

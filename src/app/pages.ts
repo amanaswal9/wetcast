@@ -22,10 +22,12 @@ export const PAGES: PageInfo[] = [
   { id: 'about', label: 'About', plan: '', ready: true },
 ]
 
+// The page part of the address: "#/forecast" -> "forecast".
 function hashId(): string {
   return window.location.hash.replace(/^#\/?/, '')
 }
 
+// The page the address names, or the Dashboard when it names none.
 function pageFromHash(): PageId {
   const id = hashId()
   return PAGES.some((p) => p.id === id) ? (id as PageId) : 'dashboard'

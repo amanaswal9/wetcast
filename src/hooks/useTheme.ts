@@ -15,6 +15,7 @@ export function isDark(theme: Theme): boolean {
   return theme !== 'light'
 }
 
+// The theme on the page now (boot.js sets it before the first paint).
 function current(): Theme {
   const value = document.documentElement.dataset.theme
   return THEMES.includes(value as Theme) ? (value as Theme) : 'light'
