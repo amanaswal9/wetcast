@@ -1,6 +1,6 @@
 // Writes dist/_headers for the public copy on Codeberg Pages, from the same security headers the
 // self-hosted setup sends (deploy/security-headers.conf), so the two can't drift apart.
-// Run after the build: node scripts/pages-headers.mjs https://amanaswal9.codeberg.page/wetcast/
+// Run after the build: node scripts/pages-headers.mjs https://wetcast.codeberg.page/wetcast/
 import { readFileSync, writeFileSync } from 'node:fs'
 
 // The headers Codeberg Pages lets a site set (docs.codeberg.org/codeberg-pages/advanced-usage/).
@@ -9,7 +9,7 @@ const ALLOWED = ['Content-Security-Policy', 'Permissions-Policy', 'Referrer-Poli
 
 const site = process.argv[2]
 if (!site) {
-  console.error('Give the site address, e.g. node scripts/pages-headers.mjs https://amanaswal9.codeberg.page/wetcast/')
+  console.error('Give the site address, e.g. node scripts/pages-headers.mjs https://wetcast.codeberg.page/wetcast/')
   process.exit(1)
 }
 const path = new URL(site).pathname.replace(/\/?$/, '/')

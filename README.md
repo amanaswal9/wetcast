@@ -2,7 +2,7 @@
 
 Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop interface.
 
-Try it: https://amanaswal9.codeberg.page/wetcast/ (the public copy, free on Codeberg Pages). It shows the live
+Try it: https://wetcast.codeberg.page/wetcast/ (the public copy, free on Codeberg Pages). It shows the live
 weather from Open-Meteo: the Dashboard, the 7-day forecast, the map, search and Wetcast Mini. Wetcast's own trained
 models, their track record, official warnings, saved places on the server and the Javed assistant need the server
 and run on the full setup below; the demo shows them.
@@ -168,7 +168,7 @@ Codeberg's hosted runners allow 10 minutes a job; if installing TensorFlow runs 
 `runs-on` to `codeberg-medium-lazy` or register a self-hosted Forgejo runner.
 
 After all three pass on `main`, a fourth job publishes the public copy to Codeberg Pages
-(https://amanaswal9.codeberg.page/wetcast/). It builds from the clean checkout with `VITE_PUBLIC_SITE` set to that
+(https://wetcast.codeberg.page/wetcast/). It builds from the clean checkout with `VITE_PUBLIC_SITE` set to that
 address, which puts every file under `/wetcast/`, gives the link preview its full address and turns off the calls to
 the Wetcast server (`src/lib/site.ts`); `scripts/pages-headers.mjs` writes the same security headers as
 `deploy/security-headers.conf` into a `_headers` file. It uses Codeberg's git-pages action with the job's own token, so
@@ -493,7 +493,7 @@ the build stops if a bundled package has no licence file to pass on (`thirdParty
 
 Designed and built by Aman Singh Aswal.
 
-- Source code: https://codeberg.org/amanaswal9/wetcast
+- Source code: https://codeberg.org/wetcast/wetcast
 - GitHub: https://github.com/amanaswal9
 - LinkedIn: https://www.linkedin.com/in/amannaswal/
 
