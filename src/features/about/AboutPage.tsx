@@ -216,6 +216,13 @@ export function AboutPage({ theme }: { theme: Theme }) {
                 <td>The base map under the weather map</td>
                 <td>ODbL (map data); Leaflet is BSD-2</td>
               </tr>
+              <tr>
+                <th scope="row">
+                  <Link href="https://www.naturalearthdata.com/">Natural Earth</Link>
+                </th>
+                <td>The country outlines on the map, and the outline of India that the models cover</td>
+                <td>Public domain</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -304,6 +311,14 @@ export function AboutPage({ theme }: { theme: Theme }) {
           Everything it is built from is open as well: every library and font is under an open-source licence, Javed runs on an
           open model on Wetcast&apos;s own computer, and the data comes from open or public-domain sources (listed above). It uses no
           paid services, no trackers and no advertising.
+        </p>
+        <p className="m-0 mt-2 max-w-[75ch]">
+          The open-source code and fonts inside this site keep their own licences, which ask for their notices to travel with
+          them:{' '}
+          <a href={sitePath('third-party-licences.txt')} target="_blank" rel="noopener noreferrer">
+            third-party licences
+          </a>
+          .
         </p>
       </GroupBox>
 
