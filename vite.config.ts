@@ -38,14 +38,39 @@ function preloadApp(): Plugin {
   }
 }
 
+// The public copy on Codeberg Pages is built with its address in VITE_PUBLIC_SITE, for example
+// https://amanaswal9.codeberg.page/wetcast/ (see .forgejo/workflows/ci.yml). Its path becomes the base
+// for every file, and its full address goes into the link preview. Left unset, the app is built to
+// live at the root of its own server, as before.
+const publicSite = process.env.VITE_PUBLIC_SITE ? new URL(process.env.VITE_PUBLIC_SITE) : null
+const base = publicSite ? publicSite.pathname.replace(/\/?$/, '/') : '/'
+
+// Link previews need the image's full address, which only the public copy knows.
+function previewImage(): Plugin {
+  return {
+    name: 'wetcast-preview-image',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        if (!publicSite) return html
+        const image = new URL('og-image.png', publicSite).href
+        return html.replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${image}$2`)
+      },
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
+  base,
   plugins: [
     // Preact runs the app: the same components and hooks as React through preact/compat, in a
     // fraction of the download (about 10 KB instead of about 68 KB before the first screen).
     // Imports of react and react-dom, ours and the libraries', are pointed at it.
     preact({ prerender: { enabled: false } }),
     preloadApp(),
+    previewImage(),
     tailwindcss(),
     // Installable app + instant repeat visits: the app's own files are cached by a service worker
     // (production builds only). Weather and model data are never served from this cache, so the app
@@ -58,20 +83,21 @@ export default defineConfig({
         short_name: 'Wetcast',
         description: 'Weather forecasts from Wetcast’s own models, next to Open-Meteo, checked honestly.',
         lang: 'en',
-        start_url: '/',
-        scope: '/',
+        // Relative to the manifest, so they work wherever the site lives.
+        start_url: './',
+        scope: './',
         display: 'standalone',
         background_color: '#008080',
         theme_color: '#000080',
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
         // Long-press (or right-click) the installed app's icon to jump straight to a page.
         shortcuts: [
-          { name: 'Forecast', short_name: 'Forecast', url: '/#/forecast', icons: [{ src: '/icons/shortcut-forecast.png', sizes: '96x96', type: 'image/png' }] },
-          { name: 'Weather map', short_name: 'Map', url: '/#/map', icons: [{ src: '/icons/shortcut-map.png', sizes: '96x96', type: 'image/png' }] },
+          { name: 'Forecast', short_name: 'Forecast', url: './#/forecast', icons: [{ src: 'icons/shortcut-forecast.png', sizes: '96x96', type: 'image/png' }] },
+          { name: 'Weather map', short_name: 'Map', url: './#/map', icons: [{ src: 'icons/shortcut-map.png', sizes: '96x96', type: 'image/png' }] },
         ],
       },
       workbox: {
@@ -87,20 +113,21 @@ export default defineConfig({
         // VT323). Other subsets, such as accented letters beyond latin, load on demand when a page needs them.
         // The link-preview image is for other sites' crawlers, not the offline app.
         globIgnores: ['assets/*-latin-ext-*', 'assets/*-cyrillic-*', 'assets/*-vietnamese-*', 'assets/*-greek-*', 'og-image.png'],
-        navigateFallback: '/index.html',
+        navigateFallback: `${base}index.html`,
         // Wetcast Mini has its own page, so its address must not fall back to the main app.
-        navigateFallbackDenylist: [/^\/api\//, /^\/mini\//],
+        navigateFallbackDenylist: [/\/api\//, /\/mini\//],
         runtimeCaching: [
           {
-            // Wetcast Mini's page: fresh when online, the last copy when offline.
-            urlPattern: ({ url }) => url.pathname === '/mini/' || url.pathname === '/mini/index.html',
+            // Wetcast Mini's page: fresh when online, the last copy when offline. These checks are copied
+            // into the service worker as they are, so they match the end of the path, whatever the base.
+            urlPattern: ({ url }) => url.pathname.endsWith('/mini/') || url.pathname.endsWith('/mini/index.html'),
             handler: 'NetworkFirst',
             options: { cacheName: 'mini-page', expiration: { maxEntries: 2 } },
           },
           {
             // The map's land outline (about 70 KB compressed) is kept once the map has been opened,
             // instead of being pre-cached for everyone.
-            urlPattern: ({ url }) => url.pathname === '/map-outline.json',
+            urlPattern: ({ url }) => url.pathname.endsWith('/map-outline.json'),
             handler: 'StaleWhileRevalidate',
             options: { cacheName: 'map-outline', expiration: { maxEntries: 2 } },
           },

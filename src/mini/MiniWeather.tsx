@@ -6,6 +6,7 @@ import { getForecast } from '../lib/api/openMeteo'
 import { dayName, placeShortLabel, round } from '../lib/format'
 import { useFormat } from '../lib/units'
 import { describeWeather } from '../lib/weatherCodes'
+import { sitePath } from '../lib/site'
 
 const MINUTE = 60_000
 
@@ -50,7 +51,7 @@ export function MiniWeather() {
   return (
     <main className="r-window r-mini flex min-h-dvh flex-col">
       <div className="r-title">
-        <img src="/favicon.svg" width={16} height={16} alt="" />
+        <img src={sitePath('favicon.svg')} width={16} height={16} alt="" />
         <h1 className="m-0 min-w-0 flex-1 truncate text-[inherit] font-bold">{placeShortLabel(place)}</h1>
         <a className="r-btn r-mini-open" href="/" target="_blank" rel="noopener" title="Open Wetcast">
           <span>Open</span>

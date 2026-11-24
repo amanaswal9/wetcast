@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { OfficialAlert } from './api/weatherai'
+import { sitePath } from './site'
 
 // Opt-in browser notifications for new official warnings at the place being viewed.
 // They only work while Wetcast is open (a tab, even in the background, or the installed
@@ -101,7 +102,7 @@ export async function notify(alerts: OfficialAlert[], placeName: string): Promis
     const options: NotificationOptions = {
       body: [alert.headline, alert.sender && `Issued by ${alert.sender}`].filter(Boolean).join('\n'),
       tag: alertKey(alert),
-      icon: '/icons/icon-192.png',
+      icon: sitePath('icons/icon-192.png'),
     }
     try {
       const registration = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined

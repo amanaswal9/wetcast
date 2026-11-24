@@ -25,6 +25,7 @@ import { loaders, preloadPages } from './pageLoaders'
 import { PAGES, usePage, useUnknownPage } from './pages'
 import { PlannedPage } from './PlannedPage'
 import { Taskbar } from './Taskbar'
+import { HAS_SERVER, sitePath } from '../lib/site'
 
 const MINUTE = 60_000
 
@@ -78,7 +79,9 @@ export default function App() {
       ? `Wetcast models: ${health.data.models.length} ready`
       : 'Wetcast models: none trained'
     : health.status === 'error'
-      ? 'Wetcast models: offline'
+      ? HAS_SERVER
+        ? 'Wetcast models: offline'
+        : 'Wetcast models: on the full setup'
       : 'Wetcast models: checking…'
 
   const title = `Wetcast – ${placeShortLabel(place)}`
@@ -234,7 +237,7 @@ export default function App() {
           <Window
             headingLevel={1}
             title={title}
-            icon={<img src="/favicon.svg" width={16} height={16} alt="" />}
+            icon={<img src={sitePath('favicon.svg')} width={16} height={16} alt="" />}
             controls={
               <>
                 <TitleButton glyph="minimize" label="Minimise" onClick={minimize} />

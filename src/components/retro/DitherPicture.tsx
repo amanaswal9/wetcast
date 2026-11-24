@@ -1,3 +1,5 @@
+import { sitePath } from '../../lib/site'
+
 interface DitherPictureProps {
   // Title-bar text, like a picture opened in a viewer.
   caption: string
@@ -14,7 +16,7 @@ export function DitherPicture({ caption, className = '' }: DitherPictureProps) {
         <span className="min-w-0 flex-1 truncate">{caption}</span>
       </div>
       <div className="r-sunken p-0.5" style={{ background: 'var(--field)' }}>
-        <img src="/art/sky.png" width={320} height={180} alt="" className="r-dither-img block h-auto w-full" />
+        <img src={sitePath('art/sky.png')} width={320} height={180} alt="" className="r-dither-img block h-auto w-full" />
       </div>
       <div className="flex gap-0.5 pt-0.5 text-[0.92em]">
         <span className="r-status-field flex-1">320 × 180</span>

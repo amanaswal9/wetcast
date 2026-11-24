@@ -2,6 +2,11 @@
 
 Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop interface.
 
+Try it: https://amanaswal9.codeberg.page/wetcast/ (the public copy, free on Codeberg Pages). It shows the live
+weather from Open-Meteo: the Dashboard, the 7-day forecast, the map, search and Wetcast Mini. Wetcast's own trained
+models, their track record, official warnings, saved places on the server and the Javed assistant need the server
+and run on the full setup below; the demo shows them.
+
 ![Wetcast demo: the Dashboard for Delhi with its LCD readout, searching Jaipur, opening the Forecast from the Start menu, Wetcast's model forecasts next to Open-Meteo, the weather map's temperature and wind tools, the test-period results, and switching to Fahrenheit in the Units dialog](docs/demo/wetcast-demo.gif)
 
 A 57-second tour recorded from the running app with live data ([MP4, 1280×720](docs/demo/wetcast-demo.mp4)).
@@ -161,6 +166,14 @@ the limits in `ci/lighthouse/lighthouserc.js`; its reports are kept as the `ligh
 Python 3.13 with CPU TensorFlow). It needs no secrets and uses only open-source actions from code.forgejo.org.
 Codeberg's hosted runners allow 10 minutes a job; if installing TensorFlow runs over, change the Python job's
 `runs-on` to `codeberg-medium-lazy` or register a self-hosted Forgejo runner.
+
+After all three pass on `main`, a fourth job publishes the public copy to Codeberg Pages
+(https://amanaswal9.codeberg.page/wetcast/). It builds from the clean checkout with `VITE_PUBLIC_SITE` set to that
+address, which puts every file under `/wetcast/`, gives the link preview its full address and turns off the calls to
+the Wetcast server (`src/lib/site.ts`); `scripts/pages-headers.mjs` writes the same security headers as
+`deploy/security-headers.conf` into a `_headers` file. It uses Codeberg's git-pages action with the job's own token, so
+no secret is needed. To try the public build locally: `VITE_PUBLIC_SITE=http://localhost:4173/wetcast/ npm run build`
+then `npx vite preview --base /wetcast/`.
 
 The API tests replace the Open-Meteo call with clearly labelled synthetic data (`weatherai_ml/synthetic.py`),
 so they are offline and deterministic. Synthetic data is never used for training, evaluation or the app.

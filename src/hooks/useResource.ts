@@ -45,7 +45,9 @@ export function useResource<T>(key: string | null, loader: Loader<T>, refreshMs?
       .catch((error: unknown) => {
         if (controller.signal.aborted || isAbort(error)) return
         const apiError = toApiError(error)
-        log.error('load failed', key, apiError.message)
+        // On the public copy a missing server is expected, so it isn't reported as an error.
+        if (apiError.kind === 'no-server') log.debug('not on the public copy', key)
+        else log.error('load failed', key, apiError.message)
         // Keep any data already on screen; the UI shows it as stale.
         setState((prev) => ({ status: 'error', error: apiError, data: prev.data, refreshing: false }))
       })

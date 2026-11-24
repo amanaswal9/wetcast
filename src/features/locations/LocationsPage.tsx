@@ -4,6 +4,7 @@ import { useForecasts, type PlaceForecast } from '../../hooks/useForecasts'
 import { MAX_SAVED, samePlace, type SavedPlaces } from '../../hooks/useSavedPlaces'
 import type { Theme } from '../../hooks/useTheme'
 import { compass, round } from '../../lib/format'
+import { HAS_SERVER } from '../../lib/site'
 import { useFormat, type Format } from '../../lib/units'
 import { describeWeather } from '../../lib/weatherCodes'
 import type { Forecast, Place } from '../../types/weather'
@@ -140,7 +141,10 @@ export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: Loc
               <Button onClick={saved.retrySync}>Try again</Button>
             </>
           )}
-          {saved.syncStatus === 'offline' && (
+          {saved.syncStatus === 'offline' && !HAS_SERVER && (
+            <span className="text-[var(--text-muted)]">This public copy has no server, so saved places stay in this browser.</span>
+          )}
+          {saved.syncStatus === 'offline' && HAS_SERVER && (
             <>
               <span className="text-[var(--text-muted)]">The server isn&apos;t reachable. Changes will sync when it&apos;s back.</span>
               <Button onClick={saved.retrySync}>Try again</Button>
