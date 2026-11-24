@@ -125,7 +125,7 @@ jobs:
         working-directory: backend
         run: python -m pytest tests -q
 
-  # The public copy at https://amanaswal9.codeberg.page/wetcast/ (Codeberg Pages, free, https). Built from
+  # The public copy at https://wetcast.codeberg.page/wetcast/ (Codeberg Pages, free, https). Built from
   # this clean checkout, so nothing kept only on the owner's computer can end up in it, and published
   # only from main once every check above has passed. It has no Wetcast server: live weather only, and
   # the pages that need the server say so (src/lib/site.ts). The job's own token is enough to publish a

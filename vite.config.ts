@@ -101,7 +101,7 @@ function thirdPartyLicences(): Plugin {
 }
 
 // The public copy on Codeberg Pages is built with its address in VITE_PUBLIC_SITE, for example
-// https://amanaswal9.codeberg.page/wetcast/ (see .forgejo/workflows/ci.yml). Its path becomes the base
+// https://wetcast.codeberg.page/wetcast/ (see .forgejo/workflows/ci.yml). Its path becomes the base
 // for every file, and its full address goes into the link preview. Left unset, the app is built to
 // live at the root of its own server, as before.
 const publicSite = process.env.VITE_PUBLIC_SITE ? new URL(process.env.VITE_PUBLIC_SITE) : null
