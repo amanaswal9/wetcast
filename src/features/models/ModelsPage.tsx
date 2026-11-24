@@ -47,6 +47,7 @@ function featureLabel(name: string): string {
   return m && point[m[1]] ? `${point[m[1]]} ${what[m[2]] ?? m[2]} now` : name
 }
 
+// Buttons to switch the charts between temperature, humidity and rain.
 function TargetPicker({ value, onChange }: { value: Target; onChange: (t: Target) => void }) {
   return (
     <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label="Measure">
@@ -59,6 +60,7 @@ function TargetPicker({ value, onChange }: { value: Target; onChange: (t: Target
   )
 }
 
+// Each model's test-period error as a bar, with the persistence baseline to beat.
 function MaeBars({ models, target, theme }: { models: ModelMetrics[]; target: Target; theme: Theme }) {
   const colors = CHART_COLORS[theme]
   const wide = useMediaQuery('(min-width: 640px)')
@@ -90,6 +92,7 @@ function MaeBars({ models, target, theme }: { models: ModelMetrics[]; target: Ta
   )
 }
 
+// How each model's error grows from 1 to 24 hours ahead.
 function HorizonChart({ evaluations, models, target, theme }: { evaluations: Evaluation[]; models: ModelMetrics[]; target: Target; theme: Theme }) {
   const colors = CHART_COLORS[theme]
   const wide = useMediaQuery('(min-width: 640px)')
@@ -152,6 +155,7 @@ const ARCHITECTURES: Record<string, string> = {
   ensemble: 'the plain average of the members listed above in “Test-set results”, chosen on the validation year.',
 }
 
+// A training time in seconds, or minutes once it runs past a minute and a half.
 function minutes(seconds: number): string {
   return seconds < 90 ? `${Math.round(seconds)} s` : `${(seconds / 60).toFixed(1)} min`
 }

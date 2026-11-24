@@ -6,6 +6,7 @@ import { useFormat } from '../../lib/units'
 
 import type { Mode, Row } from './series'
 
+// The hover box: the hour, whether it is past or forecast, and the value.
 function ChartTooltip({ row, unit }: { row: Row; unit: string }) {
   const fmt = useFormat()
   if (row.value === null) return null

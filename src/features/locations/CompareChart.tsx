@@ -19,12 +19,14 @@ function next24(forecast: Forecast, fmt: Format): (number | null)[] {
   return forecast.hourly.slice(start, start + 25).map((h) => (h.temperature === null ? null : fmt.temp(h.temperature)))
 }
 
+// Hours from now as an axis label: "Now", "+3 h".
 function offsetLabel(offset: number): string {
   return offset === 0 ? 'Now' : `+${offset} h`
 }
 
 type CompareRow = { offset: number; values: (number | null)[] }
 
+// The hover box: each saved place's value at that hour.
 function CompareTooltip({ row, names }: { row: CompareRow; names: string[] }) {
   const fmt = useFormat()
   return (

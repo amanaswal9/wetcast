@@ -35,10 +35,12 @@ interface SyncMeta {
 
 export type SyncStatus = 'connecting' | 'synced' | 'saving' | 'offline' | 'rejected'
 
+// Checks the stored sync notes are the shape this code writes.
 function isMeta(value: unknown): value is SyncMeta {
   return !!value && typeof value === 'object' && typeof (value as SyncMeta).dirty === 'boolean' && typeof (value as SyncMeta).synced === 'boolean'
 }
 
+// A random id; the getRandomValues route is for browsers without randomUUID.
 function randomId(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
   const bytes = crypto.getRandomValues(new Uint8Array(16))
@@ -54,6 +56,7 @@ export function getClientId(): string {
   return id
 }
 
+// A saved place as the server stores it, cut to the server's length limits.
 function toServer(p: Place): Omit<ServerPlace, 'is_home'> {
   return {
     place_id: p.id.slice(0, 64),
@@ -65,6 +68,7 @@ function toServer(p: Place): Omit<ServerPlace, 'is_home'> {
   }
 }
 
+// The server's rows back into places, and which one is home.
 function fromServer(rows: ServerPlace[]): SavedState {
   return {
     places: rows.map((r) => ({

@@ -60,10 +60,12 @@ export interface Grid {
 
 const LAT_LIMIT = 84
 
+// Keeps a latitude inside the band the map draws.
 function clampLat(value: number): number {
   return Math.min(Math.max(value, -LAT_LIMIT), LAT_LIMIT)
 }
 
+// Keeps a longitude between -180 and 180.
 function clampLon(value: number): number {
   return Math.min(Math.max(value, -180), 180)
 }
@@ -73,6 +75,7 @@ function indexRange(lo: number, hi: number, spacing: number, clamp: (v: number) 
   return [Math.ceil(clamp(lo - spacing / 2) / spacing - 1e-9), Math.floor(clamp(hi + spacing / 2) / spacing + 1e-9)]
 }
 
+// How many grid points an index range holds.
 function count(range: [number, number]): number {
   return Math.max(0, range[1] - range[0] + 1)
 }
@@ -83,11 +86,13 @@ function pickSpacing(lo: number, hi: number, maxCount: number, clamp: (v: number
   return SPACINGS[SPACINGS.length - 1]
 }
 
+// The next wider grid spacing, or the widest when already there.
 function coarser(spacing: number): number {
   const i = SPACINGS.indexOf(spacing as (typeof SPACINGS)[number])
   return SPACINGS[Math.min(i + 1, SPACINGS.length - 1)]
 }
 
+// Three decimal places (about 100 m), so the same point always gives the same key.
 function round(value: number): number {
   return Math.round(value * 1000) / 1000
 }
@@ -179,6 +184,7 @@ export function budgetWaitMs(points: number, now = Date.now()): number {
   return 60_000
 }
 
+// Waits when Open-Meteo's request budget is used up, unless the request is cancelled first.
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(resolve, ms)

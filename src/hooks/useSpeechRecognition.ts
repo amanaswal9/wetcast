@@ -28,6 +28,7 @@ interface Recognition {
 
 type RecognitionConstructor = new () => Recognition
 
+// The browser's speech recognition, under its standard or its WebKit name, or null when it has none.
 function getRecognition(): RecognitionConstructor | null {
   if (typeof window === 'undefined') return null
   const w = window as unknown as { SpeechRecognition?: RecognitionConstructor; webkitSpeechRecognition?: RecognitionConstructor }

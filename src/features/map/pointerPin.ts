@@ -30,6 +30,7 @@ const WIDTH = 12
 const HEIGHT = ARROW.length
 const SCALE = 2 // screen pixels per arrow pixel
 
+// The SVG path for every pixel of the arrow drawn in one colour (one letter in ARROW).
 function rects(char: string): string {
   let out = ''
   ARROW.forEach((row, y) => {

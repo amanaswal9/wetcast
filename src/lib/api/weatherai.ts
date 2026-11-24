@@ -156,6 +156,7 @@ export interface Evaluation {
 
 class BackendUnavailable extends ApiError {}
 
+// Calls the Wetcast API with a timeout; a missing or unreachable server becomes a clear message.
 async function getJson(
   path: string,
   signal?: AbortSignal,
@@ -194,6 +195,7 @@ async function getJson(
   }
 }
 
+// The API's own error message when it sent one, else the fallback.
 function detailOf(body: unknown, fallback: string): string {
   return body && typeof body === 'object' && 'detail' in body && typeof body.detail === 'string' ? body.detail : fallback
 }
@@ -236,6 +238,7 @@ export function getPredictions(
   return untilAborted(hit.promise, signal)
 }
 
+// Asks the API for Wetcast's forecasts for a point; outside the models' coverage it returns the covered cities instead.
 async function fetchPredictions(latitude: number, longitude: number, country?: string): Promise<PredictionsResult> {
   const params = new URLSearchParams({ latitude: latitude.toFixed(4), longitude: longitude.toFixed(4) })
   if (country && /^[A-Za-z]{2}$/.test(country)) params.set('country', country.toUpperCase())

@@ -21,6 +21,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlsplit
 from xml.etree.ElementTree import Element, ParseError
 
 import httpx
@@ -239,6 +240,15 @@ class PollState:
 POLL = PollState()
 
 
+# The feed itself names the addresses of its messages and their area files. They are fetched only
+# when they are https on an NDMA server, so a tampered feed can't make this server fetch anything
+# else, such as addresses on its own network.
+def trusted_feed_url(url: str | None) -> bool:
+    parts = urlsplit(url or "")
+    host = (parts.hostname or "").lower()
+    return parts.scheme == "https" and (host == "ndma.gov.in" or host.endswith(".ndma.gov.in"))
+
+
 def poll_sachet(session: Session, client: httpx.Client, now: datetime | None = None, gap: float = REQUEST_GAP_SECONDS) -> dict:
     """Read the feed and store messages not seen before. Returns a summary."""
     now = now or datetime.now(timezone.utc)
@@ -250,6 +260,10 @@ def poll_sachet(session: Session, client: httpx.Client, now: datetime | None = N
     new = sorted((i for i in items if i.guid not in known), key=lambda i: i.published or now)[:MAX_NEW_PER_POLL]
     stored = failed = 0
     for item in new:
+        if not trusted_feed_url(item.link):
+            failed += 1
+            log.warning("alerts: skipped %s, not an NDMA https address", item.link)
+            continue
         try:
             cap = parse_cap(client.get(item.link).raise_for_status().content)
         except (httpx.HTTPError, ParseError, ValueError) as exc:
@@ -258,7 +272,7 @@ def poll_sachet(session: Session, client: httpx.Client, now: datetime | None = N
             continue
         live = cap.status == "Actual" and cap.msg_type != "Cancel" and (cap.expires is None or cap.expires > now)
         rings = cap.polygons
-        if live and not rings and cap.polygon_url:
+        if live and not rings and cap.polygon_url and trusted_feed_url(cap.polygon_url):
             try:
                 rings = parse_polygon_file(client.get(cap.polygon_url).raise_for_status().content)
             except (httpx.HTTPError, ParseError, ValueError) as exc:

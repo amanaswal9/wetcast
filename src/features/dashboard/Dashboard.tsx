@@ -61,6 +61,7 @@ function SkeletonColumns() {
   )
 }
 
+// Holds the hourly box's place, at its real height, until the chart is drawn.
 function HourlySkeleton() {
   return (
     <GroupBox title="Hourly: past 12 hours and next 24">

@@ -73,6 +73,7 @@ export function placeShortLabel(place: Place): string {
   return place.country ? `${place.name}, ${place.country}` : place.name
 }
 
+// A date string as a Date at local noon.
 function noonOf(date: string): Date {
   // Noon avoids any daylight-saving edge when turning a date string into a weekday.
   return new Date(`${date}T12:00:00`)

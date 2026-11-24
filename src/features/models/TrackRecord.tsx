@@ -16,10 +16,12 @@ const WINDOWS = [7, 30, 90] as const
 const LEADS = ['1-6', '7-12', '13-18', '19-24']
 const PERSISTENCE = 'persistence'
 
+// A scored day as "20 Nov".
 function dayLabel(iso: string): string {
   return dateFormatter(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`))
 }
 
+// When a forecast was issued, in the chosen clock.
 function dateTime(iso: string): string {
   return dateFormatter(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: getUnits().clock === '12' }).format(new Date(iso))
 }
@@ -38,6 +40,7 @@ function dailyRows(record: TrackRecord, target: Target) {
   return [...byDate.entries()].map(([date, day]) => ({ date, ...day.mae, [PERSISTENCE]: day.persistence / day.n }))
 }
 
+// Each model's live error, day by day, since the track record began.
 function DailyChart({ record, target, theme }: { record: TrackRecord; target: Target; theme: Theme }) {
   const colors = CHART_COLORS[theme]
   const wide = useMediaQuery('(min-width: 640px)')

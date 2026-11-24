@@ -13,6 +13,7 @@ import { CompareChart, type CompareSeries } from './CompareChart'
 
 const MAX_COMPARE = 4
 
+// The highest chance of rain over the next 12 hours, or null when Open-Meteo gives none.
 function rainNext12(forecast: Forecast): number | null {
   const chances = forecast.hourly
     .filter((h) => !h.isPast)
@@ -47,6 +48,7 @@ const METRICS: { label: string; value: (f: Forecast, fmt: Format) => string }[] 
   { label: 'Pressure', value: (f) => `${round(f.current.pressure)} hPa` },
 ]
 
+// A saved place's weather now, a placeholder while it loads, or a short note when it couldn't be loaded.
 function CurrentCell({ entry, loading }: { entry: PlaceForecast | undefined; loading: boolean }) {
   const fmt = useFormat()
   if (!entry) return loading ? <Skeleton height={16} className="w-28" /> : <span>n/a</span>

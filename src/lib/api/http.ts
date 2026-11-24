@@ -54,6 +54,7 @@ interface Pending {
 
 const pending = new Map<string, Pending>()
 
+// The error a cancelled request ends with, the same kind fetch itself uses.
 function cancelled(): DOMException {
   return new DOMException('Request cancelled', 'AbortError')
 }

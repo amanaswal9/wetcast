@@ -42,14 +42,17 @@ const FIELD_OPACITY = 0.62
 
 type Status = { kind: 'loading'; points: number; done: number } | { kind: 'waiting'; seconds: number } | { kind: 'ready' } | { kind: 'error'; message: string }
 
+// Leaflet's map bounds in the plain form the grid code uses.
 function toBounds(b: L.LatLngBounds): Bounds {
   return { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }
 }
 
+// The time-slider label for an hour, in the chosen clock.
 function hourLabel(time: number, hour12: boolean): string {
   return dateFormatter(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12 }).format(new Date(time))
 }
 
+// A grid point's value for the chosen layer at one hour, or null when it is missing.
 function valueAt(f: PointForecast, layer: MapLayer, hour: number): number | null {
   if (layer === 'temperature') return f.temperature[hour] ?? null
   if (layer === 'rain') return f.precipitation[hour] ?? null
@@ -76,6 +79,7 @@ function windArrow(p: GridPoint, grid: Grid, speed: number, fromDegrees: number)
   ]
 }
 
+// The colour key for the chosen layer, in the chosen units.
 function Legend({ layer }: { layer: MapLayer }) {
   const info = LAYER_INFO[layer]
   const fmt = useFormat()
@@ -351,9 +355,12 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     const paper = isDark(theme) ? '#000000' : '#ffffff'
     for (const c of coverage.data ?? []) {
       const held = c.role === 'holdout'
+      // Leaflet reads a string label as HTML, so the name goes in as text: a city name can never run as code.
+      const label = document.createElement('span')
+      label.textContent = held ? `${c.name}: kept out of training to test the models` : `${c.name}: the models trained here`
       // Training cities: hollow dots. Held-out cities (never trained on): solid dots.
       L.circleMarker([c.latitude, c.longitude], { radius: 5, color: ink, weight: 2, fillColor: held ? ink : paper, fillOpacity: 1 })
-        .bindTooltip(held ? `${c.name}: kept out of training to test the models` : `${c.name}: the models trained here`, { direction: 'top' })
+        .bindTooltip(label, { direction: 'top' })
         .addTo(group)
     }
   }, [coverage.data, theme])

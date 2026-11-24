@@ -379,7 +379,9 @@ Secrets live only in `backend/.env`, which is git-ignored. Open-Meteo needs no A
 The fully open-source way is Docker Engine (Linux) or Podman: `podman compose up --build` works with the same files.
 nginx sends strict security headers (`deploy/security-headers.conf`): a content security policy that allows only the
 app's own scripts and Open-Meteo and OpenStreetMap as outside sources, no framing, no MIME sniffing, a limited
-referrer, and location and microphone for this site only.
+referrer, and location and microphone for this site only. It also rate-limits the API per visitor address (10 requests a
+second with bursts of 30; the assistant 1 a second with bursts of 3), answering 429 beyond that, and refuses request
+bodies over 64 KB.
 Set `POSTGRES_PASSWORD` in a `.env` next to `docker-compose.yml`, and `WEB_PORT` if port 8080 is taken on your
 computer. Tested 2026-11-23 with Docker Desktop on Windows: all three containers start, the API loads the six models
 and serves predictions, and the site works.
