@@ -1,9 +1,11 @@
 // Lighthouse CI for Wetcast. Runs the production build (dist/) on a phone profile, three times per
-// page, and checks the median scores. Reports are written to ./reports, never uploaded anywhere.
+// page, and checks the scores (see below). Reports are written to ./reports, never uploaded anywhere.
 //
 // CI has no backend, so the /api calls fail and the console logs those failures: that check is off.
 // Weather comes live from Open-Meteo, and the biggest text on the Dashboard and Forecast waits for it,
-// so the performance floor is set low enough not to trip on a slow response; the timings only warn.
+// so the timings only warn. Each score is a page's best of its three runs (Lighthouse CI's default).
+// Performance floor 0.85 (2026-11-24): every page scored 0.92 or more on CI after the move to Preact,
+// and 0.81-0.89 before it, so a slide back to the old speed fails the build.
 module.exports = {
   ci: {
     collect: {
@@ -25,7 +27,7 @@ module.exports = {
         'categories:accessibility': ['error', { minScore: 0.95 }],
         'categories:best-practices': ['error', { minScore: 0.9 }],
         'categories:seo': ['error', { minScore: 0.9 }],
-        'categories:performance': ['error', { minScore: 0.6 }],
+        'categories:performance': ['error', { minScore: 0.85 }],
         'largest-contentful-paint': ['warn', { maxNumericValue: 3000 }],
         'cumulative-layout-shift': ['warn', { maxNumericValue: 0.1 }],
         'total-blocking-time': ['warn', { maxNumericValue: 300 }],
