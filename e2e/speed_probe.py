@@ -44,6 +44,7 @@ WAIT_READY = """() => { const c = document.getElementById('content'); if (!c) re
   return !/Loading/.test(c.innerText.slice(0, 4000)) }"""
 
 
+# Serves one build folder with vite preview and waits until it answers.
 def serve(dist: str, port: int) -> subprocess.Popen:
     vite = ROOT / "node_modules" / "vite" / "bin" / "vite.js"
     proc = subprocess.Popen(
@@ -58,6 +59,8 @@ def serve(dist: str, port: int) -> subprocess.Popen:
     raise SystemExit(f"vite preview for {dist} did not start")
 
 
+# Opens the app on a slowed-down phone and switches through every page once. For each page it
+# returns the seconds until it showed, until it was ready, and the long-task time in between.
 def one_round(browser, base: str) -> dict[str, tuple[float, float, float]]:
     page = open_app(browser, base, PHONE)
     cdp = page.context.new_cdp_session(page)

@@ -88,6 +88,7 @@ export { readHome } from '../lib/openingPlace'
 
 export type AddResult = 'added' | 'exists' | 'full'
 
+// The saved places and home city, kept in step with the server by the rules at the top of this file.
 export function useSavedPlaces() {
   const [clientId] = useState(getClientId)
   const [state, setState] = useState<SavedState>(() => readJson(KEY, EMPTY, isSavedState))

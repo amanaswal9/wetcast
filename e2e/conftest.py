@@ -54,6 +54,7 @@ def _port_open(port: int) -> bool:
         return s.connect_ex(("127.0.0.1", port)) == 0
 
 
+# Serves the production build with vite preview for the whole test run.
 @pytest.fixture(scope="session")
 def server():
     if not (ROOT / "dist" / "index.html").exists():
@@ -75,6 +76,7 @@ def server():
     proc.wait(timeout=10)
 
 
+# One Chromium for the whole test run; each test opens its own page in it.
 @pytest.fixture(scope="session")
 def browser():
     with sync_playwright() as p:
@@ -170,6 +172,7 @@ def close(page: Page) -> None:
     page.context.close()
 
 
+# A fresh desktop-sized page; afterwards, fails the test if it asked for anything not recorded.
 @pytest.fixture()
 def desktop(browser, server):
     page = open_app(browser, server, DESKTOP)
@@ -178,6 +181,7 @@ def desktop(browser, server):
     _check_network(page)
 
 
+# The same on a phone-sized touch screen.
 @pytest.fixture()
 def phone(browser, server):
     page = open_app(browser, server, PHONE)
@@ -192,6 +196,7 @@ def _check_network(page: Page) -> None:
         pytest.fail("Requests with no recorded answer (run once with E2E_RECORD=1):\n" + "\n".join(sorted(set(missing))))
 
 
+# Opens a page of the app (by its hash, e.g. "forecast") and waits until the network is quiet.
 def goto(page: Page, hash_path: str = "") -> None:
     page.goto(f"{BASE}/#/{hash_path}" if hash_path else BASE)
     page.wait_for_load_state("networkidle")

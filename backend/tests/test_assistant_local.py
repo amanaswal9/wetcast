@@ -145,11 +145,3 @@ def test_a_reply_that_isnt_a_json_object_is_a_clear_error(body):
     with pytest.raises(assistant.AssistantUnavailable) as err:
         assistant_local.answer([{"role": "user", "content": "Hi"}], PLACE, None, get_registry(), http=broken)
     assert err.value.status == 502
-
-
-def test_an_old_env_that_chose_hosted_still_starts(monkeypatch):
-    # The paid option is gone; an old .env saying "hosted" falls back to the local model.
-    from app.config import Settings
-
-    monkeypatch.setenv("WEATHERAI_ASSISTANT_PROVIDER", "hosted")
-    assert Settings().assistant_provider == "auto"

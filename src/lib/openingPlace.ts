@@ -25,12 +25,14 @@ export interface SavedState {
 
 export const EMPTY_SAVED: SavedState = { places: [], homeId: null }
 
+// Checks for a stored place with the fields the app needs (storage can hold anything).
 function isSavedPlace(value: unknown): value is Place {
   if (!value || typeof value !== 'object') return false
   const p = value as Record<string, unknown>
   return typeof p.id === 'string' && typeof p.name === 'string' && typeof p.latitude === 'number' && typeof p.longitude === 'number'
 }
 
+// Checks for a stored list of saved places, with a home id or null.
 export function isSavedState(value: unknown): value is SavedState {
   if (!value || typeof value !== 'object') return false
   const s = value as Record<string, unknown>
@@ -43,6 +45,7 @@ export function readHome(): Place | null {
   return state.places.find((p) => p.id === state.homeId) ?? null
 }
 
+// The last place viewed must also have real coordinates.
 function isPlace(value: unknown): value is Place {
   return isSavedPlace(value) && Math.abs(value.latitude) <= 90 && Math.abs(value.longitude) <= 180
 }

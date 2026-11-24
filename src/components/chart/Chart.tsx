@@ -58,6 +58,7 @@ export interface ChartProps<R> {
 
 const RIGHT = 8
 
+// Draws the rows as the series describe, with axes, gridlines and the cursor and tooltip.
 export function Chart<R>({
   rows,
   series,

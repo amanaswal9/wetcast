@@ -12,14 +12,14 @@ interface ErrorStackProps {
   depth?: number
 }
 
-// The classic "it happened again, and again" cascade: a pile of identical message windows,
-// each a step down and to the right, with the real one in front. Used for failures and
-// not-found states. The windows behind are decoration, hidden from screen readers; they
-// pop in one after another unless reduced motion is on.
 // Each window steps down by more than a title bar's height, so every caption stays readable.
 const STEP_X = 22
 const STEP_Y = 26
 
+// The classic "it happened again, and again" cascade: a pile of identical message windows,
+// each a step down and to the right, with the real one in front. Used for failures and
+// not-found states. The windows behind are decoration, hidden from screen readers; they
+// pop in one after another unless reduced motion is on.
 export function ErrorStack({ caption, kind = 'error', title, children, actions, depth = 5 }: ErrorStackProps) {
   return (
     <div

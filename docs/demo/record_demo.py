@@ -89,6 +89,7 @@ END_BODY = """
 """
 
 
+# Shows a line of caption text at the bottom of the video, or hides it (None).
 def caption(page: Page, text: str | None) -> None:
     page.evaluate(
         "(t) => { const c = document.getElementById('demo-caption'); if (!c) return; c.textContent = t || ''; c.style.display = t ? 'block' : 'none'; }",
@@ -96,6 +97,7 @@ def caption(page: Page, text: str | None) -> None:
     )
 
 
+# Shows a full-frame title card over the app, or hides it (None). The pointer hides with it.
 def card(page: Page, title: str | None, body: str = "") -> None:
     html = CARD_HTML.format(title=title, body=body) if title else ""
     page.evaluate(
@@ -151,6 +153,7 @@ def start_menu(page: Page, item: str) -> None:
     glide(page, page.locator(".r-start-menu").get_by_text(item, exact=True), steps=16)
 
 
+# Smoothly scrolls the page until the section heading starting with this text sits near the top.
 def scroll_to_heading(page: Page, text: str, offset: int = 70) -> None:
     page.evaluate(
         """([t, off]) => {
@@ -162,7 +165,9 @@ def scroll_to_heading(page: Page, text: str, offset: int = 70) -> None:
     page.wait_for_timeout(900)
 
 
-def record(video_dir: Path) -> tuple[Path, float]:
+# Plays the whole tour in a browser and records it. Returns the raw video and the seconds
+# where the tour starts and ends, so the loading frames can be trimmed off.
+def record(video_dir: Path) -> tuple[Path, float, float]:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         context = browser.new_context(
@@ -291,6 +296,7 @@ def record(video_dir: Path) -> tuple[Path, float]:
     return video, trim_from, trim_to
 
 
+# Trims the raw recording and writes the MP4 and the README's GIF next to this script.
 def encode(ffmpeg: str, raw: Path, trim_from: float, trim_to: float) -> None:
     mp4 = OUT / "wetcast-demo.mp4"
     gif = OUT / "wetcast-demo.gif"

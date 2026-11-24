@@ -223,7 +223,6 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     }
   }, [theme])
 
-
   // Follow the selected place.
   useEffect(() => {
     mapRef.current?.setView([place.latitude, place.longitude], mapRef.current.getZoom(), { animate: !reduceMotion })

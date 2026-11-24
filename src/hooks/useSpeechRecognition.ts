@@ -36,6 +36,8 @@ function getRecognition(): RecognitionConstructor | null {
 
 export type { VoiceError }
 
+// Listens for one phrase at a time: listen() starts the microphone and passes on the words or the
+// error, stop() ends it early.
 export function useSpeechRecognition() {
   const supported = getRecognition() !== null && typeof window !== 'undefined' && window.isSecureContext
   const [listening, setListening] = useState(false)
