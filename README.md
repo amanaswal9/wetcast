@@ -2,7 +2,8 @@
 
 Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop interface.
 
-Try it: https://wetcast.codeberg.page/wetcast/ (the public copy, free on Codeberg Pages). It shows the live
+Try it: https://wetcast.codeberg.page (the public copy, free on Codeberg Pages; it opens
+https://wetcast.codeberg.page/wetcast/). It shows the live
 weather from Open-Meteo: the Dashboard, the 7-day forecast, the map, search and Wetcast Mini. Wetcast's own trained
 models, their track record, official warnings, saved places on the server and the Javed assistant need the server
 and run on the full setup below; the demo shows them.
