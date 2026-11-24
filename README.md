@@ -494,7 +494,7 @@ the build stops if a bundled package has no licence file to pass on (`thirdParty
 
 Designed and built by Aman Singh Aswal.
 
-- Source code: https://codeberg.org/wetcast/wetcast
+- Source code: https://codeberg.org/wetcast/wetcast (home), mirrored to https://github.com/amanaswal9/wetcast
 - GitHub: https://github.com/amanaswal9
 - LinkedIn: https://www.linkedin.com/in/amannaswal/
 
