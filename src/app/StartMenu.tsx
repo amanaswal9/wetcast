@@ -1,5 +1,5 @@
 import { Bell, Contrast, Moon, PanelTop, Ruler } from 'lucide-react'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { loaders } from './pageLoaders'
 import { PAGE_ICONS } from './pageIcons'
 import { PAGES, type PageId } from './pages'
@@ -58,7 +58,8 @@ export function StartMenu({ page, darkMode, onToggleDark, highContrast, onToggle
   const button = useRef<HTMLButtonElement>(null)
   const panelId = useId()
 
-  useEffect(() => {
+  // A layout effect, so the keys work the moment the menu opens: Preact runs plain effects a frame later.
+  useLayoutEffect(() => {
     if (!open) return
     const onPointer = (event: PointerEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false)

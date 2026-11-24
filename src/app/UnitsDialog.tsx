@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { Button, TitleButton } from '../components/retro'
 import { getUnits, makeFormat, setUnits, type Units } from '../lib/units'
 
@@ -21,7 +21,8 @@ export function UnitsDialog({ open, onClose }: { open: boolean; onClose: () => v
   const titleId = useId()
   const [draft, setDraft] = useState<Units>(getUnits)
 
-  useEffect(() => {
+  // A layout effect, so the dialog opens and takes focus straight away (Preact runs plain effects a frame later).
+  useLayoutEffect(() => {
     const dialog = ref.current
     if (!dialog) return
     if (open && !dialog.open) {
@@ -36,6 +37,9 @@ export function UnitsDialog({ open, onClose }: { open: boolean; onClose: () => v
   }, [open])
 
   const sample = makeFormat(draft)
+  // Every way out closes the native dialog first; its close event then tells the parent. That way
+  // the page is no longer blocked by the modal when the parent puts focus back on the Start button.
+  const close = () => ref.current?.close()
 
   return (
     <dialog
@@ -45,14 +49,14 @@ export function UnitsDialog({ open, onClose }: { open: boolean; onClose: () => v
       onClose={onClose}
       onCancel={(event) => {
         event.preventDefault()
-        onClose()
+        close()
       }}
     >
       <div className="r-title">
         <h2 id={titleId} className="m-0 min-w-0 flex-1 truncate text-[inherit] font-bold">
           Units
         </h2>
-        <TitleButton glyph="close" label="Close" onClick={onClose} />
+        <TitleButton glyph="close" label="Close" onClick={close} />
       </div>
       <form
         method="dialog"
@@ -60,7 +64,7 @@ export function UnitsDialog({ open, onClose }: { open: boolean; onClose: () => v
         onSubmit={(event) => {
           event.preventDefault()
           setUnits(draft)
-          onClose()
+          close()
         }}
       >
         {CHOICES.map((choice) => (
@@ -92,7 +96,7 @@ export function UnitsDialog({ open, onClose }: { open: boolean; onClose: () => v
           <Button type="submit" className="min-w-[75px]">
             OK
           </Button>
-          <Button onClick={onClose} className="min-w-[75px]">
+          <Button onClick={close} className="min-w-[75px]">
             Cancel
           </Button>
         </div>

@@ -47,7 +47,7 @@ instantly and keeps working when the API is down (`src/hooks/useSavedPlaces.ts`)
 ## Layout
 
 ```
-src/            React + TypeScript + Vite frontend (retro UI kit in src/components/retro)
+src/            Preact (React code via preact/compat) + TypeScript + Vite frontend (retro UI kit in src/components/retro)
 backend/app/    FastAPI API: settings, database, model registry, live predictions
 backend/tests/  API tests (pytest)
 ml/weatherai_ml Training pipeline AND the shared preprocessing the API uses at inference
