@@ -447,6 +447,39 @@ def test_batched_recent_fetch_gives_each_city_its_own_five_points():
         assert elevation == pytest.approx(round(city.latitude + POINTS[0][1], 4))  # its own centre point
 
 
+def test_linear_baseline_loads_plain_numbers_and_predicts_like_its_formula(tmp_path):
+    """The Ridge baseline is saved as plain numbers (no pickle) and predicts (x - mean) / scale . w + b,
+    then the same physical limits as LightGBM; a file with different features is refused."""
+    import json
+
+    from weatherai_ml.config import TARGETS
+    from weatherai_ml.gbm import feature_names
+    from weatherai_ml.linear import H, LinearForecaster
+    from weatherai_ml.preprocess import FeatureOrderError
+
+    names = feature_names()
+    rng = np.random.default_rng(0)
+    mean, scale = rng.normal(size=len(names)), rng.uniform(0.5, 2, size=len(names))
+    coef = {t: rng.normal(scale=0.01, size=len(names)) for t in TARGETS}
+    config = {"feature_names": names, "lookback_hours": 48, "target_mode": "residual24", "rain_target": "mm",
+              "mean": mean.tolist(), "scale": scale.tolist(),
+              "targets": {t: {"alpha": 1.0, "coef": coef[t].tolist(), "intercept": 0.5} for t in TARGETS}}
+    (tmp_path / "linear.json").write_text(json.dumps(config))
+    model = LinearForecaster(tmp_path)
+
+    X = rng.normal(size=(H, len(names))).astype(np.float32)  # one forecast: 24 rows
+    prev = np.full((1, H, len(TARGETS)), 50.0)
+    out = model.predict_matrix(X, prev)[0]
+    raw_temp = ((X.astype(np.float64) - mean) / scale) @ coef["temperature"] + 0.5
+    assert np.allclose(out[:, TARGETS.index("temperature")], raw_temp + 50.0)  # a change from the same hour yesterday
+    assert (out[:, TARGETS.index("precipitation")] >= 0).all() and (out[:, TARGETS.index("humidity")] <= 100).all()
+
+    config["feature_names"] = names[:-1] + ["something_else"]
+    (tmp_path / "linear.json").write_text(json.dumps(config))
+    with pytest.raises(FeatureOrderError):
+        LinearForecaster(tmp_path)
+
+
 def test_rain_outlook_lines_up_with_the_forecast_hours():
     """The live day-old forecast is returned for exactly the 24 hours after the issue hour."""
     import httpx

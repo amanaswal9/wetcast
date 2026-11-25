@@ -67,7 +67,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
             </p>
             <p className="m-0 mt-2">
               Everyday weather comes from Open-Meteo for any city in the world. Wetcast&apos;s own models (LSTM, GRU, CNN-LSTM, a
-              spatio-temporal Transformer, LightGBM and their ensemble) cover India: they trained on 40 cities across the country and were tested on 8 more they never saw.
+              spatio-temporal Transformer, LightGBM, their ensemble, and a linear baseline) cover India: they trained on 40 cities across the country and were tested on 8 more they never saw.
             </p>
           </div>
         </div>

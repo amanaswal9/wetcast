@@ -65,9 +65,9 @@ export const CITY_DASHES = ['', '7 4', '2 3', '10 3 2 3']
 
 // Wetcast model colours: one per architecture, reused on every page.
 export const MODEL_COLORS: Record<Theme, Record<string, string>> = {
-  light: { lstm: '#000080', gru: '#800080', cnn_lstm: '#800000', lightgbm: '#7a5200', transformer: '#007070', ensemble: '#006400', baseline: '#808080' },
-  night: { lstm: '#7ab8ff', gru: '#e39ad8', cnn_lstm: '#ff8a80', lightgbm: '#ffc56b', transformer: '#5fd3c8', ensemble: '#8fd18f', baseline: '#9aa0a6' },
-  dark: { lstm: '#ffff00', gru: '#ff80ff', cnn_lstm: '#00ffff', lightgbm: '#ffb040', transformer: '#ff6b6b', ensemble: '#80ff80', baseline: '#c0c0c0' },
+  light: { lstm: '#000080', gru: '#800080', cnn_lstm: '#800000', lightgbm: '#7a5200', ridge: '#a0006e', transformer: '#007070', ensemble: '#006400', baseline: '#808080' },
+  night: { lstm: '#7ab8ff', gru: '#e39ad8', cnn_lstm: '#ff8a80', lightgbm: '#ffc56b', ridge: '#f0e68c', transformer: '#5fd3c8', ensemble: '#8fd18f', baseline: '#9aa0a6' },
+  dark: { lstm: '#ffff00', gru: '#ff80ff', cnn_lstm: '#00ffff', lightgbm: '#ffb040', ridge: '#ffffff', transformer: '#ff6b6b', ensemble: '#80ff80', baseline: '#c0c0c0' },
 }
 
 // Font for chart labels, matching the rest of the interface.
