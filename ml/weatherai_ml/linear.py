@@ -44,6 +44,7 @@ class LinearForecaster:
     folder: Path
 
     def __post_init__(self):
+        """Load the saved means, scales and weights; refuse a model trained on different features."""
         self.config = json.loads((self.folder / "linear.json").read_text())
         if self.config["feature_names"] != feature_names():
             from .preprocess import FeatureOrderError
@@ -77,6 +78,7 @@ class LinearForecaster:
 
 
 def main() -> None:
+    """Fit a Ridge model per target, choosing alpha on the validation year, then evaluate and save."""
     # Imported here so that serving, which only needs LinearForecaster, never loads scikit-learn.
     import sklearn
     from sklearn.linear_model import Ridge

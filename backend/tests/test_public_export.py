@@ -17,6 +17,7 @@ pytestmark = pytest.mark.skipif(not get_registry().names, reason="no trained mod
 
 def test_export_writes_every_file_and_skips_a_failed_city(tmp_path, monkeypatch):
     def fetch(client, city, past_hours):
+        """Fake Open-Meteo: synthetic history for every city except Leh, which fails."""
         if city.id == "leh":
             raise RuntimeError("Open-Meteo is down for this one")
         return synthetic_long_frame(past_hours), 0.0
@@ -51,6 +52,7 @@ def test_export_stops_asking_when_open_meteo_keeps_refusing(tmp_path, monkeypatc
     asked = []
 
     def refuse(client, city, past_hours):
+        """Fake Open-Meteo that records each city asked for and always refuses."""
         asked.append(city.id)
         raise RuntimeError("Open-Meteo kept rate-limiting the request")
 
@@ -68,9 +70,11 @@ def test_export_stops_asking_when_open_meteo_keeps_refusing(tmp_path, monkeypatc
 
 def test_export_uses_one_batched_fetch_for_every_city(tmp_path, monkeypatch):
     def batched(client, cities, past_hours):
+        """Fake batched fetch: synthetic history for every city at once."""
         return {c.id: (synthetic_long_frame(past_hours), 0.0) for c in cities}
 
     def single(client, city, past_hours):
+        """Fail the test if a city is fetched on its own."""
         raise AssertionError(f"{city.id} was fetched on its own")
 
     monkeypatch.setattr(predictions, "fetch_recent_many", batched)

@@ -16,6 +16,7 @@ interface StartMenuProps {
   onToggleNotifications: () => void
 }
 
+// Starts loading a page's code early, ignoring failures.
 const preload = (id: PageId) => void loaders[id]().catch(() => undefined)
 
 // Wetcast Mini in a small window of its own. Phones ignore the size and open a new tab,

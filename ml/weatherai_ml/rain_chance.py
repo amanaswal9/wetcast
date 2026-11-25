@@ -71,6 +71,7 @@ def reliability(observed_wet: np.ndarray, prob: np.ndarray) -> list[dict]:
 
 
 def main() -> None:
+    """Fit the chance-of-rain map per lead hour on 2025, score it on 2026 and write rain_chance.json."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", choices=REGION_NAMES, default="north_india")
     args = parser.parse_args()

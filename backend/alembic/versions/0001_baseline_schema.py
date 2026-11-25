@@ -19,6 +19,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """Create the first schema: prediction runs, prediction points and saved places."""
     op.create_table(
         "prediction_runs",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -67,6 +68,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Drop the saved places, prediction points and prediction runs tables with their indexes."""
     op.drop_index("ix_saved_places_client_id", table_name="saved_places")
     op.drop_table("saved_places")
     op.drop_index("ix_prediction_points_run_id", table_name="prediction_points")

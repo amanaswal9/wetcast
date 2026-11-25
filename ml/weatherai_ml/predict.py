@@ -58,6 +58,7 @@ class Ranges:
     (see train.interval_block), otherwise one set for the whole year (older artifacts)."""
 
     def __init__(self, interval: dict):
+        """Read the whole-year half-widths and, when present, the monthly ones."""
         self.flat = np.array([interval["halfwidth_by_horizon"][t] for t in TARGETS], dtype=float).T  # (horizon, targets)
         monthly = interval.get("halfwidth_by_month")
         # (12, horizon, targets), or None
@@ -75,6 +76,7 @@ class Predictor:
     """Live inference for one saved Keras network, using its own preprocessor.json."""
 
     def __init__(self, model_dir: Path):
+        """Load the preprocessor, metrics and error ranges; the Keras model loads on first use."""
         self.model_dir = model_dir
         self.name = model_dir.name
         self.preprocessor = Preprocessor.load(model_dir / "preprocessor.json")
@@ -151,6 +153,7 @@ class GBMPredictor:
     exactly as in training. `forecaster` picks the model family; LightGBM by default."""
 
     def __init__(self, model_dir: Path, forecaster=None):
+        """Load the table model, its metrics and error ranges, and note the lookback it needs."""
         from .gbm import GBMForecaster
 
         self.model_dir = model_dir
@@ -202,6 +205,7 @@ class EnsemblePredictor:
     """Average of member predictors, with its own validation-calibrated error ranges."""
 
     def __init__(self, model_dir: Path, members: list[Predictor]):
+        """Load the ensemble's metrics and ranges, and its rain chance and rain amount models when saved."""
         self.model_dir = model_dir
         self.name = model_dir.name
         self.members = members

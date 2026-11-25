@@ -19,6 +19,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """Create the alerts table for official weather warnings."""
     op.create_table(
         "alerts",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -56,6 +57,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Drop the alerts table and its indexes."""
     op.drop_index("ix_alerts_expires", table_name="alerts")
     op.drop_index("ix_alerts_identifier", table_name="alerts")
     op.drop_index("ix_alerts_source", table_name="alerts")

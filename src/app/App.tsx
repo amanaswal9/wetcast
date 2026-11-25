@@ -46,11 +46,13 @@ export default function App() {
   const [animateWindow, setAnimateWindow] = useState(false) // no animation on first load
   const reduceMotion = useReducedMotion()
   const online = useOnline()
+  // Starts the minimise animation; with reduced motion the window hides at once.
   const minimize = () => {
     setAnimateWindow(true)
     setMinimized(true)
     if (reduceMotion) setHiddenAway(true) // no animation will run to say it ended
   }
+  // Brings the minimised window back.
   const restore = () => {
     setAnimateWindow(true)
     setMinimized(false)
@@ -122,6 +124,7 @@ export default function App() {
     [setPlace, stopSpeech],
   )
 
+  // Clears the notice and reloads the forecast, air quality and the other pages' data.
   function refresh() {
     setNotice(null)
     forecast.reload()
@@ -133,6 +136,7 @@ export default function App() {
 
   const notificationsOn = useAlertNotificationsEnabled()
   useAlertNotifications(place)
+  // Turns warning notifications for this place on or off and says what happened.
   async function toggleNotifications() {
     const result = await setAlertNotifications(!notificationsOn, async () =>
       (await getAlerts(place.latitude, place.longitude, place.countryCode)).alerts,
@@ -148,6 +152,7 @@ export default function App() {
     )
   }
 
+  // Saves or unsaves the current place, with a notice.
   function toggleSaved() {
     if (placeSaved) {
       saved.remove(place)
@@ -162,11 +167,13 @@ export default function App() {
     )
   }
 
+  // Switches to a place and opens the dashboard.
   function openPlace(next: Place) {
     selectPlace(next)
     window.location.hash = '#/dashboard'
   }
 
+  // Uses the browser's location as the place, or explains why it can't.
   function locate() {
     if (locating) return
     if (!('geolocation' in navigator)) {

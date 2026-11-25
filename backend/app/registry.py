@@ -28,6 +28,7 @@ class ModelRegistry:
     skipped with a warning instead of stopping the API."""
 
     def __init__(self, artifacts_dir: Path):
+        """Load every model whose files are in artifacts_dir, then the ensemble if all its members loaded."""
         self.artifacts_dir = artifacts_dir
         self._predictors: dict[str, Predictor | GBMPredictor | EnsemblePredictor] = {}
         self.ensemble_members: list[str] = []
@@ -59,6 +60,7 @@ class ModelRegistry:
         return "north_india"
 
     def _register_ensemble(self) -> None:
+        """Register the ensemble when its files are present and every member model is loaded."""
         folder = self.artifacts_dir / ENSEMBLE_NAME
         if any(not (folder / f).exists() for f in REQUIRED_ENSEMBLE):
             return

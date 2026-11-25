@@ -21,6 +21,7 @@ FAKE_ALERTS = {"source": "NDMA Sachet (test data)", "alerts": []}
 
 @pytest.fixture()
 def stub_lookups(monkeypatch):
+    """Replace place search, official warnings and the forecast with fixed test data."""
     monkeypatch.setattr(assistant_data, "find_place", lambda name: FAKE_PLACES)
     monkeypatch.setattr(assistant_data, "official_alerts_at", lambda session, lat, lon, cc: FAKE_ALERTS)
     monkeypatch.setattr(assistant_data, "weather", lambda lat, lon: {"source": "Open-Meteo forecast (test data)", "now": {}})
@@ -95,6 +96,7 @@ def test_off_topic_questions_are_declined(stub_lookups):
 
 def test_failed_lookup_is_reported_to_the_model(monkeypatch):
     def broken(lat, lon):
+        """Fake forecast lookup that always fails."""
         raise RuntimeError("Open-Meteo couldn't be reached.")
 
     monkeypatch.setattr(assistant_data, "weather", broken)

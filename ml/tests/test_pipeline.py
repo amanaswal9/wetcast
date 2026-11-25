@@ -389,6 +389,7 @@ def test_live_requests_fail_fast_on_daily_limit():
     from weatherai_ml.openmeteo import _get
 
     def handler(request):
+        """Fake Open-Meteo that always answers with the daily-limit 429."""
         return httpx.Response(429, json={"error": True, "reason": "Daily API request limit exceeded."})
 
     started = _time.perf_counter()
@@ -407,6 +408,7 @@ def test_live_requests_retry_a_dropped_connection_quickly(monkeypatch):
     calls, waits = [], []
 
     def handler(request):
+        """Fail the first request with a timeout, then answer 200."""
         calls.append(request)
         if len(calls) == 1:
             raise httpx.ConnectTimeout("The handshake operation timed out")
@@ -429,9 +431,11 @@ def test_batched_recent_fetch_gives_each_city_its_own_five_points():
     seen = []
 
     def handler(request):
+        """Record how many points were asked for and answer one entry per latitude."""
         lats = request.url.params["latitude"].split(",")
         seen.append(len(lats))
         def point(lat):
+            """One hour of data for a point, with every value and the elevation set to its latitude."""
             hourly = {v: [float(lat)] for v in API_VARIABLES}
             hourly["time"] = ["2026-11-25T00:00"]
             return {"elevation": float(lat), "hourly": hourly}
@@ -491,6 +495,7 @@ def test_rain_outlook_lines_up_with_the_forecast_hours():
     values[5] = None  # one hour Open-Meteo has no value for
 
     def handler(request):
+        """Fake Previous Runs API: check the variable and return the 28 test hours."""
         assert request.url.params["hourly"] == VARIABLE
         return httpx.Response(200, json={"hourly": {"time": [t.strftime("%Y-%m-%dT%H:%M") for t in times], VARIABLE: values}})
 

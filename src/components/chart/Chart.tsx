@@ -105,6 +105,7 @@ export function Chart<R>({
       rows.map((r, i) => (x ? yWidth + ((x.value(r, i) - x.domain[0]) / (x.domain[1] - x.domain[0] || 1)) * plotW : yWidth + slot * (i + 0.5))),
     [rows, x, yWidth, plotW, slot],
   )
+  // Pixel x for a category index or a value on the numeric x scale.
   const xAt = (at: number) => (x ? yWidth + ((at - x.domain[0]) / (x.domain[1] - x.domain[0] || 1)) * plotW : yWidth + slot * (at + 0.5))
 
   // y scale from every value drawn (stacked bars use their totals).
@@ -140,6 +141,7 @@ export function Chart<R>({
   }, [rows, series, y.domain, y.ticks])
 
   const [d0, d1] = scale.domain
+  // Pixel y for a value on the y scale.
   const yAt = (v: number) => top + plotH - ((v - d0) / (d1 - d0 || 1)) * plotH
   const fmtY = y.format ?? ((v: number) => String(v))
 
@@ -177,13 +179,16 @@ export function Chart<R>({
     return out
   })()
 
+  // Highlights the row nearest a pointer's x position.
   const pick = (clientX: number) => {
     const el = box.current
     if (!el || !n) return
     const px = clientX - el.getBoundingClientRect().left
     setActive(nearestIndex(xs, px))
   }
+  // Moves the tooltip with the pointer.
   const onPointer = (e: PointerEvent<HTMLDivElement>) => tooltip && pick(e.clientX)
+  // Arrow keys, Home and End move the highlighted row; Escape clears it.
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!tooltip || !n) return
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {

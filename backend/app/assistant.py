@@ -115,6 +115,7 @@ class AssistantUnavailable(RuntimeError):
     """The assistant is not set up, over its limits, or the local model failed."""
 
     def __init__(self, code: str, message: str, status: int):
+        """Keep an error code and the HTTP status to answer with."""
         super().__init__(message)
         self.code, self.status = code, status
 
@@ -175,15 +176,18 @@ class DailyLimits:
     KEEP_DAYS = 7  # older counts are deleted
 
     def __init__(self, sessions: Callable[[], Session] | None = None):
+        """Set up the lock and the session factory; without one the app's database is used."""
         self._lock = threading.Lock()
         self._sessions = sessions
         self._pruned: date | None = None
 
     def _session(self) -> Session:
+        """A new database session, from the given factory or the app's database."""
         return self._sessions() if self._sessions is not None else db.new_session()
 
     @staticmethod
     def today() -> date:
+        """Today's date in UTC."""
         return datetime.now(timezone.utc).date()
 
     def take(self, client_id: str, per_client: int, total: int) -> date:

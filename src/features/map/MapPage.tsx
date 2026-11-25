@@ -66,6 +66,7 @@ function windArrow(p: GridPoint, grid: Grid, speed: number, fromDegrees: number)
   const cell = Math.min(grid.latSpacing, grid.lonSpacing * cosLat)
   const length = cell * (0.3 + 0.45 * Math.min(speed / 50, 1))
   const towards = (blowingTowards(fromDegrees) * Math.PI) / 180
+  // The point len degrees from (lat, lon) along a bearing, stretched east-west for latitude.
   const at = (lat: number, lon: number, bearing: number, len: number): [number, number] => [
     lat + len * Math.cos(bearing),
     lon + (len * Math.sin(bearing)) / cosLat,
@@ -365,6 +366,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
     }
   }, [coverage.data, theme])
 
+  // Opens the forecast page for the selected map point.
   const openForecast = () => {
     if (!selected) return
     onSelectPlace({
@@ -377,6 +379,7 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
   }
 
   const hourText = times[hourIndex] !== undefined ? hourLabel(times[hourIndex], fmt.hour12) : '–'
+  // Temperature, rain and wind rows for the selected point at the chosen hour.
   const detail = (() => {
     if (!selectedForecast) return null
     const t = selectedForecast.temperature[hourIndex]

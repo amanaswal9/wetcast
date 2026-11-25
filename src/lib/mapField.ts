@@ -82,6 +82,7 @@ export function renderField<P extends FieldPoint>(
   height = Math.max(2, Math.round(height / shrink))
 
   const colours = new Map<Band, [number, number, number]>()
+  // RGB for a band's colour, worked out once per band.
   const colourOf = (band: Band) => {
     let c = colours.get(band)
     if (!c) colours.set(band, (c = rgb(band.color)))
@@ -99,6 +100,7 @@ export function renderField<P extends FieldPoint>(
   // Blend the four surrounding points, leaving out any not loaded yet.
   let sum = 0
   let weight = 0
+  // Adds one grid point's value to the blend when its weight is positive and it has loaded.
   const add = (r: number, c: number, w: number) => {
     const v = grid[r * cols + c]
     if (w > 0 && !Number.isNaN(v)) {

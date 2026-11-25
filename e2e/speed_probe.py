@@ -87,6 +87,7 @@ def one_round(browser, base: str) -> dict[str, tuple[float, float, float]]:
 
 
 def main() -> None:
+    """Serve each build, time every page switch over several rounds and print the medians."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--dirs", nargs="+", default=["dist"], help="build folders to compare, e.g. dist-base dist")
     parser.add_argument("--rounds", type=int, default=5)

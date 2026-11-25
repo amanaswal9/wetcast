@@ -45,6 +45,7 @@ def _run(connection) -> None:
 
 
 def run_migrations_online() -> None:
+    """Run the migrations on the API's own connection, or on a new one made from the database URL."""
     # The API passes its own connection (app/migrations.py); the CLI makes one.
     connection = config.attributes.get("connection")
     if connection is not None:

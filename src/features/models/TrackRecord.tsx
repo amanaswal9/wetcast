@@ -188,6 +188,7 @@ export function TrackRecordPanel({ models, target, theme }: { models: ModelMetri
     )
   }
 
+  // A model's row in a list of stats.
   const stat = (model: string, rows: TrackStats[]) => rows.find((t) => t.model === model)
   const spanDays = r.first_valid_at && r.last_valid_at ? (Date.parse(r.last_valid_at) - Date.parse(r.first_valid_at)) / 86_400_000 : 0
   return (
@@ -238,6 +239,7 @@ export function TrackRecordPanel({ models, target, theme }: { models: ModelMetri
 
 // The Ensemble's chance of rain, scored on the live record (Brier score: lower is better).
 function RainChanceRecord({ chance: c }: { chance: NonNullable<TrackRecord['rain_chance']> }) {
+  // A 0 to 1 share as a whole percentage.
   const pct = (v: number) => `${Math.round(v * 100)}%`
   if (c.n === 0 || c.brier === undefined) {
     return (

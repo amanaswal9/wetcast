@@ -50,6 +50,7 @@ BLOCKED_HOSTS = ("tile.openstreetmap.org",)
 
 
 def _port_open(port: int) -> bool:
+    """True when something is listening on this local port."""
     with socket.socket() as s:
         return s.connect_ex(("127.0.0.1", port)) == 0
 
@@ -101,9 +102,11 @@ class Network:
     """Answers the page's requests from e2e/fixtures; records new ones when E2E_RECORD=1."""
 
     def __init__(self):
+        """Start with no unanswered requests."""
         self.missing: list[str] = []
 
     def handle(self, route: Route) -> None:
+        """Block map tiles, pass the app's files through, answer API and weather requests from fixtures."""
         request = route.request
         url = request.url
         host = urlsplit(url).hostname or ""
@@ -191,6 +194,7 @@ def phone(browser, server):
 
 
 def _check_network(page: Page) -> None:
+    """Fail the test if the page made requests with no recorded answer."""
     missing = page.network.missing  # type: ignore[attr-defined]
     if missing:
         pytest.fail("Requests with no recorded answer (run once with E2E_RECORD=1):\n" + "\n".join(sorted(set(missing))))

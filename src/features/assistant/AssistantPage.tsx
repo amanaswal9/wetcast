@@ -45,6 +45,7 @@ export function AssistantPage({ place }: { place: Place }) {
 
   const configured = status.data?.configured ?? false
 
+  // Sends the question with recent history; on failure the question goes back in the box.
   async function send(question: string) {
     const text = question.trim().slice(0, MAX_QUESTION)
     if (!text || busy) return
@@ -76,11 +77,13 @@ export function AssistantPage({ place }: { place: Place }) {
     }
   }
 
+  // Sends the draft when the form is submitted.
   function onSubmit(e: FormEvent) {
     e.preventDefault()
     void send(draft)
   }
 
+  // Enter sends the draft; Shift+Enter makes a new line.
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()

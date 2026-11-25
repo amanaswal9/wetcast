@@ -19,6 +19,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """Add the observations table and the observed, persistence and scored_at columns to prediction points."""
     op.create_table(
         "observations",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -43,6 +44,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Remove the observations table and the scoring columns from prediction points."""
     op.drop_index("ix_prediction_points_valid_at", table_name="prediction_points")
     op.drop_index("ix_prediction_points_scored_at", table_name="prediction_points")
     with op.batch_alter_table("prediction_points") as batch:  # SQLite can't drop columns directly

@@ -19,9 +19,11 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """Add the rain_chance column to prediction points."""
     op.add_column("prediction_points", sa.Column("rain_chance", sa.Float(), nullable=True))
 
 
 def downgrade() -> None:
+    """Remove the rain_chance column from prediction points."""
     with op.batch_alter_table("prediction_points") as batch:
         batch.drop_column("rain_chance")

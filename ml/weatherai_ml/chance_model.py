@@ -33,6 +33,7 @@ MODEL_FILE = "rain_chance_model.txt"
 
 
 def main() -> None:
+    """Fit the chance-of-rain classifier on 2025, score it on 2026 and save it with its scores."""
     # Heavy imports stay inside main so that importing this module (the API does, indirectly) stays cheap.
     import lightgbm as lgb
 

@@ -61,6 +61,7 @@ export function bandLabel(layer: MapLayer, index: number, convert: (value: numbe
   const bands = BANDS[layer]
   const band = bands[index]
   if (layer === 'rain') return band.label
+  // A limit in the viewer's unit, rounded, with a proper minus sign.
   const show = (v: number) => {
     const r = Math.round(convert(v))
     return String(Object.is(r, -0) ? 0 : r).replace('-', '−')

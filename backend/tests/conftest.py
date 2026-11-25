@@ -21,9 +21,11 @@ def no_rain_outlook(monkeypatch):
     from app import predictions
 
     def offline(client, city, issued, hours):
+        """Fake rain outlook fetch that always fails."""
         raise RuntimeError("offline in tests")
 
     def offline_many(*args):
+        """Fake batched fetch that always fails."""
         raise RuntimeError("offline in tests")
 
     monkeypatch.setattr(predictions, "fetch_outlook", offline)

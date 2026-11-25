@@ -38,6 +38,7 @@ def write_png_1bit(path: Path, pixels: np.ndarray) -> None:
     rows = b"".join(b"\x00" + np.packbits(row > 0).tobytes() for row in pixels)  # filter byte 0, then 8 pixels a byte
 
     def chunk(kind: bytes, data: bytes) -> bytes:
+        """One PNG chunk: length, type, data and CRC."""
         return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
 
     header = struct.pack(">IIBBBBB", width, height, 1, 0, 0, 0, 0)

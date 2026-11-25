@@ -189,6 +189,7 @@ def test_transformer_is_served(client, monkeypatch):
 @pytest.mark.skipif(not HAS_MODELS, reason="no trained models yet")
 def test_upstream_failure_is_502(client, monkeypatch):
     def broken(client, city, past_hours):
+        """Fake Open-Meteo that always fails to connect."""
         raise httpx.ConnectError("down")
 
     monkeypatch.setattr(predictions, "fetch_recent", broken)

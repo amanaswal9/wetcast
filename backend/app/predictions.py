@@ -162,11 +162,13 @@ def predict_models(registry: ModelRegistry, city: City, names: list[str], featur
     out: dict[str, Prediction] = {}
 
     def cached(name: str) -> Prediction | None:
+        """The kept forecast for this city and model, if it was made from the same hour of data."""
         with _predictions_lock:
             hit = _predictions.get((city.id, name))
         return hit if hit is not None and hit.issued_at == issued else None
 
     def keep(name: str, prediction: Prediction) -> Prediction:
+        """Store a forecast for this city and model and return it."""
         with _predictions_lock:
             _predictions[(city.id, name)] = prediction
         return prediction

@@ -8,6 +8,7 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const conf = readFileSync('deploy/security-headers.conf', 'utf8')
+// The value of a header's add_header line in the conf file; exits when it is missing.
 const header = (name) => {
   const m = new RegExp(`^add_header\\s+${name}\\s+"([^"]*)"`, 'm').exec(conf)
   if (!m) {

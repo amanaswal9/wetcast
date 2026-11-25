@@ -45,11 +45,13 @@ class SpatialPatchTokens(layers.Layer):
     city's tokens (point 0) are the first `patches`."""
 
     def __init__(self, n_points: int, n_point_features: int, patch: int, name=None, trainable=True, dtype=None):
+        """Keep the number of points, the features per point and the hours per patch."""
         # Keras hands name, trainable and dtype back in when it loads a saved model.
         super().__init__(name=name, trainable=trainable, dtype=dtype)
         self.n_points, self.n_point_features, self.patch = n_points, n_point_features, patch
 
     def build(self, input_shape):
+        """Work out the patch count and the number of shared features from the input shape."""
         self.lookback, self.n_features = int(input_shape[1]), int(input_shape[2])
         if self.lookback % self.patch:
             raise ValueError(f"lookback {self.lookback} is not a multiple of patch {self.patch}")
@@ -57,6 +59,7 @@ class SpatialPatchTokens(layers.Layer):
         self.n_shared = self.n_features - self.n_points * self.n_point_features
 
     def call(self, x):
+        """Rearrange (batch, lookback, features) into one token per point and patch."""
         P, Fp, p, N, S = self.n_points, self.n_point_features, self.patch, self.n_patches, self.n_shared
         points = ops.reshape(x[:, :, : P * Fp], (-1, N, p, P, Fp))
         points = ops.reshape(ops.transpose(points, (0, 3, 1, 2, 4)), (-1, P, N, p * Fp))
@@ -66,10 +69,12 @@ class SpatialPatchTokens(layers.Layer):
         return ops.reshape(tokens, (-1, P * N, p * (Fp + S)))
 
     def compute_output_shape(self, input_shape):
+        """(batch, tokens, token size) for a given input shape."""
         lookback, features = int(input_shape[1]), int(input_shape[2])
         return (input_shape[0], self.n_points * (lookback // self.patch), self.patch * (features - self.n_points * self.n_point_features + self.n_point_features))
 
     def get_config(self):
+        """The layer's settings, so a saved model can be loaded again."""
         return super().get_config() | {"n_points": self.n_points, "n_point_features": self.n_point_features, "patch": self.patch}
 
 
@@ -78,11 +83,13 @@ class TokenPositions(layers.Layer):
     """Adds a learned embedding per token position (which point, which patch)."""
 
     def build(self, input_shape):
+        """Create one learned vector per token position."""
         self.positions = self.add_weight(
             name="positions", shape=(int(input_shape[1]), int(input_shape[2])), initializer=keras.initializers.RandomNormal(stddev=0.02)
         )
 
     def call(self, x):
+        """Add the position embeddings to the tokens."""
         return x + self.positions
 
 
@@ -91,17 +98,21 @@ class PointTokens(layers.Layer):
     """The tokens of one point (default the city, point 0)."""
 
     def __init__(self, n_points: int, point: int = 0, name=None, trainable=True, dtype=None):
+        """Keep the number of points and which point to return."""
         super().__init__(name=name, trainable=trainable, dtype=dtype)
         self.n_points, self.point = n_points, point
 
     def call(self, x):
+        """The tokens belonging to the chosen point."""
         n = ops.shape(x)[1] // self.n_points
         return x[:, self.point * n : (self.point + 1) * n, :]
 
     def compute_output_shape(self, input_shape):
+        """Shape of one point's tokens for a given input shape."""
         return (input_shape[0], int(input_shape[1]) // self.n_points, input_shape[2])
 
     def get_config(self):
+        """The layer's settings, so a saved model can be loaded again."""
         return super().get_config() | {"n_points": self.n_points, "point": self.point}
 
 

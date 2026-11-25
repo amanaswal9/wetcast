@@ -29,6 +29,7 @@ SLICES = {"val_train": ("val", "train"), "val_hold": ("val", "holdout"), "test_t
 
 
 def main() -> None:
+    """Run each saved model on validation and test (cached), then rewrite its error ranges."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", choices=REGION_NAMES, default="north_india")
     parser.add_argument("--fresh", action="store_true", help="ignore cached predictions")
@@ -78,6 +79,7 @@ def main() -> None:
         """Replace the `interval` block of a model's metrics.json with freshly calibrated ranges."""
 
         def part(s):
+            """Window ends, true values and predictions for one slice."""
             ends, pred = preds[s]
             return ends, ds.targets[future_index(ends)], pred
 

@@ -19,12 +19,14 @@ pytestmark = pytest.mark.skipif("ensemble" not in REGISTRY.names, reason="ensemb
 
 
 def features(end: pd.Timestamp):
+    """Model inputs for Delhi from a synthetic history ending at end."""
     frame, _ = build_frames(synthetic_long_frame(60, end=end), DELHI, 216.0)
     return frame
 
 
 @pytest.fixture()
 def counted(monkeypatch):
+    """Count how often each model's predict runs, with the forecast cache cleared before and after."""
     predictions._predictions.clear()
     calls: dict[str, int] = {}
     for name in REGISTRY.names:
@@ -34,6 +36,7 @@ def counted(monkeypatch):
         original = predictor.predict
 
         def wrapped(f, _name=name, _original=original):
+            """Count this call, then run the model's own predict."""
             calls[_name] = calls.get(_name, 0) + 1
             return _original(f)
 
@@ -80,9 +83,11 @@ def test_rain_outlook_is_fetched_once_and_optional(monkeypatch):
     names = ["ensemble"]
 
     def run(outlook_values):
+        """Forecast twice with a given rain outlook (None: Open-Meteo down) and return the chance of rain."""
         calls = []
 
         def fake(client, city, issued, hours):
+            """Fake outlook fetch that records each call and returns outlook_values for every hour, or fails."""
             calls.append(issued)
             if outlook_values is None:
                 raise RuntimeError("Open-Meteo is down")

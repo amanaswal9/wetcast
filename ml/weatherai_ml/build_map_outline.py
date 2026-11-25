@@ -83,6 +83,7 @@ def build(topo: dict) -> dict:
 
 
 def main() -> None:
+    """Read the world-atlas TopoJSON named on the command line and write the small world outline."""
     if len(sys.argv) != 2:
         raise SystemExit(__doc__)
     out = build(json.loads(Path(sys.argv[1]).read_text(encoding="utf-8")))

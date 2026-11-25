@@ -70,6 +70,7 @@ const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jes
 export function pickVoice<V extends VoiceLike>(voices: readonly V[], language: string): V | null {
   const english = voices.filter((v) => /^en([-_]|$)/i.test(v.lang) && !NOVELTY.test(v.name))
   if (english.length === 0) return null
+  // Lower-cases a language tag and turns its first underscore into a hyphen.
   const norm = (s: string) => s.replace('_', '-').toLowerCase()
   const want = norm(language)
   return (

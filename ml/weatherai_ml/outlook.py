@@ -110,6 +110,7 @@ def load_for_dataset(ds, region: str) -> np.ndarray:
 
 
 def main() -> None:
+    """Download the day-old rain forecast for each city not yet saved, keeping a manifest."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", choices=REGION_NAMES, default="north_india")
     args = parser.parse_args()

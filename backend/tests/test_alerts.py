@@ -35,6 +35,7 @@ def rss(guids: list[str]) -> bytes:
 
 
 def cap(guid: str, msg_type="Alert", status="Actual", expires="2026-11-20T02:30:00+05:30", refs="", event="Heavy Rain", polygon_url=True) -> bytes:
+    """A CAP alert message with Odia and English info blocks, built from the given fields."""
     param = (
         f"<cap:parameter><cap:valueName>Polygon URL</cap:valueName><cap:value>https://sachet.ndma.gov.in/poly?identifier={guid}</cap:value></cap:parameter>"
         if polygon_url
@@ -61,7 +62,9 @@ def cap(guid: str, msg_type="Alert", status="Actual", expires="2026-11-20T02:30:
 
 
 def transport(feed: bytes, caps: dict[str, bytes], calls: list[str] | None = None) -> httpx.MockTransport:
+    """A fake Sachet server: the feed, the given CAP messages by id, and a square polygon."""
     def handler(request: httpx.Request) -> httpx.Response:
+        """Answer the feed, polygon and CAP requests; unknown ids get 404."""
         if calls is not None:
             calls.append(str(request.url))
         if request.url.path.endswith(".xml"):
@@ -77,6 +80,7 @@ def transport(feed: bytes, caps: dict[str, bytes], calls: list[str] | None = Non
 
 
 def poll(feed: bytes, caps: dict[str, bytes], calls: list[str] | None = None, now: datetime = NOW) -> dict:
+    """Run one Sachet poll against the fake server and return its summary."""
     with db.new_session() as session, httpx.Client(transport=transport(feed, caps, calls)) as client:
         return alerts.poll_sachet(session, client, now=now, gap=0)
 
@@ -215,6 +219,7 @@ def test_endpoint_us_uses_nws(client, monkeypatch):
 
 def test_endpoint_us_reports_an_unreachable_service(client, monkeypatch):
     def down(lat, lon):
+        """Fake NWS lookup that always fails."""
         raise alerts.AlertSourceError("Couldn't reach the US National Weather Service.")
 
     monkeypatch.setattr(alerts, "fetch_nws", down)
@@ -226,6 +231,7 @@ def test_nws_mapping_and_out_of_area(monkeypatch):
     alerts._nws_cache.clear()
 
     def handler(request: httpx.Request) -> httpx.Response:
+        """Fake NWS: an error for points at latitude 28, two alerts (one a test) elsewhere."""
         if request.url.params["point"].startswith("28"):
             return httpx.Response(400, json={"title": "Invalid Parameter"})
         return httpx.Response(200, json={"features": [

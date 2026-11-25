@@ -324,6 +324,7 @@ def encode(ffmpeg: str, raw: Path, trim_from: float, trim_to: float) -> None:
 
 
 def main() -> None:
+    """Record the demo from the running app, then encode the kept part to MP4 and GIF."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--ffmpeg", default=shutil.which("ffmpeg") or "ffmpeg")
     parser.add_argument("--base", default=BASE, help="where the Vite dev server runs")

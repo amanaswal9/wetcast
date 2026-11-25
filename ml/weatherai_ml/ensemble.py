@@ -40,6 +40,7 @@ class Member:
     """One trained model loaded for ensemble selection: a Keras network or the LightGBM forecaster."""
 
     def __init__(self, name: str, root, ds):
+        """Load the model and its metrics; Keras networks also get their scaled features."""
         self.name = name
         folder = root / name
         self.metrics = json.loads((folder / "metrics.json").read_text())
@@ -75,6 +76,7 @@ def selection_score(metrics: dict, baseline: dict) -> float:
 
 
 def main() -> None:
+    """Choose the ensemble members on the validation year, evaluate the ensemble and write its files."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", choices=REGION_NAMES, default="north_india")
     args = parser.parse_args()
@@ -110,9 +112,11 @@ def main() -> None:
     team = [members[n] for n in chosen]
 
     def predict_ends(ends: np.ndarray) -> np.ndarray:
+        """Ensemble forecast: the mean of the chosen members' forecasts."""
         return np.mean([m.predict_ends(ends) for m in team], axis=0)
 
     def timing(ends: np.ndarray) -> dict:
+        """Time one ensemble forecast on the CPU (median of 30 runs) and add up the members' batch timings."""
         end = int(ends[0])
         for m in team:
             m.forecast_once(end)

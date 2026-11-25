@@ -87,6 +87,7 @@ class RainAmount:
     """The saved correction, used by predict.EnsemblePredictor."""
 
     def __init__(self, folder: Path, chance_leads: list[dict]):
+        """Load the correction's settings and trees; chance_leads is the chance-of-rain table per lead hour."""
         import lightgbm as lgb
 
         self.meta = json.loads((folder / "rain_amount.json").read_text())
@@ -110,6 +111,7 @@ class RainAmount:
 
 
 def main() -> None:
+    """Fit the rain correction on 2025, then recalibrate and re-score the ensemble on the 2026 test period."""
     # Training-only imports live here so that serving can import RainAmount cheaply.
     import lightgbm as lgb
 

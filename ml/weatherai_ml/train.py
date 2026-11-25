@@ -59,6 +59,7 @@ def windows(X: np.ndarray, ends: np.ndarray, Y: np.ndarray | None, lookback: int
     Yt = tf.constant(Y) if Y is not None else None
 
     def take(t):
+        """The input window ending at row t, with the next H hours of targets when Y is given."""
         x = Xt[t - lookback + 1 : t + 1]
         return (x, Yt[t + 1 : t + 1 + H]) if Yt is not None else x
 

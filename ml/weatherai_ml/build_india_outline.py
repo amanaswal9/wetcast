@@ -69,6 +69,7 @@ def india_polygons(topo: dict) -> tuple[list[list[list[tuple[float, float]]]], l
 
 
 def main() -> None:
+    """Read the world-atlas TopoJSON named on the command line and write India's outline and coast."""
     if len(sys.argv) != 2:
         raise SystemExit(__doc__)
     topo = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))

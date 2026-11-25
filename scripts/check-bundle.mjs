@@ -19,12 +19,14 @@ const BUDGETS_KB = {
 
 const dist = 'dist'
 const assets = join(dist, 'assets')
+// Gzipped size of a file in kB.
 const gz = (path) => gzipSync(readFileSync(path), { level: 9 }).length / 1024
 const html = readFileSync(join(dist, 'index.html'), 'utf8')
 const linked = new Set([...html.matchAll(/(?:src|href)="\/assets\/([^"]+)"/g)].map((m) => m[1]))
 
 const files = readdirSync(assets).filter((f) => /\.(js|css)$/.test(f))
 const rows = files.map((f) => ({ file: f, kb: gz(join(assets, f)), first: linked.has(f) }))
+// Total kB of a list of rows.
 const sum = (list) => list.reduce((s, r) => s + r.kb, 0)
 
 const js = rows.filter((r) => r.file.endsWith('.js'))

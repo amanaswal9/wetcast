@@ -20,6 +20,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """Add the model_set column to prediction runs and make it part of the unique key."""
     # batch: SQLite can't change constraints in place (PostgreSQL just runs the statements).
     with op.batch_alter_table("prediction_runs") as batch:
         batch.add_column(sa.Column("model_set", sa.String(length=32), nullable=False, server_default="north_india"))
@@ -29,6 +30,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Remove the model_set column and restore the old unique key on prediction runs."""
     # Only safe while just one model set has stored forecasts (the old key can't tell sets apart).
     with op.batch_alter_table("prediction_runs") as batch:
         batch.drop_index("ix_prediction_runs_model_set")

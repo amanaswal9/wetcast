@@ -47,6 +47,7 @@ def svg_page(body: str, size: int) -> str:
 
 
 def main() -> None:
+    """Render og-image.png, the 32 px favicon and the shortcut icons with headless Chromium."""
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1200, "height": 630}, device_scale_factor=1)

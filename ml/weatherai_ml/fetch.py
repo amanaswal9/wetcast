@@ -41,6 +41,7 @@ def reuse_north_india(target_dir, manifest: dict) -> None:
 
 
 def main() -> None:
+    """Download every city of the region not yet saved, keeping the manifest up to date."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", default="north_india")
     args = parser.parse_args()

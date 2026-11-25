@@ -83,7 +83,9 @@ export function makeFormat(units: Units) {
   const mph = units.speed === 'mph'
   const twelve = units.clock === '12'
 
+  // °C in the chosen unit.
   const temp = (c: number) => (f ? (c * 9) / 5 + 32 : c)
+  // km/h in the chosen unit.
   const speed = (kmh: number) => (mph ? kmh / KMH_PER_MPH : kmh)
 
   // "13:15" (or an ISO local string) -> "13:15" or "1:15 pm".

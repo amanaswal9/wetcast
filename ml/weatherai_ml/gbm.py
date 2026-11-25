@@ -124,6 +124,7 @@ class GBMForecaster:
     folder: Path
 
     def __post_init__(self):
+        """Load the config and one booster per target; refuse a model trained on different features."""
         import lightgbm as lgb
 
         self.config = json.loads((self.folder / "gbm_config.json").read_text())
@@ -140,6 +141,7 @@ class GBMForecaster:
 
     @property
     def rain_target(self) -> str:
+        """How rain was trained: "mm" (Tweedie) or "log1p"."""
         return self.config.get("rain_target", "log1p")  # artifacts from before the Tweedie rain model
 
     def predict_matrix(self, X: np.ndarray, prev: np.ndarray) -> np.ndarray:
@@ -156,6 +158,7 @@ class GBMForecaster:
 
 
 def main() -> None:
+    """Train one LightGBM model per target, early-stopped on the validation year, then evaluate and save."""
     # Imported here so that serving, which only needs GBMForecaster, never loads the training code.
     import lightgbm as lgb
 

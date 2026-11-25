@@ -20,6 +20,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """Create the assistant_usage table: questions asked per visitor per day."""
     op.create_table(
         "assistant_usage",
         sa.Column("day", sa.Date(), nullable=False),
@@ -30,4 +31,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Drop the assistant_usage table."""
     op.drop_table("assistant_usage")

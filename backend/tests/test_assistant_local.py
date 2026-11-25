@@ -30,6 +30,7 @@ FAKE_WEATHER = {
 
 @pytest.fixture()
 def stub_weather(monkeypatch):
+    """Replace the forecast lookup with FAKE_WEATHER."""
     monkeypatch.setattr(assistant_data, "weather", lambda lat, lon: FAKE_WEATHER)
 
 
@@ -81,6 +82,7 @@ def test_plain_answers_without_numbers_pass(stub_weather):
 
 def test_string_arguments_and_failed_lookups(monkeypatch):
     def broken(lat, lon):
+        """Fake forecast lookup that always fails."""
         raise RuntimeError("Open-Meteo down")
 
     monkeypatch.setattr(assistant_data, "weather", broken)
@@ -128,6 +130,7 @@ def test_endpoint_reports_local_failures(client, monkeypatch):
     monkeypatch.setattr(assistant, "LIMITS", assistant.DailyLimits())
 
     def down(conversation, place, session, registry):
+        """Fake local model that always fails as if Ollama weren't running."""
         raise assistant.AssistantUnavailable("upstream", "The local model isn't running. Start Ollama and try again.", 502)
 
     monkeypatch.setattr(assistant_local, "answer", down)

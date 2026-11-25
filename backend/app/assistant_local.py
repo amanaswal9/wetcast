@@ -96,6 +96,7 @@ def weather_text(out: dict) -> str:
         base = None
 
     def day_name(d: str) -> str:
+        """Name a date by its weekday, with "today" or "tomorrow" in front when it is one of those."""
         if base is None:
             return d
         day = date.fromisoformat(d)

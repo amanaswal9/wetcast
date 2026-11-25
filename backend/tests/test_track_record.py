@@ -21,14 +21,18 @@ T0 = pd.Timestamp.now(tz="UTC").floor("h") - pd.Timedelta(hours=48)
 
 
 def fake_inputs(end: pd.Timestamp, seed: int = 0):
+    """A fake input fetch returning synthetic history that ends at end."""
     def fetch(client, city, past_hours):
+        """Synthetic history for any city, ending at end."""
         return synthetic_long_frame(past_hours, end=end, seed=seed), 0.0
 
     return fetch
 
 
 def fake_centre(end: pd.Timestamp):
+    """A fake fetch of the city centre's observations, from synthetic data ending at end."""
     def fetch(client, city, past_hours):
+        """Synthetic history ending at end, centre point only."""
         frame = synthetic_long_frame(past_hours, end=end, seed=7)
         return frame[frame["point"] == "c"]
 
@@ -36,10 +40,12 @@ def fake_centre(end: pd.Timestamp):
 
 
 def at(ts: pd.Timestamp) -> datetime:
+    """A pandas timestamp as a datetime."""
     return ts.to_pydatetime()
 
 
 def count(model) -> int:
+    """Number of rows in a table."""
     with db.new_session() as s:
         return s.scalar(select(func.count()).select_from(model))
 
@@ -119,6 +125,7 @@ def test_old_unscored_points_are_backfilled(client, monkeypatch):
 
 def test_one_city_failing_does_not_stop_the_others(client, monkeypatch):
     def flaky(client_, city, past_hours):
+        """Fake Open-Meteo that fails for Delhi and returns synthetic history for other cities."""
         if city.id == "delhi":
             raise RuntimeError("Open-Meteo kept rate-limiting the request")
         return synthetic_long_frame(past_hours, end=T0), 0.0

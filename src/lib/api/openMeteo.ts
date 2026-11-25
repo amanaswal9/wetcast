@@ -201,6 +201,7 @@ export function parseWeek(raw: unknown, fetchedAt: number): WeekForecast {
   const d = obj(root.daily, 'daily')
   const days = arr(d.time, 'daily.time').map((t, i) => str(t, `daily.time[${i}]`))
   const m = days.length
+  // One daily series by its key, filled with nulls if Open-Meteo left it out.
   const col = (key: string) => series(d, key, m)
   const [code, tMax, tMin, rise, set, daylight, uv, ppMax, pSum, wMax, gMax, wDir] = [
     'weather_code',
@@ -256,6 +257,7 @@ export interface HistoryDay {
 export async function getDailyHistory(place: Place, days: number, { signal }: RequestOptions = {}): Promise<HistoryDay[]> {
   const end = new Date(Date.now() - 6 * 86_400_000)
   const start = new Date(end.getTime() - (days - 1) * 86_400_000)
+  // A date as YYYY-MM-DD (UTC).
   const iso = (d: Date) => d.toISOString().slice(0, 10)
   const params = new URLSearchParams({
     latitude: coord(place.latitude),

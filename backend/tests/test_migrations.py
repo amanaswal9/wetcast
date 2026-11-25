@@ -15,6 +15,7 @@ from app.migrations import BASELINE, alembic_config, current_revision, head_revi
 
 @pytest.fixture()
 def sqlite_engine(tmp_path):
+    """An engine on an empty SQLite file, disposed of after the test."""
     eng = create_engine(f"sqlite:///{(tmp_path / 'm.db').as_posix()}")
     yield eng
     eng.dispose()

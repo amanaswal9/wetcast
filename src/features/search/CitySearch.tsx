@@ -24,6 +24,7 @@ interface CitySearchProps {
 
 // True when two place names match, ignoring case, spaces and punctuation.
 function sameName(a: string, b: string): boolean {
+  // Lower-cases a name and keeps only the letters a to z.
   const n = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '')
   return n(a) === n(b)
 }
@@ -91,12 +92,14 @@ export function CitySearch({
     }
   }, [query])
 
+  // Picks a place, then clears and closes the search.
   function choose(place: Place) {
     onSelect(place)
     setQuery('')
     setOpen(false)
   }
 
+  // Listens for a spoken city or page, or stops listening if it already is.
   function startVoice() {
     if (speech.listening) {
       speech.stop()
@@ -124,6 +127,7 @@ export function CitySearch({
     )
   }
 
+  // Arrow keys move through the results, Enter picks one, Escape closes the list.
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'ArrowDown' && results.length > 0) {
       event.preventDefault()

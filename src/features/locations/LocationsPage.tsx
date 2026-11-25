@@ -89,6 +89,7 @@ export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: Loc
   const loading = forecasts.status === 'loading' || forecasts.refreshing
   const byId = new Map((forecasts.data ?? []).map((e) => [e.place.id, e]))
 
+  // Saves a place and says whether it was added, already saved or the list is full.
   function add(next: Place) {
     const result = saved.add(next)
     setMessage(
@@ -100,6 +101,7 @@ export function LocationsPage({ place, saved, theme, refreshToken, onOpen }: Loc
     )
   }
 
+  // Adds a place to the comparison or takes it out, up to MAX_COMPARE places.
   function toggleCompare(id: string) {
     if (compareIds.includes(id)) {
       setPicked(compareIds.filter((x) => x !== id))

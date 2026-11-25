@@ -33,6 +33,7 @@ function buildRows(data: Predictions, model: string, target: Target, week: WeekF
   const series = week.hourly
     .map((h) => ({ t: Date.parse(`${h.time}:00Z`) - week.utcOffsetSeconds * 1000, v: pick(h) }))
     .filter((s): s is { t: number; v: number } => s.v !== null)
+  // Open-Meteo's value at a UTC time, interpolated between hours; null across gaps over an hour.
   const valueAt = (t: number): number | null => {
     for (let i = 0; i < series.length; i++) {
       if (series[i].t === t) return series[i].v
@@ -192,6 +193,7 @@ function PredictionChart({
 function CoverageNote({ coverage, modelName }: { coverage: PredictionCoverage; modelName: string }) {
   const fmt = useFormat()
   const { mae, basis, temperature_range: range } = coverage.expected_error
+  // A temperature difference in the viewer's unit, to one decimal.
   const t = (c: number) => `${fmt.tempDelta(c).toFixed(1)} ${fmt.tempUnit}`
   const parts = [
     mae.temperature !== null && `${t(mae.temperature)} for temperature`,

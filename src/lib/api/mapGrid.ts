@@ -111,6 +111,7 @@ export function gridFor(bounds: Bounds, size: ViewSize = { width: 720, height: 4
   const maxRows = Math.max(3, Math.floor(size.height / MIN_CELL_PX))
   let lonSpacing = pickSpacing(west, east, maxCols, clampLon)
   let latSpacing = pickSpacing(south, north, maxRows, clampLat)
+  // Number of points the current spacings would give.
   const total = () => count(indexRange(south, north, latSpacing, clampLat)) * count(indexRange(west, east, lonSpacing, clampLon))
   while (total() > MAX_POINTS && (lonSpacing !== coarser(lonSpacing) || latSpacing !== coarser(latSpacing))) {
     if (lonSpacing <= latSpacing && lonSpacing !== coarser(lonSpacing)) lonSpacing = coarser(lonSpacing)
@@ -147,6 +148,7 @@ export function nearestPoint(points: GridPoint[], latitude: number, longitude: n
 export function parsePoint(raw: unknown): PointForecast {
   const hourly = obj(obj(raw, 'location').hourly, 'hourly')
   const times = arr(hourly.time, 'hourly.time').map((t) => Date.parse(`${str(t, 'time')}Z`))
+  // One hourly variable as numbers, checked to be as long as the times.
   const column = (name: string) => {
     const values = arr(hourly[name], name).map((v) => numOrNull(v))
     if (values.length !== times.length) throw new ApiError('invalid', 'The weather service sent an unexpected answer for the map.')

@@ -154,6 +154,7 @@ export interface Evaluation {
   samples?: Record<string, Record<string, (string | number | null)[]>>
 }
 
+// Thrown when there is no Wetcast server to ask or it can't be reached.
 class BackendUnavailable extends ApiError {}
 
 // On a public copy with exported data, the file that holds what this API address would answer
@@ -192,6 +193,7 @@ async function getJson(
   }
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+  // Passes the caller's abort on to this request.
   const forward = () => controller.abort()
   signal?.addEventListener('abort', forward, { once: true })
   try {

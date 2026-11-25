@@ -52,6 +52,7 @@ def test_system_prompt_asks_for_plain_text():
 
 def test_local_replies_are_cleaned():
     def handle(request: httpx.Request) -> httpx.Response:
+        """Fake Ollama replying with a starred list and bold markers."""
         message = {"role": "assistant", "content": f"I can help with:\n{STAR} the forecast\n{STAR} {BOLD}official{BOLD} warnings"}
         return httpx.Response(200, json={"message": message, "prompt_eval_count": 10, "eval_count": 5})
 
