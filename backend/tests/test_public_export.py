@@ -64,3 +64,20 @@ def test_export_stops_asking_when_open_meteo_keeps_refusing(tmp_path, monkeypatc
     assert len(asked) == export_public_data.GIVE_UP_AFTER
     assert missing == len(json.loads((tmp_path / "coverage.json").read_text(encoding="utf-8")))
     assert json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))["cities"] == []
+
+
+def test_export_uses_one_batched_fetch_for_every_city(tmp_path, monkeypatch):
+    def batched(client, cities, past_hours):
+        return {c.id: (synthetic_long_frame(past_hours), 0.0) for c in cities}
+
+    def single(client, city, past_hours):
+        raise AssertionError(f"{city.id} was fetched on its own")
+
+    monkeypatch.setattr(predictions, "fetch_recent_many", batched)
+    monkeypatch.setattr(predictions, "fetch_recent", single)
+    monkeypatch.setattr(export_public_data.time, "sleep", lambda s: None)
+    predictions._cache.clear()
+
+    assert export_public_data.export(tmp_path) == 0
+    index = json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))
+    assert len(index["fresh"]) == len(json.loads((tmp_path / "coverage.json").read_text(encoding="utf-8")))

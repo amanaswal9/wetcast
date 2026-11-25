@@ -418,6 +418,35 @@ def test_live_requests_retry_a_dropped_connection_quickly(monkeypatch):
     assert len(calls) == 2 and waits == [3]
 
 
+def test_batched_recent_fetch_gives_each_city_its_own_five_points():
+    """Many cities share one request; the answer is split back into five points per city, in order."""
+    import httpx
+
+    from weatherai_ml.config import API_VARIABLES, POINTS, region_cities
+    from weatherai_ml.openmeteo import fetch_recent_many
+
+    cities = list(region_cities("india"))[:3]
+    seen = []
+
+    def handler(request):
+        lats = request.url.params["latitude"].split(",")
+        seen.append(len(lats))
+        def point(lat):
+            hourly = {v: [float(lat)] for v in API_VARIABLES}
+            hourly["time"] = ["2026-11-25T00:00"]
+            return {"elevation": float(lat), "hourly": hourly}
+
+        return httpx.Response(200, json=[point(lat) for lat in lats])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        out = fetch_recent_many(client, cities, past_hours=1, per_request=2)
+    assert seen == [2 * len(POINTS), len(POINTS)]  # two requests: two cities, then one
+    for city in cities:
+        frame, elevation = out[city.id]
+        assert len(frame) == len(POINTS)
+        assert elevation == pytest.approx(round(city.latitude + POINTS[0][1], 4))  # its own centre point
+
+
 def test_rain_outlook_lines_up_with_the_forecast_hours():
     """The live day-old forecast is returned for exactly the 24 hours after the issue hour."""
     import httpx

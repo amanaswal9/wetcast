@@ -69,6 +69,31 @@ def fetch_live(client: httpx.Client, city: City, issued: pd.Timestamp, hours: in
     return series.reindex(wanted).to_numpy(dtype=float)
 
 
+def fetch_live_many(
+    client: httpx.Client, cities: list[City], issued: pd.Timestamp, hours: int = 24, retries: int = 6, network_wait: int = 20
+) -> dict[str, np.ndarray]:
+    """fetch_live for many cities in one request, keyed by city id."""
+    params = {
+        "latitude": ",".join(str(round(c.latitude, 4)) for c in cities),
+        "longitude": ",".join(str(round(c.longitude, 4)) for c in cities),
+        "hourly": VARIABLE,
+        "timezone": "GMT",
+        "past_hours": 2,
+        "forecast_hours": hours + 2,
+    }
+    payload = _get(client, PREVIOUS_RUNS_URL, params, retries=retries, network_wait=network_wait)
+    items = payload if isinstance(payload, list) else [payload]
+    ts = pd.Timestamp(issued)
+    ts = ts.tz_convert("UTC") if ts.tzinfo else ts.tz_localize("UTC")
+    wanted = pd.date_range(ts + pd.Timedelta(hours=1), periods=hours, freq="h")
+    out = {}
+    for city, item in zip(cities, items):
+        hourly = item["hourly"]
+        series = pd.Series(hourly[VARIABLE], index=pd.to_datetime(hourly["time"], utc=True), dtype=float)
+        out[city.id] = series.reindex(wanted).to_numpy(dtype=float)
+    return out
+
+
 def load_for_dataset(ds, region: str) -> np.ndarray:
     """(rows,) the day-old forecast for each dataset row's hour and city; NaN where not downloaded."""
     out = np.full(len(ds.times), np.nan)

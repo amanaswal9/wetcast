@@ -15,8 +15,8 @@ from sqlalchemy.orm import Session
 
 from weatherai_ml.config import TARGETS, City, region_cities
 from weatherai_ml.features import build_frames
-from weatherai_ml.openmeteo import fetch_recent
-from weatherai_ml.outlook import fetch_live as fetch_outlook
+from weatherai_ml.openmeteo import fetch_recent, fetch_recent_many
+from weatherai_ml.outlook import fetch_live as fetch_outlook, fetch_live_many
 from weatherai_ml.models import ENSEMBLE_NAME
 from weatherai_ml.predict import Prediction, Predictor
 
@@ -106,6 +106,46 @@ def rain_outlook(city: City, issued: pd.Timestamp, hours: int) -> np.ndarray | N
     with _predictions_lock:
         _outlooks[city.id] = (issued, values)
     return values
+
+
+def prime_many(registry: ModelRegistry, cities: list[City], lookback: int) -> set[str]:
+    """Fetch recent weather (and Open-Meteo's rain outlook) for many cities in a few batched requests
+    on one connection, and keep the results where recent_features and rain_outlook look first. Used by
+    the public export, whose machine's connections to Open-Meteo sometimes hang: a few patient batched
+    calls get through where 48 separate ones didn't. Returns the ids of the cities primed; any city
+    left out is simply fetched on its own later."""
+    hours = lookback + HISTORY_MARGIN_HOURS
+    ttl = 3600.0
+    try:
+        with httpx.Client(timeout=60) as client:
+            frames = fetch_recent_many(client, cities, hours)
+    except (httpx.HTTPError, ValueError, KeyError, RuntimeError) as exc:
+        log.warning("batched open-meteo fetch failed: %s", exc)
+        return set()
+    primed: list[tuple[City, pd.Timestamp]] = []
+    for city in cities:
+        if city.id not in frames:
+            continue
+        long_df, elevation = frames[city.id]
+        features, _ = build_frames(long_df, city, city_elevation(registry, city, elevation))
+        with _lock:
+            _cache[city.id] = CacheEntry(time.monotonic() + ttl, features, hours)
+        primed.append((city, Predictor.usable(features).index[-1]))
+    # The rain outlook is optional (the ensemble works without it), so a failure here only means none.
+    by_issue: dict[pd.Timestamp, list[City]] = {}
+    for city, issued in primed:
+        by_issue.setdefault(issued, []).append(city)
+    for issued, group in by_issue.items():
+        try:
+            with httpx.Client(timeout=60) as client:
+                outlooks: dict[str, np.ndarray | None] = dict(fetch_live_many(client, group, issued))
+        except (httpx.HTTPError, ValueError, KeyError, RuntimeError) as exc:
+            log.warning("batched rain outlook failed: %s", exc)
+            outlooks = {}
+        with _predictions_lock:
+            for city in group:
+                _outlooks[city.id] = (issued, outlooks.get(city.id))
+    return {city.id for city, _ in primed}
 
 
 def predict_models(registry: ModelRegistry, city: City, names: list[str], features: pd.DataFrame) -> dict[str, Prediction]:

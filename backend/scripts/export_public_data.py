@@ -21,8 +21,10 @@ from pathlib import Path
 import httpx
 from fastapi.testclient import TestClient
 
+from app import coverage, predictions
 from app.db import get_session
 from app.main import app
+from app.registry import get_registry
 
 log = logging.getLogger("weatherai.export")
 PAUSE_SECONDS = 2.0  # between cities, to stay gentle with Open-Meteo's free API (shared by everyone on the same machine)
@@ -102,6 +104,16 @@ def _export(client: TestClient, out: Path, previous: str | None) -> int:
         for city, samples in full.get("samples", {}).items():
             write(out / "evaluation" / name / f"{city}.json", dict(full, samples={city: samples}))
 
+    # Fetch every city's recent weather in a few batched requests first; the forecasts below then
+    # reuse it instead of opening 48 separate connections to Open-Meteo.
+    registry = get_registry()
+    wanted = {c["id"] for c in cities}
+    city_objects = [c for c in coverage.cities(registry.region_id) if c.id in wanted]
+    lookback = max(registry.get(n).preprocessor.lookback for n in registry.names)
+    started = time.monotonic()
+    primed = predictions.prime_many(registry, city_objects, lookback)
+    log.info("recent weather for %d of %d cities in batched requests (%.1f s)", len(primed), len(city_objects), time.monotonic() - started)
+
     fresh, carried, missing = [], [], []
     failures_in_a_row = 0
     deadline = time.monotonic() + TIME_BUDGET_SECONDS
@@ -119,7 +131,8 @@ def _export(client: TestClient, out: Path, previous: str | None) -> int:
                 fresh.append(cid)
                 failures_in_a_row = 0
                 log.info("%s: new forecast (%.1f s)", cid, seconds)
-                time.sleep(PAUSE_SECONDS)
+                if cid not in primed:  # it went to Open-Meteo on its own
+                    time.sleep(PAUSE_SECONDS)
                 continue
             failures_in_a_row += 1
             log.warning("%s: no new forecast (%s after %.1f s): %s", cid, res.status_code, seconds, res.text[:200])

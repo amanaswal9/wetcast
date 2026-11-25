@@ -54,9 +54,12 @@ def _rate_limit_wait(response: httpx.Response) -> tuple[int, str]:
     return 65, reason or "rate limited"
 
 
-def _get(client: httpx.Client, url: str, params: dict, retries: int = 5, patient: bool = False) -> list[dict] | dict:
+def _get(
+    client: httpx.Client, url: str, params: dict, retries: int = 5, patient: bool = False, network_wait: int | None = None
+) -> list[dict] | dict:
     """GET with retries. `patient=True` (bulk downloads) waits out hourly and
-    daily limits indefinitely instead of giving up."""
+    daily limits indefinitely instead of giving up. `network_wait` overrides the pause after a
+    dropped connection."""
     attempt = 0
     while True:
         try:
@@ -68,7 +71,7 @@ def _get(client: httpx.Client, url: str, params: dict, retries: int = 5, patient
             # Bulk downloads wait out a real outage; a live request retries soon, because the usual cause
             # is one dropped connection (on GitHub's runners about one in four TLS handshakes timed out,
             # and the next attempt worked).
-            wait = 120 if patient else 3
+            wait = network_wait if network_wait is not None else (120 if patient else 3)
             print(f"  network error ({exc}); retrying in {wait} s", flush=True)
             time.sleep(wait)
             continue
@@ -84,6 +87,32 @@ def _get(client: httpx.Client, url: str, params: dict, retries: int = 5, patient
             continue
         response.raise_for_status()
         return response.json()
+
+
+def fetch_recent_many(
+    client: httpx.Client, cities: list[City], past_hours: int, per_request: int = 10, retries: int = 6, network_wait: int = 20
+) -> dict[str, tuple[pd.DataFrame, float]]:
+    """fetch_recent for many cities in a few requests (`per_request` cities, five points each, per
+    call), keyed by city id. Fewer connections means fewer chances to hit a dropped one, so each call
+    can afford to retry patiently."""
+    out: dict[str, tuple[pd.DataFrame, float]] = {}
+    for start in range(0, len(cities), per_request):
+        group = cities[start : start + per_request]
+        coords = [c for city in group for c in point_coords(city)]
+        params = {
+            "latitude": ",".join(str(lat) for _, lat, _ in coords),
+            "longitude": ",".join(str(lon) for _, _, lon in coords),
+            "hourly": ",".join(API_VARIABLES),
+            "timezone": "GMT",
+            "past_hours": past_hours,
+            "forecast_hours": 1,
+        }
+        payload = _get(client, FORECAST_URL, params, retries=retries, network_wait=network_wait)
+        items = payload if isinstance(payload, list) else [payload]
+        size = len(POINTS)
+        for k, city in enumerate(group):
+            out[city.id] = _to_frame(items[k * size : (k + 1) * size], [name for name, _, _ in point_coords(city)])
+    return out
 
 
 def fetch_history(client: httpx.Client, city: City, start: str, end: str) -> tuple[pd.DataFrame, float]:

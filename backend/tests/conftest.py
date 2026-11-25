@@ -23,7 +23,13 @@ def no_rain_outlook(monkeypatch):
     def offline(client, city, issued, hours):
         raise RuntimeError("offline in tests")
 
+    def offline_many(*args):
+        raise RuntimeError("offline in tests")
+
     monkeypatch.setattr(predictions, "fetch_outlook", offline)
+    # The public export's batched fetches are offline too; a test that wants them replaces these.
+    monkeypatch.setattr(predictions, "fetch_recent_many", offline_many)
+    monkeypatch.setattr(predictions, "fetch_live_many", offline_many)
     predictions._outlooks.clear()
 
 
