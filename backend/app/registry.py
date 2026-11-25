@@ -9,6 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from weatherai_ml.gbm import GBM_NAME
+from weatherai_ml.linear import LINEAR_NAME, LinearForecaster
 from weatherai_ml.models import DISPLAY_NAMES, ENSEMBLE_NAME, MODEL_NAMES
 from weatherai_ml.predict import EnsemblePredictor, GBMPredictor, Predictor
 
@@ -18,6 +19,7 @@ log = logging.getLogger("weatherai.registry")
 # Files a model folder must have before the model is served.
 REQUIRED = ("model.keras", "preprocessor.json", "metrics.json", "evaluation.json")
 REQUIRED_ENSEMBLE = ("ensemble.json", "metrics.json", "evaluation.json")
+REQUIRED_LINEAR = ("linear.json", "metrics.json", "evaluation.json")
 REQUIRED_GBM = ("gbm_config.json", "metrics.json", "evaluation.json", "model_temperature.txt", "model_humidity.txt", "model_precipitation.txt")
 
 
@@ -41,6 +43,11 @@ class ModelRegistry:
         if all((gbm_folder / f).exists() for f in REQUIRED_GBM):
             self._predictors[GBM_NAME] = GBMPredictor(gbm_folder)
             log.info("model %s registered", GBM_NAME)
+        # The linear baseline is shown for comparison; it isn't an ensemble member.
+        linear_folder = artifacts_dir / LINEAR_NAME
+        if all((linear_folder / f).exists() for f in REQUIRED_LINEAR):
+            self._predictors[LINEAR_NAME] = GBMPredictor(linear_folder, LinearForecaster)
+            log.info("model %s registered", LINEAR_NAME)
         self._register_ensemble()
         self._summaries: dict[str, dict] = {}
 
@@ -79,7 +86,7 @@ class ModelRegistry:
 
     @property
     def names(self) -> list[str]:
-        """Served model names: the neural networks, then the boosted trees, then the ensemble."""
+        """Served model names: the neural networks, the boosted trees, the linear baseline, then the ensemble."""
         return list(self._predictors)
 
     def get(self, name: str) -> Predictor | GBMPredictor | EnsemblePredictor | None:

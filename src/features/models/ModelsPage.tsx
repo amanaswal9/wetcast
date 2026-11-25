@@ -152,6 +152,8 @@ const ARCHITECTURES: Record<string, string> = {
   transformer:
     'a spatio-temporal Transformer. Each point’s hours are cut into 6-hour patches, and attention compares every patch of every point with every other, so it can link, for example, the west point’s pressure 18 hours ago to the city’s next day.',
   lightgbm: 'gradient-boosted decision trees, one row per hour ahead, built from the current readings and recent lags.',
+  ridge:
+    'a linear baseline from scikit-learn: Ridge regression on exactly the table LightGBM uses. It shows how much the non-linear models add over a straight line through the same inputs, and it is not part of the ensemble.',
   ensemble: 'the plain average of the members listed above in “Test-set results”, chosen on the validation year.',
 }
 
@@ -401,7 +403,9 @@ export function ModelsPage({ theme }: { theme: Theme }) {
               ? 'Averages the others'
               : m.kind === 'gbm' && m.trees
                 ? `${TARGETS.map((t) => m.trees![t]).join(' / ')} trees`
-                : `${m.training.epochs_run} (${m.training.best_epoch})`,
+                : m.kind === 'linear'
+                  ? 'Solved directly'
+                  : `${m.training.epochs_run} (${m.training.best_epoch})`,
             m.kind === 'ensemble' ? 'None of its own' : minutes(m.training.seconds),
             `${fmt(m.inference.single_ms_median, 1)} ms`,
             `${fmt(m.inference.batch256_ms_per_forecast, 3)} ms`,

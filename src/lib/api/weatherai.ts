@@ -128,8 +128,8 @@ export interface ModelMetrics {
     train_stride_hours?: number
     note?: string
   }
-  // "ensemble" averages other models; "gbm" is LightGBM (trees, no epochs).
-  kind?: 'ensemble' | 'gbm'
+  // "ensemble" averages other models; "gbm" is LightGBM (trees, no epochs); "linear" is the Ridge baseline.
+  kind?: 'ensemble' | 'gbm' | 'linear'
   members?: string[]
   method?: string
   trees?: Record<Target, number>

@@ -159,6 +159,17 @@ def test_lightgbm_is_served(client, monkeypatch):
     assert client.get("/api/models/lightgbm").json()["kind"] == "gbm"
 
 
+@pytest.mark.skipif("ridge" not in get_registry().names, reason="no Ridge baseline trained")
+def test_ridge_baseline_is_served_outside_the_ensemble(client, monkeypatch):
+    monkeypatch.setattr(predictions, "fetch_recent", fake_fetch)
+    r = client.get("/api/predictions", params={"latitude": 28.61, "longitude": 77.21, "models": "ridge"})
+    assert r.status_code == 200
+    points = r.json()["models"][0]["points"]
+    assert len(points) == 24 and all(p["precipitation"] >= 0 and 0 <= p["humidity"] <= 100 for p in points)
+    assert client.get("/api/models/ridge").json()["kind"] == "linear"
+    assert "ridge" not in get_registry().ensemble_members
+
+
 @pytest.mark.skipif(not HAS_MODELS, reason="no trained models yet")
 def test_unknown_model_is_rejected(client, monkeypatch):
     monkeypatch.setattr(predictions, "fetch_recent", fake_fetch)

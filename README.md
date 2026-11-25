@@ -27,7 +27,7 @@ Only the title card, captions and pointer are drawn on top. Re-record it with `d
 - Map: temperature, rain and wind over a map for the next 48 hours, from Open-Meteo forecasts at a grid of
   points, with the cities Wetcast's own models cover marked.
 - Forecast: 7-day strip and per-day detail, plus Wetcast's own predictions (LSTM, GRU, CNN-LSTM,
-  ST-Transformer, LightGBM and their ensemble)
+  ST-Transformer, LightGBM and their ensemble, plus a linear Ridge baseline)
   for the next 24 hours with error ranges, side by side with Open-Meteo's forecast.
 - Analytics: actual vs predicted on the held-out test period, error by city, and historical trends for any place.
 - Models: test-set MAE, RMSE and R², a persistence baseline, error-range coverage, the live track record and
@@ -191,13 +191,30 @@ so they are offline and deterministic. Synthetic data is never used for training
 | Spatial context | Each city plus four points about 55 km north, south, east and west |
 | Input | Last 48 hours × 42 features (7 weather variables × 5 points, time of day, season, latitude, longitude, elevation) |
 | Output | Next 24 hours of temperature, humidity and rain at the city |
-| Architectures | Two-layer LSTM, two-layer GRU, causal CNN + LSTM, a spatio-temporal Transformer (`ml/weatherai_ml/models.py`), LightGBM gradient-boosted trees (`ml/weatherai_ml/gbm.py`), and an equal-weight ensemble (`ml/weatherai_ml/ensemble.py`) |
+| Architectures | Two-layer LSTM, two-layer GRU, causal CNN + LSTM, a spatio-temporal Transformer (`ml/weatherai_ml/models.py`), LightGBM gradient-boosted trees (`ml/weatherai_ml/gbm.py`), an equal-weight ensemble (`ml/weatherai_ml/ensemble.py`), and a Ridge regression baseline from scikit-learn (`ml/weatherai_ml/linear.py`) |
 
 LightGBM turns each forecast into 24 table rows (one per hour ahead) built from the current features, the
 city's last 24 hours (lags 1, 3, 6, 12, 24) and the value 24 hours before each predicted hour, predicting the
 day-on-day change like the version 2 networks. One booster per target, early-stopped on the validation year.
 It has the best single-model humidity (test MAE 5.95 %), runs a forecast in about 2 ms, and its feature
 importance is shown on the Models page; its rain MAE is weaker than the networks'.
+
+The Ridge baseline (2026-11-25, `python -m weatherai_ml.linear --region india`) is linear regression from scikit-learn
+on exactly LightGBM's table and targets: StandardScaler, then Ridge, one model per target, with each target's penalty
+picked on the 2025 validation year from a fixed list (0.1 to 1000; the choices landed at the list's ends, where the
+validation scores differ by under 0.03). It is saved as plain numbers in `linear.json` (no pickle file), so the API
+serves it with NumPy alone, and it is not an ensemble member. On the 2026 test year it beats persistence modestly and
+the non-linear models clearly:
+
+| Model (all-India, test year) | Temperature, test cities | Temperature, 8 unseen cities | Humidity |
+|---|---|---|---|
+| Persistence (same hour yesterday) | 1.130 °C | 1.005 °C | 6.92 % |
+| Ridge (linear) | 1.068 °C | 0.965 °C | 6.51 % |
+| LightGBM | 0.947 °C | 0.948 °C | 5.58 % |
+| Ensemble | 0.904 °C | 0.844 °C | 5.47 % |
+
+So a straight line through the same inputs takes about 5% off persistence's error, and the non-linear models take
+another 15% off the line's.
 
 The ST-Transformer (spatio-temporal Transformer, 150k parameters) cuts each of the five points' 48 hours
 into 6-hour patches, giving 40 tokens (5 points × 8 patches). Each token carries that point's weather for those
@@ -476,7 +493,7 @@ How it works (`backend/app/alerts.py`):
 | --- | --- | --- |
 | Current conditions, past hours | Open-Meteo forecast models | "Open-Meteo model estimate" / solid line |
 | Forecast | Open-Meteo forecast | "Open-Meteo forecast" / dashed line |
-| Wetcast predictions | Our LSTM, GRU, CNN-LSTM, ST-Transformer, LightGBM, ensemble | Model colour, dithered error range |
+| Wetcast predictions | Our LSTM, GRU, CNN-LSTM, ST-Transformer, LightGBM, Ridge, ensemble | Model colour, dithered error range |
 | Historical trends | Open-Meteo archive (ERA5) | Named under the chart |
 | Official warnings | NDMA Sachet (India), US National Weather Service | Source named under the warnings |
 | Weather map | Open-Meteo forecast at grid points, on OpenStreetMap tiles | "About this map" box under the map |

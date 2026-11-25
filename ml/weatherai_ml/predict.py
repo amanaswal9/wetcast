@@ -147,14 +147,15 @@ class InputSpec:
 
 
 class GBMPredictor:
-    """Live inference for the LightGBM model, using gbm.build_matrix exactly as in training."""
+    """Live inference for the table models (LightGBM, and the Ridge baseline), using gbm.build_matrix
+    exactly as in training. `forecaster` picks the model family; LightGBM by default."""
 
-    def __init__(self, model_dir: Path):
+    def __init__(self, model_dir: Path, forecaster=None):
         from .gbm import GBMForecaster
 
         self.model_dir = model_dir
         self.name = model_dir.name
-        self.forecaster = GBMForecaster(model_dir)
+        self.forecaster = (forecaster or GBMForecaster)(model_dir)
         self.metrics = json.loads((model_dir / "metrics.json").read_text())
         self.ranges = Ranges(self.metrics["interval"])
         self.preprocessor = InputSpec(lookback=self.forecaster.lookback, horizon=len(self.ranges.flat))

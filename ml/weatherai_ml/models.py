@@ -26,6 +26,7 @@ DISPLAY_NAMES = {
     "cnn_lstm": "CNN-LSTM",
     "transformer": "ST-Transformer",
     "lightgbm": "LightGBM",
+    "ridge": "Ridge (linear)",
     "ensemble": "Ensemble",
 }
 
