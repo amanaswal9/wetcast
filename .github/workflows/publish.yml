@@ -23,6 +23,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read  # the deploy step looks the build's artifact up through the Actions API
 
 # One publish at a time; a newer one waits rather than cancelling one already deploying.
 concurrency:
@@ -30,15 +31,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Build, forecast and publish
+  build:
+    name: Build and forecast
     # After CI only when every check passed; scheduled and manual runs publish main as it is.
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     env:
       VITE_PUBLIC_SITE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
       VITE_PUBLIC_DATA: "1"
@@ -72,5 +70,24 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist/
-      - id: deploy
+
+  # A separate job, as in GitHub's own Pages example: deploying in the same job as the upload failed
+  # to find the artifact, because GitHub hadn't finished registering it yet. One retry covers a
+  # passing "try again later" from the Pages service.
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.second.outputs.page_url || steps.first.outputs.page_url }}
+    steps:
+      - id: first
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      - if: ${{ steps.first.outcome == 'failure' }}
+        run: sleep 60
+      - id: second
+        if: ${{ steps.first.outcome == 'failure' }}
         uses: actions/deploy-pages@v5
