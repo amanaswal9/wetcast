@@ -10,7 +10,7 @@ setup below; the demo shows them.
 
 ![Wetcast demo: the Dashboard for Delhi with its LCD readout, searching Jaipur, opening the Forecast from the Start menu, Wetcast's model forecasts next to Open-Meteo, the weather map's temperature and wind tools, the test-period results, and switching to Fahrenheit in the Units dialog](docs/demo/wetcast-demo.gif)
 
-A 53-second tour recorded from the running app with live data ([MP4, 1280×720](docs/demo/wetcast-demo.mp4)).
+A 56-second tour recorded from the running app with live data ([MP4, 1280×720](docs/demo/wetcast-demo.mp4)).
 Only the title card, captions and pointer are drawn on top. Re-record it with `docs/demo/record_demo.py`
 (needs the dev servers, Playwright with Chromium, and ffmpeg).
 

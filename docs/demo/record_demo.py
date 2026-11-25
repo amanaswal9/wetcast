@@ -84,7 +84,7 @@ CARD_HTML = """
 TITLE_BODY = """
 <div style="font:700 56px 'Pixelify Sans',monospace;line-height:1">Wetcast</div>
 <div style="font:22px Tahoma;margin-top:16px;line-height:1.35">Weather forecasts from its own trained models,<br>shown next to a professional forecast, and checked honestly.</div>
-<div style="font:16px Tahoma;margin-top:18px;color:#3b3b3b">LSTM · GRU · CNN-LSTM · ST-Transformer · LightGBM · Ensemble</div>
+<div style="font:16px Tahoma;margin-top:18px;color:#3b3b3b">LSTM · GRU · CNN-LSTM · ST-Transformer · LightGBM · Ridge · Ensemble</div>
 """
 
 END_BODY = """
@@ -233,6 +233,10 @@ def record(video_dir: Path) -> tuple[Path, float, float]:
         page.wait_for_timeout(1500)
         glide(page, page.get_by_role("tab", name="ST-Transformer", exact=True))
         page.wait_for_timeout(1800)
+        caption(page, "A plain linear model too, as the baseline to beat")
+        glide(page, page.get_by_role("tab", name="Ridge (linear)", exact=True))
+        page.wait_for_timeout(1800)
+        caption(page, "Wetcast's own models next to Open-Meteo, with 80% error ranges")
         glide(page, page.get_by_role("tab", name="Ensemble", exact=True))
         page.wait_for_timeout(1800)
 
