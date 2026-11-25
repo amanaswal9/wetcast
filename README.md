@@ -4,9 +4,9 @@ Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop i
 
 Try it: https://amanaswal9.github.io/wetcast/ (the public copy, free on GitHub Pages). It shows the live weather
 from Open-Meteo (the Dashboard, the 7-day forecast, the map, search and Wetcast Mini) and the forecasts of Wetcast's
-own trained models for their 48 cities, refreshed every 3 hours, with the models' test results. The live track
-record, official warnings, saved places on the server and the Javed assistant need the server and run on the full
-setup below; the demo shows them.
+own trained models for their 48 cities, refreshed every 3 hours, with the models' test results. Its Ask page answers
+simple weather questions by fixed rules in the browser. The live track record, official warnings, saved places on the
+server and the Javed assistant need the server and run on the full setup below; the demo shows them.
 
 ![Wetcast demo: the Dashboard for Delhi with its LCD readout, searching Jaipur, opening the Forecast from the Start menu, Wetcast's model forecasts next to Open-Meteo, the weather map's temperature and wind tools, the test-period results, and switching to Fahrenheit in the Units dialog](docs/demo/wetcast-demo.gif)
 

@@ -22,9 +22,13 @@ export const PAGES: PageInfo[] = [
   { id: 'about', label: 'About', plan: '', ready: true },
 ]
 
-// The page part of the address: "#/forecast" -> "forecast".
+// Other names people type for a page: "#/ask" opens the Ask page, whose id is "assistant".
+const ALIASES: Record<string, PageId> = { ask: 'assistant', home: 'dashboard', maps: 'map', model: 'models', places: 'locations' }
+
+// The page part of the address: "#/forecast" -> "forecast", "#/ask" -> "assistant".
 function hashId(): string {
-  return window.location.hash.replace(/^#\/?/, '')
+  const id = window.location.hash.replace(/^#\/?/, '').toLowerCase()
+  return ALIASES[id] ?? id
 }
 
 // The page the address names, or the Dashboard when it names none.

@@ -13,7 +13,7 @@ export const HAS_SERVER = !PUBLIC_SITE
 export const HAS_PUBLIC_DATA = !HAS_SERVER && import.meta.env.VITE_PUBLIC_DATA === '1'
 
 export const NO_SERVER_MESSAGE = HAS_PUBLIC_DATA
-  ? "This public copy shows Wetcast's own model forecasts for its 48 cities, updated every 3 hours. Official warnings, saved places, the live track record and Javed need the Wetcast server, so they run on the full setup described in the README."
+  ? "This public copy shows Wetcast's own model forecasts for its 48 cities, updated every 3 hours. Official warnings, saved places, the live track record and Javed (the Ask page's assistant) need the Wetcast server, so they run on the full setup described in the README."
   : "This public copy of Wetcast has no server, so Wetcast's own models, official warnings, saved places and Javed aren't here. They run on the full setup described in the README."
 
 // A file from public/ or a page of the app, with the site's base path in front:

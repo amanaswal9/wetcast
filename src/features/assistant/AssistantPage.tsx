@@ -5,8 +5,9 @@ import { useResource } from '../../hooks/useResource'
 import { isAbort, toApiError } from '../../lib/api/http'
 import { askAssistant, getAssistantStatus, type AssistantTurn } from '../../lib/api/weatherai'
 import { placeShortLabel } from '../../lib/format'
-import { HAS_SERVER, NO_SERVER_MESSAGE } from '../../lib/site'
+import { HAS_SERVER } from '../../lib/site'
 import type { Place } from '../../types/weather'
+import { QuickAsk } from './QuickAsk'
 
 // The server keeps no chat history; the page sends the recent turns with each question.
 const HISTORY_TURNS = 10
@@ -27,8 +28,14 @@ function suggestions(place: Place): string[] {
   ]
 }
 
-// Ask page: a chat with the weather assistant about the current place.
+// Ask page. With a Wetcast server it is a chat with Javed; the public copy has no server, so it
+// answers simple questions by fixed rules instead (QuickAsk).
 export function AssistantPage({ place }: { place: Place }) {
+  return HAS_SERVER ? <JavedChat place={place} /> : <QuickAsk place={place} />
+}
+
+// A chat with Javed, the weather assistant, about the current place.
+function JavedChat({ place }: { place: Place }) {
   const status = useResource('assistant-status', ({ signal }) => getAssistantStatus(signal))
   const [chat, setChat] = useState<ChatEntry[]>([])
   const [draft, setDraft] = useState('')
@@ -104,12 +111,7 @@ export function AssistantPage({ place }: { place: Place }) {
         </p>
 
         {status.status === 'loading' && <TextSkeleton lines={3} />}
-        {status.status === 'error' && !HAS_SERVER && (
-          <MessageBox kind="info" title="Javed runs on the full setup">
-            {NO_SERVER_MESSAGE}
-          </MessageBox>
-        )}
-        {status.status === 'error' && HAS_SERVER && (
+        {status.status === 'error' && (
           <MessageBox kind="warning" title="Javed isn't reachable">
             Wetcast&apos;s server isn&apos;t responding, so questions can&apos;t be answered right now.
           </MessageBox>
