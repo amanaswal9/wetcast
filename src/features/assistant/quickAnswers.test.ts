@@ -140,6 +140,13 @@ describe('places', () => {
     expect(choosePlace([], 'Leh', delhi)).toBeUndefined()
   })
 
+  it("takes a state's name to its capital in India", () => {
+    const panjim = { id: '9', name: 'Panjim', admin1: 'Goa', countryCode: 'IN', latitude: 15.5, longitude: 73.8 }
+    const chandigarh = { id: '8', name: 'Chandigarh', admin1: 'Chandigarh', countryCode: 'IN', latitude: 30.7, longitude: 76.8 }
+    expect(choosePlace([panjim, { ...panjim, id: '7', name: 'Goa', admin1: 'Bicol', countryCode: 'PH' }], 'Goa', delhi)?.id).toBe('9')
+    expect(choosePlace([chandigarh], 'Punjab', delhi)?.id).toBe('8')
+  })
+
   it('tries shorter names when the full one finds nothing', () => {
     expect(placeSearchNames('London United Kingdom')).toEqual(['London United Kingdom', 'London United', 'London'])
   })

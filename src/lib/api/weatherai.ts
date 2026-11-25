@@ -277,10 +277,26 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): num
 // A point this close to one of the models' cities gets that city's forecast (the server's CITY_KM).
 const CITY_KM = 30
 
+let moreCities: Promise<CoveredCity[]> | null = null
+
+// The public copy's extra cities: forecast like any place in India, never trained on (data/more_cities.json).
+// A copy published before the list existed has no file, which means none.
+function getMoreCities(): Promise<CoveredCity[]> {
+  moreCities ??= fetch(sitePath('data/more_cities.json'), { headers: { Accept: 'application/json' } })
+    .then((res) => (res.ok ? res.json() : []))
+    .then((body: unknown) => (Array.isArray(body) ? (body as CoveredCity[]) : []))
+    .catch(() => {
+      moreCities = null // try again next time
+      return []
+    })
+  return moreCities
+}
+
 // The public copy's forecasts: the exported file for the city at this point. The server also
 // forecasts anywhere in India near the cities; without it, other places get the list of cities.
 async function publicPredictions(latitude: number, longitude: number): Promise<PredictionsResult> {
-  const nearby = (await getCoverage())
+  const [covered, more] = await Promise.all([getCoverage(), getMoreCities()])
+  const nearby = [...covered, ...more]
     .map((city) => ({ city, km: distanceKm(latitude, longitude, city.latitude, city.longitude) }))
     .sort((a, b) => a.km - b.km)
   if (!nearby.length || nearby[0].km > CITY_KM) {

@@ -93,6 +93,16 @@ def cities(region: str) -> tuple[City, ...]:
     return region_cities(region)
 
 
+@lru_cache
+def extra_cities(region: str) -> tuple[City, ...]:
+    """More cities the public copy forecasts, as ordinary places near the training cities: never
+    trained on and not used to measure accuracy (weatherai_ml/build_india_extra.py makes the list)."""
+    path = REGIONS_DIR / f"{region}_extra.json"
+    if not path.exists():
+        return ()
+    return tuple(City(r["id"], r["name"], r["latitude"], r["longitude"], r["state"], "extra") for r in json.loads(path.read_text()))
+
+
 def training_cities(region: str) -> list[City]:
     """The cities the models trained on."""
     return [c for c in cities(region) if c.role == "train"]

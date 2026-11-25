@@ -9,6 +9,7 @@ import type {
   WeekForecast,
   WeekHour,
 } from '../../types/weather'
+import { indiaRegion, type IndiaRegion } from '../indiaRegions'
 import { fetchJson } from './http'
 import { arr, num, numOrNull, obj, series, str, strOrNull, strOrUndefined } from './validate'
 
@@ -300,13 +301,46 @@ export function parsePlaces(raw: unknown): Place[] {
   })
 }
 
-// Places matching a name. Queries shorter than two letters return nothing.
+// Kinds of place (GeoNames feature codes) that make an Indian town worth listing first: the capital,
+// and the seats of states, districts and sub-districts.
+const SEAT_CODES = new Set(['PPLC', 'PPLA', 'PPLA2', 'PPLA3'])
+const TOWN_POPULATION = 5000
+
+// The search's places with notable Indian towns first: "Hyderabad" lists Hyderabad in Telangana before
+// the one in Pakistan. A small Indian village keeps its place behind a foreign city of the same name.
+export function indiaFirst(raw: unknown): Place[] {
+  const places = parsePlaces(raw)
+  const results = (raw as { results?: { population?: unknown; feature_code?: unknown }[] }).results ?? []
+  const notable = (i: number) => {
+    const r = results[i] ?? {}
+    return (typeof r.population === 'number' && r.population >= TOWN_POPULATION) || SEAT_CODES.has(String(r.feature_code))
+  }
+  const first = places.filter((p, i) => p.countryCode === 'IN' && notable(i))
+  return [...first, ...places.filter((p) => !first.includes(p))]
+}
+
+// The capital among a search for it, preferring one in the right state (a village elsewhere in India
+// can share the name).
+function capitalOf(places: Place[], region: IndiaRegion): Place | undefined {
+  const same = (a: string, b: string) => a.localeCompare(b, 'en', { sensitivity: 'base' }) === 0
+  const inState = places.filter((p) => p.admin1 && same(p.admin1, region.name))
+  return inState.find((p) => same(p.name, region.capital)) ?? inState[0] ?? places.find((p) => same(p.name, region.capital))
+}
+
+const SEARCH_RESULTS = 6
+
+// Places matching a name, Indian towns first. A state or union territory's name ("Goa", "Kerala")
+// gives its capital first. Queries shorter than two letters return nothing.
 export async function searchPlaces(query: string, { signal }: RequestOptions = {}): Promise<Place[]> {
   const name = query.trim()
   if (name.length < 2) return []
-  const params = new URLSearchParams({ name, count: '6', language: 'en', format: 'json' })
-  const raw = await fetchJson(`${GEOCODING_URL}?${params}`, { signal, ttlMs: 60 * MINUTE })
-  return parsePlaces(raw)
+  const ask = (params: Record<string, string>) =>
+    fetchJson(`${GEOCODING_URL}?${new URLSearchParams({ count: '10', language: 'en', format: 'json', ...params })}`, { signal, ttlMs: 60 * MINUTE })
+  const region = indiaRegion(name)
+  const [raw, capitalRaw] = await Promise.all([ask({ name }), region ? ask({ name: region.capital, countryCode: 'IN' }) : null])
+  const places = indiaFirst(raw)
+  const capital = region && capitalRaw ? capitalOf(parsePlaces(capitalRaw), region) : undefined
+  return (capital ? [capital, ...places.filter((p) => p.id !== capital.id)] : places).slice(0, SEARCH_RESULTS)
 }
 
 // Check and reshape the air quality response.

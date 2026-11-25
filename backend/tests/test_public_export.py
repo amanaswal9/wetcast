@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from app import predictions
+from app import coverage, predictions
 from app.registry import get_registry
 from scripts import export_public_data
 from weatherai_ml.synthetic import synthetic_long_frame
@@ -35,8 +35,16 @@ def test_export_writes_every_file_and_skips_a_failed_city(tmp_path, monkeypatch)
     assert {m["model"] for m in read("models.json")["models"]} == set(get_registry().names)
 
     index = read("index.json")
-    assert "leh" not in index["cities"] and len(index["cities"]) == len(cities) - 1
+    more = read("more_cities.json")
+    assert "leh" not in index["cities"] and len(index["cities"]) == len(cities) - 1 + len(more)
     assert not (tmp_path / "predictions" / "leh.json").exists()
+
+    # The extra cities: every one listed, none among the models' own, each forecast under its own name.
+    assert len(more) == len(coverage.extra_cities("india")) > 0
+    assert not {c["id"] for c in more} & {c["id"] for c in cities}
+    pune = read("predictions", "pune.json")
+    assert pune["city"] == {"id": "pune", "name": "Pune", "latitude": 18.5196, "longitude": 73.8554, "role": None}
+    assert pune["coverage"]["kind"] == "untrained"
 
     delhi = read("predictions", "delhi.json")
     assert delhi["city"]["id"] == "delhi" and delhi["coverage"]["kind"] == "trained"
@@ -62,8 +70,10 @@ def test_export_stops_asking_when_open_meteo_keeps_refusing(tmp_path, monkeypatc
 
     missing = export_public_data.export(tmp_path)
 
-    # Five refusals in a row and the rest aren't asked; with nothing published before, none has a forecast.
+    # Five refusals in a row and the rest aren't asked, the extra cities included; with nothing
+    # published before, none has a forecast.
     assert len(asked) == export_public_data.GIVE_UP_AFTER
+    assert json.loads((tmp_path / "more_cities.json").read_text(encoding="utf-8")) == []
     assert missing == len(json.loads((tmp_path / "coverage.json").read_text(encoding="utf-8")))
     assert json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))["cities"] == []
 
@@ -84,4 +94,4 @@ def test_export_uses_one_batched_fetch_for_every_city(tmp_path, monkeypatch):
 
     assert export_public_data.export(tmp_path) == 0
     index = json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))
-    assert len(index["fresh"]) == len(json.loads((tmp_path / "coverage.json").read_text(encoding="utf-8")))
+    assert len(index["fresh"]) == len(json.loads((tmp_path / "coverage.json").read_text(encoding="utf-8"))) + len(coverage.extra_cities("india"))

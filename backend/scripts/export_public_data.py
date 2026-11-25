@@ -114,46 +114,86 @@ def _export(client: TestClient, out: Path, previous: str | None) -> int:
     primed = predictions.prime_many(registry, city_objects, lookback)
     log.info("recent weather for %d of %d cities in batched requests (%.1f s)", len(primed), len(city_objects), time.monotonic() - started)
 
-    fresh, carried, missing = [], [], []
-    failures_in_a_row = 0
-    deadline = time.monotonic() + TIME_BUDGET_SECONDS
+    run = Run(client, out, previous, time.monotonic() + TIME_BUDGET_SECONDS)
     for city in cities:
-        cid = city["id"]
-        res = None
-        # Once Open-Meteo has refused several cities in a row it is limiting this machine; asking about
-        # the rest would only wait out more limits, so they keep their last forecast instead.
-        if failures_in_a_row < GIVE_UP_AFTER and time.monotonic() < deadline:
-            started = time.monotonic()
-            res = client.get("/api/predictions", params={"latitude": city["latitude"], "longitude": city["longitude"]})
-            seconds = time.monotonic() - started
-            if res.status_code == 200:
-                write(out / "predictions" / f"{cid}.json", res.json())
-                fresh.append(cid)
-                failures_in_a_row = 0
-                log.info("%s: new forecast (%.1f s)", cid, seconds)
-                if cid not in primed:  # it went to Open-Meteo on its own
-                    time.sleep(PAUSE_SECONDS)
-                continue
-            failures_in_a_row += 1
-            log.warning("%s: no new forecast (%s after %.1f s): %s", cid, res.status_code, seconds, res.text[:200])
-        old = last_published(previous, cid)
-        if old is not None:
-            write(out / "predictions" / f"{cid}.json", old)
-            carried.append(cid)
-            log.info("%s: kept the forecast issued %s", cid, old["issued_at"])
-        else:
-            missing.append(cid)
-        if res is not None:
-            time.sleep(PAUSE_SECONDS)
+        run.forecast(city["id"], city["latitude"], city["longitude"], city["id"] in primed)
+    missing = len(run.missing)
+
+    # Then the extra cities, forecast as ordinary places in India. Their recent weather is batched the
+    # same way, for the grid point each one snaps to. They come last, so if Open-Meteo starts refusing
+    # or time runs out, the cities the models know are already done.
+    extra = coverage.extra_cities(registry.region_id)
+    located = {c.id: coverage.locate(registry.region_id, c.latitude, c.longitude, "IN") for c in extra}
+    points = {loc.city.id: loc.city for loc in located.values() if loc is not None}
+    primed = predictions.prime_many(registry, list(points.values()), lookback) if points and run.going() else set()
+    for c in extra:
+        loc = located[c.id]
+        if loc is None:
+            log.warning("%s: outside the models' reach, skipped", c.id)
+            continue
+        label = {"id": c.id, "name": c.name, "latitude": c.latitude, "longitude": c.longitude, "role": None}
+        run.forecast(c.id, c.latitude, c.longitude, loc.city.id in primed, label)
+    shown = set(run.fresh + run.carried)
+    write(out / "more_cities.json", [
+        {"id": c.id, "name": c.name, "latitude": c.latitude, "longitude": c.longitude, "role": None} for c in extra if c.id in shown
+    ])
 
     write(out / "index.json", {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "cities": fresh + carried,
-        "fresh": fresh,
-        "carried_over": carried,
+        "cities": run.fresh + run.carried,
+        "fresh": run.fresh,
+        "carried_over": run.carried,
     })
-    log.info("%d new forecasts, %d kept from last time, %d cities without one", len(fresh), len(carried), len(missing))
-    return len(missing)
+    log.info("%d new forecasts, %d kept from last time, %d cities without one", len(run.fresh), len(run.carried), len(run.missing))
+    return missing
+
+
+class Run:
+    """Asks for one city's forecast after another, keeping count of Open-Meteo's refusals and the time."""
+
+    def __init__(self, client: TestClient, out: Path, previous: str | None, deadline: float):
+        self.client, self.out, self.previous, self.deadline = client, out, previous, deadline
+        self.failures_in_a_row = 0
+        self.fresh: list[str] = []
+        self.carried: list[str] = []
+        self.missing: list[str] = []
+
+    def going(self) -> bool:
+        """Whether to keep asking. Once Open-Meteo has refused several cities in a row it is limiting
+        this machine; asking about the rest would only wait out more limits, so they keep their last
+        forecast instead. The same happens when the time budget runs out."""
+        return self.failures_in_a_row < GIVE_UP_AFTER and time.monotonic() < self.deadline
+
+    def forecast(self, cid: str, latitude: float, longitude: float, primed: bool, label: dict | None = None) -> None:
+        """Write the city's new forecast, or its last one if no new one comes. `label` replaces the
+        place the server names (a grid point, for an extra city) with the city itself."""
+        res = None
+        if self.going():
+            started = time.monotonic()
+            res = self.client.get("/api/predictions", params={"latitude": latitude, "longitude": longitude, "country": "IN"})
+            seconds = time.monotonic() - started
+            if res.status_code == 200:
+                body = res.json()
+                if label is not None:
+                    body["city"] = label
+                write(self.out / "predictions" / f"{cid}.json", body)
+                self.fresh.append(cid)
+                self.failures_in_a_row = 0
+                log.info("%s: new forecast (%.1f s)", cid, seconds)
+                if not primed:  # it went to Open-Meteo on its own
+                    time.sleep(PAUSE_SECONDS)
+                return
+            self.failures_in_a_row += 1
+            log.warning("%s: no new forecast (%s after %.1f s): %s", cid, res.status_code, seconds, res.text[:200])
+        old = last_published(self.previous, cid)
+        if old is not None:
+            write(self.out / "predictions" / f"{cid}.json", old)
+            self.carried.append(cid)
+            log.info("%s: kept the forecast issued %s", cid, old["issued_at"])
+        else:
+            self.missing.append(cid)
+        if res is not None:
+            time.sleep(PAUSE_SECONDS)
 
 
 def main() -> None:

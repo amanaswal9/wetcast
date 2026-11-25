@@ -4,7 +4,7 @@ Intelligent spatial-temporal weather forecasting, with a classic 1990s desktop i
 
 Try it: https://amanaswal9.github.io/wetcast/ (the public copy, free on GitHub Pages). It shows the live weather
 from Open-Meteo (the Dashboard, the 7-day forecast, the map, search and Wetcast Mini) and the forecasts of Wetcast's
-own trained models for their 48 cities, refreshed every 3 hours, with the models' test results. Its Ask page answers
+own trained models for 90 Indian cities, refreshed every 3 hours, with the models' test results. Its Ask page answers
 simple weather questions by fixed rules in the browser. The live track record, official warnings, saved places on the
 server and the Javed assistant need the server and run on the full setup below; the demo shows them.
 
@@ -172,9 +172,11 @@ Python 3.13 with CPU TensorFlow). The jobs run in the same Debian images as the 
 after CI passes on `main`, and every 3 hours on its own. It builds from the clean checkout with `VITE_PUBLIC_SITE`
 set to that address (every file under `/wetcast/`, the link preview's full address, no calls to the Wetcast
 server: `src/lib/site.ts`) and `VITE_PUBLIC_DATA=1`. Then `backend/scripts/export_public_data.py` runs the models for
-all 48 cities with live Open-Meteo data, asking the API's own endpoints in-process (no server, no database), and
-writes the answers as plain files under `dist/data/`, which the site reads in place of the server: the latest
-forecast per city, the models' test scores and their evaluations. `scripts/pages-meta.mjs` puts the
+the 48 cities they cover and 42 more (`ml/weatherai_ml/regions/india_extra.json`, forecast as untrained places, the
+way the full setup forecasts any point in India) with live Open-Meteo data, asking the API's own endpoints in-process
+(no server, no database), and writes the answers as plain files under `dist/data/`, which the site reads in place of
+the server: the latest forecast per city, the models' test scores and their evaluations. Open-Meteo's free limit of
+10,000 calls a day is what keeps the list near 90. `scripts/pages-meta.mjs` puts the
 Content-Security-Policy and Referrer-Policy from `deploy/security-headers.conf` into the pages as `<meta>` tags;
 GitHub Pages can't send custom headers, so X-Frame-Options, Permissions-Policy and the CSP's `frame-ancestors` only
 apply on the self-hosted setup. The job's own token publishes the site; no secret is needed. GitHub pauses

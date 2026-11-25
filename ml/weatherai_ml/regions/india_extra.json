@@ -1,0 +1,338 @@
+[
+  {
+    "id": "pune",
+    "name": "Pune",
+    "state": "Maharashtra",
+    "latitude": 18.5196,
+    "longitude": 73.8554,
+    "geocoded_admin1": "Maharashtra"
+  },
+  {
+    "id": "nashik",
+    "name": "Nashik",
+    "state": "Maharashtra",
+    "latitude": 19.9973,
+    "longitude": 73.791,
+    "geocoded_admin1": "Maharashtra"
+  },
+  {
+    "id": "solapur",
+    "name": "Solapur",
+    "state": "Maharashtra",
+    "latitude": 17.6715,
+    "longitude": 75.9104,
+    "geocoded_admin1": "Maharashtra"
+  },
+  {
+    "id": "surat",
+    "name": "Surat",
+    "state": "Gujarat",
+    "latitude": 21.1959,
+    "longitude": 72.8302,
+    "geocoded_admin1": "Gujarat"
+  },
+  {
+    "id": "vadodara",
+    "name": "Vadodara",
+    "state": "Gujarat",
+    "latitude": 22.2994,
+    "longitude": 73.2081,
+    "geocoded_admin1": "Gujarat"
+  },
+  {
+    "id": "rajkot",
+    "name": "Rajkot",
+    "state": "Gujarat",
+    "latitude": 22.2916,
+    "longitude": 70.7932,
+    "geocoded_admin1": "Gujarat"
+  },
+  {
+    "id": "ludhiana",
+    "name": "Ludhiana",
+    "state": "Punjab",
+    "latitude": 30.912,
+    "longitude": 75.8538,
+    "geocoded_admin1": "Punjab"
+  },
+  {
+    "id": "jalandhar",
+    "name": "Jalandhar",
+    "state": "Punjab",
+    "latitude": 31.3256,
+    "longitude": 75.5792,
+    "geocoded_admin1": "Punjab"
+  },
+  {
+    "id": "meerut",
+    "name": "Meerut",
+    "state": "Uttar Pradesh",
+    "latitude": 28.98,
+    "longitude": 77.7064,
+    "geocoded_admin1": "Uttar Pradesh"
+  },
+  {
+    "id": "prayagraj",
+    "name": "Prayagraj",
+    "state": "Uttar Pradesh",
+    "latitude": 25.4448,
+    "longitude": 81.8432,
+    "geocoded_admin1": "Uttar Pradesh"
+  },
+  {
+    "id": "bareilly",
+    "name": "Bareilly",
+    "state": "Uttar Pradesh",
+    "latitude": 28.3668,
+    "longitude": 79.4317,
+    "geocoded_admin1": "Uttar Pradesh"
+  },
+  {
+    "id": "aligarh",
+    "name": "Aligarh",
+    "state": "Uttar Pradesh",
+    "latitude": 27.8815,
+    "longitude": 78.0746,
+    "geocoded_admin1": "Uttar Pradesh"
+  },
+  {
+    "id": "kota",
+    "name": "Kota",
+    "state": "Rajasthan",
+    "latitude": 25.1825,
+    "longitude": 75.8391,
+    "geocoded_admin1": "Rajasthan"
+  },
+  {
+    "id": "udaipur",
+    "name": "Udaipur",
+    "state": "Rajasthan",
+    "latitude": 24.5858,
+    "longitude": 73.7135,
+    "geocoded_admin1": "Rajasthan"
+  },
+  {
+    "id": "jabalpur",
+    "name": "Jabalpur",
+    "state": "Madhya Pradesh",
+    "latitude": 23.167,
+    "longitude": 79.9501,
+    "geocoded_admin1": "Madhya Pradesh"
+  },
+  {
+    "id": "gwalior",
+    "name": "Gwalior",
+    "state": "Madhya Pradesh",
+    "latitude": 26.2298,
+    "longitude": 78.1734,
+    "geocoded_admin1": "Madhya Pradesh"
+  },
+  {
+    "id": "madurai",
+    "name": "Madurai",
+    "state": "Tamil Nadu",
+    "latitude": 9.919,
+    "longitude": 78.1195,
+    "geocoded_admin1": "Tamil Nadu"
+  },
+  {
+    "id": "tiruchirappalli",
+    "name": "Tiruchirappalli",
+    "state": "Tamil Nadu",
+    "latitude": 10.8155,
+    "longitude": 78.6965,
+    "geocoded_admin1": "Tamil Nadu"
+  },
+  {
+    "id": "salem",
+    "name": "Salem",
+    "state": "Tamil Nadu",
+    "latitude": 11.6538,
+    "longitude": 78.1554,
+    "geocoded_admin1": "Tamil Nadu"
+  },
+  {
+    "id": "mysuru",
+    "name": "Mysuru",
+    "state": "Karnataka",
+    "latitude": 12.2979,
+    "longitude": 76.6393,
+    "geocoded_admin1": "Karnataka"
+  },
+  {
+    "id": "hubballi",
+    "name": "Hubballi",
+    "state": "Karnataka",
+    "latitude": 15.3478,
+    "longitude": 75.1338,
+    "geocoded_admin1": "Karnataka"
+  },
+  {
+    "id": "kochi",
+    "name": "Kochi",
+    "state": "Kerala",
+    "latitude": 9.9399,
+    "longitude": 76.2602,
+    "geocoded_admin1": "Kerala"
+  },
+  {
+    "id": "kozhikode",
+    "name": "Kozhikode",
+    "state": "Kerala",
+    "latitude": 11.248,
+    "longitude": 75.7804,
+    "geocoded_admin1": "Kerala"
+  },
+  {
+    "id": "nellore",
+    "name": "Nellore",
+    "state": "Andhra Pradesh",
+    "latitude": 14.4499,
+    "longitude": 79.987,
+    "geocoded_admin1": "Andhra Pradesh"
+  },
+  {
+    "id": "tirupati",
+    "name": "Tirupati",
+    "state": "Andhra Pradesh",
+    "latitude": 13.6355,
+    "longitude": 79.4199,
+    "geocoded_admin1": "Andhra Pradesh"
+  },
+  {
+    "id": "warangal",
+    "name": "Warangal",
+    "state": "Telangana",
+    "latitude": 18.0,
+    "longitude": 79.5833,
+    "geocoded_admin1": "Telangana"
+  },
+  {
+    "id": "jamshedpur",
+    "name": "Jamshedpur",
+    "state": "Jharkhand",
+    "latitude": 22.8028,
+    "longitude": 86.1855,
+    "geocoded_admin1": "Jharkhand"
+  },
+  {
+    "id": "dhanbad",
+    "name": "Dhanbad",
+    "state": "Jharkhand",
+    "latitude": 23.7976,
+    "longitude": 86.4299,
+    "geocoded_admin1": "Jharkhand"
+  },
+  {
+    "id": "gaya",
+    "name": "Gaya",
+    "state": "Bihar",
+    "latitude": 24.7969,
+    "longitude": 85.0038,
+    "geocoded_admin1": "Bihar"
+  },
+  {
+    "id": "muzaffarpur",
+    "name": "Muzaffarpur",
+    "state": "Bihar",
+    "latitude": 26.1226,
+    "longitude": 85.3906,
+    "geocoded_admin1": "Bihar"
+  },
+  {
+    "id": "bilaspur",
+    "name": "Bilaspur",
+    "state": "Chhattisgarh",
+    "latitude": 22.08,
+    "longitude": 82.1554,
+    "geocoded_admin1": "Chhattisgarh"
+  },
+  {
+    "id": "siliguri",
+    "name": "Siliguri",
+    "state": "West Bengal",
+    "latitude": 26.71,
+    "longitude": 88.4285,
+    "geocoded_admin1": "West Bengal"
+  },
+  {
+    "id": "asansol",
+    "name": "Asansol",
+    "state": "West Bengal",
+    "latitude": 23.6833,
+    "longitude": 86.9833,
+    "geocoded_admin1": "West Bengal"
+  },
+  {
+    "id": "jammu",
+    "name": "Jammu",
+    "state": "Jammu and Kashmir",
+    "latitude": 32.7353,
+    "longitude": 74.8617,
+    "geocoded_admin1": "Jammu and Kashmir"
+  },
+  {
+    "id": "dibrugarh",
+    "name": "Dibrugarh",
+    "state": "Assam",
+    "latitude": 27.4799,
+    "longitude": 94.9084,
+    "geocoded_admin1": "Assam"
+  },
+  {
+    "id": "silchar",
+    "name": "Silchar",
+    "state": "Assam",
+    "latitude": 24.8273,
+    "longitude": 92.7979,
+    "geocoded_admin1": "Assam"
+  },
+  {
+    "id": "dimapur",
+    "name": "Dimapur",
+    "state": "Nagaland",
+    "latitude": 25.9117,
+    "longitude": 93.7217,
+    "geocoded_admin1": "Nagaland"
+  },
+  {
+    "id": "rourkela",
+    "name": "Rourkela",
+    "state": "Odisha",
+    "latitude": 22.225,
+    "longitude": 84.8641,
+    "geocoded_admin1": "Odisha"
+  },
+  {
+    "id": "berhampur",
+    "name": "Berhampur",
+    "state": "Odisha",
+    "latitude": 19.3115,
+    "longitude": 84.7929,
+    "geocoded_admin1": "Odisha"
+  },
+  {
+    "id": "haldwani",
+    "name": "Haldwani",
+    "state": "Uttarakhand",
+    "latitude": 29.2225,
+    "longitude": 79.5286,
+    "geocoded_admin1": "Uttarakhand"
+  },
+  {
+    "id": "dharamshala",
+    "name": "Dharamshala",
+    "state": "Himachal Pradesh",
+    "latitude": 32.2201,
+    "longitude": 76.3201,
+    "geocoded_admin1": "Himachal Pradesh"
+  },
+  {
+    "id": "kolhapur",
+    "name": "Kolhapur",
+    "state": "Maharashtra",
+    "latitude": 16.6956,
+    "longitude": 74.2317,
+    "geocoded_admin1": "Maharashtra"
+  }
+]

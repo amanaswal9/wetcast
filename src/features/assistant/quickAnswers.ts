@@ -3,6 +3,7 @@
 // answer is written from Open-Meteo's forecast and the models' exported forecasts. Nothing here
 // guesses: when the data doesn't cover a question, the answer says so.
 import type { ModelMetrics, PredictionsResult } from '../../lib/api/weatherai'
+import { indiaRegion } from '../../lib/indiaRegions'
 import { compass, dayName, utcToLocal, uvCategory, aqiCategory } from '../../lib/format'
 import type { Format } from '../../lib/units'
 import { describeWeather } from '../../lib/weatherCodes'
@@ -158,6 +159,13 @@ function plain(name: string): string {
 // "Leh" would give Le Havre; an exact name wins, then one in the same country as the place on
 // screen or in India, where the models are.
 export function choosePlace(results: Place[], typed: string, current: Place): Place | undefined {
+  // A state's name ("Goa") gives its capital, which the search lists first.
+  const region = indiaRegion(typed)
+  if (region) {
+    const indian = results.filter((r) => r.countryCode === 'IN')
+    const capital = indian.find((r) => plain(r.name) === plain(region.capital)) ?? indian.find((r) => r.admin1 === region.name)
+    if (capital) return capital
+  }
   const want = plain(typed)
   const exact = results.filter((r) => plain(r.name) === want)
   const local = (r: Place) => r.countryCode === current.countryCode || r.countryCode === 'IN'
