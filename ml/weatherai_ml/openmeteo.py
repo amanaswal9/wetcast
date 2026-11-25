@@ -65,8 +65,12 @@ def _get(client: httpx.Client, url: str, params: dict, retries: int = 5, patient
             attempt += 1
             if attempt >= retries and not patient:
                 raise
-            print(f"  network error ({exc}); retrying in 120 s", flush=True)
-            time.sleep(120)
+            # Bulk downloads wait out a real outage; a live request retries soon, because the usual cause
+            # is one dropped connection (on GitHub's runners about one in four TLS handshakes timed out,
+            # and the next attempt worked).
+            wait = 120 if patient else 3
+            print(f"  network error ({exc}); retrying in {wait} s", flush=True)
+            time.sleep(wait)
             continue
         if response.status_code == 429:
             attempt += 1

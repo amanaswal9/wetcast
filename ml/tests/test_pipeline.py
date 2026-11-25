@@ -398,6 +398,26 @@ def test_live_requests_fail_fast_on_daily_limit():
     assert _time.perf_counter() - started < 5
 
 
+def test_live_requests_retry_a_dropped_connection_quickly(monkeypatch):
+    """One timed-out connection costs a live request a few seconds, not the two minutes a bulk download waits."""
+    import httpx
+
+    from weatherai_ml import openmeteo
+
+    calls, waits = [], []
+
+    def handler(request):
+        calls.append(request)
+        if len(calls) == 1:
+            raise httpx.ConnectTimeout("The handshake operation timed out")
+        return httpx.Response(200, json={"ok": True})
+
+    monkeypatch.setattr(openmeteo.time, "sleep", waits.append)
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        assert openmeteo._get(client, "https://example.invalid", {}, retries=2) == {"ok": True}
+    assert len(calls) == 2 and waits == [3]
+
+
 def test_rain_outlook_lines_up_with_the_forecast_hours():
     """The live day-old forecast is returned for exactly the 24 hours after the issue hour."""
     import httpx
