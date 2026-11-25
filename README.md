@@ -156,6 +156,10 @@ menu by keyboard, Forecast days, units, map tools, "Not found"), compare screens
 records responses not saved yet (needs internet and the API); `E2E_UPDATE=1` replaces the reference
 screenshots after an intended visual change.
 
+`e2e/speed_probe.py` is not a test but a measuring tool: it times every page switch on a phone profile (four times
+slower CPU, recorded network) for two builds in turn, so a speed change can be checked before and after. Its
+header has the steps.
+
 ### Continuous integration
 
 `.github/workflows/ci.yml` runs on GitHub Actions (free for public repositories) on every push and pull request: a frontend job (`npm ci`, lint, Vitest, type-check, build and the bundle-size budget), a browser job (the
