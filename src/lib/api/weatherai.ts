@@ -280,8 +280,10 @@ const CITY_KM = 30
 let moreCities: Promise<CoveredCity[]> | null = null
 
 // The public copy's extra cities: forecast like any place in India, never trained on (data/more_cities.json).
-// A copy published before the list existed has no file, which means none.
-function getMoreCities(): Promise<CoveredCity[]> {
+// A copy published before the list existed has no file, which means none; so has the full setup, whose
+// server forecasts anywhere in India near the cities.
+export function getMoreCities(): Promise<CoveredCity[]> {
+  if (!HAS_PUBLIC_DATA) return Promise.resolve([])
   moreCities ??= fetch(sitePath('data/more_cities.json'), { headers: { Accept: 'application/json' } })
     .then((res) => (res.ok ? res.json() : []))
     .then((body: unknown) => (Array.isArray(body) ? (body as CoveredCity[]) : []))

@@ -7,7 +7,7 @@ import { useResource } from '../../hooks/useResource'
 import { isDark, type Theme } from '../../hooks/useTheme'
 import { isAbort, toApiError } from '../../lib/api/http'
 import { clearGridCache, getGridForecasts, gridFor, nearestPoint, uncachedPoints, type Bounds, type Grid, type GridPoint, type PointForecast, type ViewSize } from '../../lib/api/mapGrid'
-import { getCoverage } from '../../lib/api/weatherai'
+import { getCoverage, getMoreCities } from '../../lib/api/weatherai'
 import { compass, dateFormatter, latLonLabel } from '../../lib/format'
 import { renderField } from '../../lib/mapField'
 import { loadOutline } from '../../lib/mapOutline'
@@ -143,6 +143,8 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
   const [status, setStatus] = useState<Status>({ kind: 'loading', points: 0, done: 0 })
   const [retry, setRetry] = useState(0)
   const coverage = useResource('coverage', ({ signal }) => getCoverage(signal))
+  // The public copy's extra cities, forecast though never trained on (none on the full setup).
+  const more = useResource('more-cities', () => getMoreCities())
 
   // Create the map once.
   useEffect(() => {
@@ -364,7 +366,15 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
         .bindTooltip(label, { direction: 'top' })
         .addTo(group)
     }
-  }, [coverage.data, theme])
+    // Extra cities: smaller dashed rings.
+    for (const c of more.data ?? []) {
+      const label = document.createElement('span')
+      label.textContent = `${c.name}: forecast by the models, which never trained here`
+      L.circleMarker([c.latitude, c.longitude], { radius: 4, color: ink, weight: 1.5, dashArray: '2 2', fillColor: paper, fillOpacity: 1 })
+        .bindTooltip(label, { direction: 'top' })
+        .addTo(group)
+    }
+  }, [coverage.data, more.data, theme])
 
   // Opens the forecast page for the selected map point.
   const openForecast = () => {
@@ -494,6 +504,14 @@ export function MapPage({ place, theme, refreshToken, onSelectPlace }: MapPagePr
                 </svg>
                 A city Wetcast's own models trained on.
               </p>
+              {(more.data?.length ?? 0) > 0 && (
+                <p className="m-0 mt-1 flex items-center gap-1.5 text-[0.92em]">
+                  <svg width="12" height="12" aria-hidden="true">
+                    <circle cx="6" cy="6" r="4" fill="var(--field)" stroke="var(--dark)" strokeWidth="1.5" strokeDasharray="2 2" />
+                  </svg>
+                  One of {more.data?.length} more cities this copy forecasts, though the models never trained there.
+                </p>
+              )}
               {coverage.data?.some((c) => c.role === 'holdout') && (
                 <>
                   <p className="m-0 mt-1 flex items-center gap-1.5 text-[0.92em]">
