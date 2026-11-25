@@ -43,3 +43,7 @@ ci/lighthouse/.lighthouseci/
 # so it is never committed or published (docs/share/make_wallpaper_ascii.py makes it).
 local/
 src/local/
+
+# Starting the API at login on one Windows computer (its own paths), kept local
+scripts/start-api-hidden.vbs
+scripts/start-api.ps1

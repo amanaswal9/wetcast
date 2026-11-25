@@ -2,7 +2,7 @@
 #
 # It runs after CI passes on main, and every 3 hours on its own, so the site always shows a recent
 # forecast from Wetcast's own models. Each run builds the site from a clean checkout (nothing kept only
-# on the owner's computer can end up in it), then backend/scripts/export_public_data.py runs the
+# on a developer's computer can end up in it), then backend/scripts/export_public_data.py runs the
 # models for all 48 cities with live Open-Meteo data and writes the results next to the site as plain
 # files. No server and no secrets: the job's own token publishes the site.
 #

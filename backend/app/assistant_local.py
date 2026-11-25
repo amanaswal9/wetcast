@@ -1,4 +1,4 @@
-"""Javed, the Wetcast assistant, on a free local model, run by Ollama on this computer.
+"""Javed, the Wetcast assistant, on a free local model, run by Ollama on the same computer as the server.
 
 The rules and tools live in assistant.py: the model may only answer from what the read-only
 tools return. Nothing leaves the machine except the tools' own lookups (Open-Meteo, the

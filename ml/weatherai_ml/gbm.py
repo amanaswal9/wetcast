@@ -242,7 +242,7 @@ def main() -> None:
             "single_ms_median": float(np.median(runs)),
             "batch256_ms_per_forecast": (time.perf_counter() - start) * 1000 / len(batch),
             "device": "CPU",
-            "cpu": platform.processor() or platform.machine(),
+            "cpu": platform.machine(),  # the architecture only, not the exact processor
         }
 
     print("Evaluating…")

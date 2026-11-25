@@ -1,7 +1,7 @@
 """Javed, the Wetcast assistant: answers weather questions using only data it looks up
 through the read-only tools in assistant_data.py.
 
-The answers come from a free local model run by Ollama on this computer (assistant_local.py).
+The answers come from a free local model run by Ollama on the server's computer (assistant_local.py).
 This module holds what the model is told, the tools it may use, and the per-visitor and daily
 limits. Each answer may use at most MAX_ROUNDS model calls.
 """

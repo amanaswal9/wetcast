@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # reasons at length before every answer (far too slow on a small graphics card).
     ollama_model: str = "qwen3:4b-instruct"
     # Context window in tokens. 4096 holds the instructions, tools and a couple of lookups, and keeps
-    # the model small enough to sit (mostly) on a 4 GB graphics card; 8192 spilled onto the CPU.
+    # the model small enough to sit (mostly) on a 4 GB graphics card; 8192 spills onto the CPU.
     ollama_context: int = 4096
     assistant_daily_limit_per_client: int = 20
     assistant_daily_limit_total: int = 200

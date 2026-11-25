@@ -101,7 +101,7 @@ def inference_timing(model: keras.Model, X: np.ndarray, ends: np.ndarray, lookba
         "single_ms_median": float(np.median(singles)),
         "batch256_ms_per_forecast": float(np.median(batched)),
         "device": "CPU",
-        "cpu": platform.processor() or platform.machine(),
+        "cpu": platform.machine(),  # the architecture only, not the exact processor
     }
 
 

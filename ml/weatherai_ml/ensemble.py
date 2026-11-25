@@ -126,7 +126,7 @@ def main() -> None:
             "single_ms_median": float(np.median(runs)),
             "batch256_ms_per_forecast": float(sum(m.metrics["inference"]["batch256_ms_per_forecast"] for m in team)),
             "device": "CPU",
-            "cpu": platform.processor() or platform.machine(),
+            "cpu": platform.machine(),  # the architecture only, not the exact processor
         }
 
     out = root / ENSEMBLE_NAME

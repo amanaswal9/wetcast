@@ -154,7 +154,7 @@ class AssistantStatus(BaseModel):
     """Whether the Ask page works, and who answers."""
 
     configured: bool
-    # "local" (the free model on this computer) or None when off.
+    # "local" (the free model on the server's computer) or None when off.
     provider: str | None = None
     model: str
     daily_limit_per_visitor: int
