@@ -8,7 +8,8 @@ Chromium, and ffmpeg. From the repository root:
 Writes docs/demo/wetcast-demo.mp4 (1280x720) and docs/demo/wetcast-demo.gif.
 Everything on screen is live: Open-Meteo data, Wetcast's model predictions and the
 committed test results. Only the title card, end card, captions and the mouse pointer
-are drawn on top (Playwright's recordings don't show the pointer).
+are drawn on top (Playwright's recordings don't show the pointer). A personal desktop
+picture, if this computer has one, is hidden.
 """
 
 from __future__ import annotations
@@ -40,6 +41,10 @@ OVERLAY_JS = """
   }
   const add = () => {
     if (document.getElementById('demo-cursor')) return;
+    // A personal desktop picture (src/local, not in git) never appears in the published demo.
+    const hide = document.createElement('style');
+    hide.textContent = '.r-desktop-art { display: none !important; }';
+    document.documentElement.appendChild(hide);
     const cursor = document.createElement('div');
     cursor.id = 'demo-cursor';
     cursor.innerHTML = '<svg width="20" height="30" viewBox="0 0 12 19"><path d="M0.5 0.5v15.5l4-4 3 6.5 2.3-1-3-6.5h5.7z" fill="#fff" stroke="#000" stroke-width="1"/></svg>';
@@ -84,7 +89,7 @@ TITLE_BODY = """
 
 END_BODY = """
 <div style="font:700 44px 'Pixelify Sans',monospace;line-height:1">Wetcast</div>
-<div style="font:20px Tahoma;margin-top:14px;line-height:1.4">React · FastAPI · TensorFlow · LightGBM · PostgreSQL · Ollama</div>
+<div style="font:20px Tahoma;margin-top:14px;line-height:1.4">Preact · FastAPI · TensorFlow · LightGBM · PostgreSQL · Ollama</div>
 <div style="font:16px Tahoma;margin-top:14px;color:#3b3b3b;line-height:1.45">Weather data: Open-Meteo. Map: © OpenStreetMap contributors.<br>Warnings: NDMA Sachet and the US National Weather Service.<br>Run it locally: see the README.</div>
 """
 

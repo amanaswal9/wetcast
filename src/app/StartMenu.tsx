@@ -125,7 +125,7 @@ export function StartMenu({ page, darkMode, onToggleDark, highContrast, onToggle
           <>
             <div className="r-start-banner" aria-hidden="true">
               <span>
-                <b>Weather</b>AI
+                <b>Wet</b>cast
               </span>
             </div>
             <div className="min-w-0 flex-1 py-[3px]">
