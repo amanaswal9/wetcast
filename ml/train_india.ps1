@@ -1,4 +1,4 @@
-# Trains every all-India model in one go (a few hours on an ordinary CPU), writing to
+# Trains every all-India model in one go, then the ensemble's rain and ranges and the Ridge baseline (a few hours on an ordinary CPU), writing to
 # ml/artifacts/india/<model>/ and a log at ml/train_india.log. While it runs it asks Windows
 # not to idle-sleep (SetThreadExecutionState; no settings are changed, and it ends with the job).
 # Run from the ml folder:  powershell -ExecutionPolicy Bypass -File train_india.ps1
@@ -26,7 +26,13 @@ $steps = @(
     @('-m', 'weatherai_ml.train', '--region', 'india', '--models', 'lstm', 'gru', 'cnn_lstm', 'transformer',
       '--target-mode', 'residual24', '--lookback', '48', '--train-stride', '4', '--loss', 'huber'),
     @('-m', 'weatherai_ml.gbm', '--region', 'india'),
-    @('-m', 'weatherai_ml.ensemble', '--region', 'india')
+    @('-m', 'weatherai_ml.ensemble', '--region', 'india'),
+    # Then the ensemble's rain and ranges, in this order; --fresh so no cached predictions of older models are reused.
+    @('-m', 'weatherai_ml.recalibrate', '--region', 'india', '--fresh'),
+    @('-m', 'weatherai_ml.rain_chance', '--region', 'india'),
+    @('-m', 'weatherai_ml.chance_model', '--region', 'india'),
+    @('-m', 'weatherai_ml.rain_amount', '--region', 'india'),
+    @('-m', 'weatherai_ml.linear', '--region', 'india')
 )
 try {
     foreach ($s in $steps) {

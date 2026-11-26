@@ -76,7 +76,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
       <GroupBox title="How the forecasts are made">
         <ol className="m-0 flex max-w-[75ch] flex-col gap-2 pl-5">
           <li>
-            <b>Collect.</b> Four years of hourly weather (January 2023 to October 2026) for each city and four points about 55 km
+            <b>Collect.</b> Four years of hourly weather (January 2023 to November 2026) for each city and four points about 55 km
             north, south, east and west of it. Looking at the neighbours is what makes the forecast spatial as well as temporal:
             weather arriving from one side shows up there first.
           </li>
@@ -85,7 +85,7 @@ export function AboutPage({ theme }: { theme: Theme }) {
             plus time of day, season and location. Gaps of up to 3 hours are filled; longer gaps are left out rather than guessed.
           </li>
           <li>
-            <b>Split by time.</b> 2023–2024 for training, 2025 for checking progress, January–October 2026 as the final test. The
+            <b>Split by time.</b> 2023–2024 for training, 2025 for checking progress, 1 January to 23 November 2026 as the final test. The
             models never see a later year while learning from an earlier one, and the data scaling is fitted on the training years
             only.
           </li>

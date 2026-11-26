@@ -274,7 +274,7 @@ def model_accuracy(session: Session, registry: ModelRegistry) -> dict:
     if record["first_valid_at"] and record["last_valid_at"]:
         days_live = (datetime.fromisoformat(record["last_valid_at"]) - datetime.fromisoformat(record["first_valid_at"])).total_seconds() / 86400
     return {
-        "source": "Wetcast's evaluation (test period Jan-Oct 2026, never used in training) and its live track record",
+        "source": "Wetcast's evaluation (test period 1 Jan to 23 Nov 2026, never used in training) and its live track record",
         "most_accurate_on_test_period": best_on_test,
         "test_mean_absolute_error": {"units": {t: TARGET_UNITS[t] for t in TARGETS}} | models,
         "persistence_baseline": baseline,

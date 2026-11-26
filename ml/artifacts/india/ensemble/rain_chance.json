@@ -4,79 +4,79 @@
  "validation_rain_share": 0.1933,
  "scores": {
   "test": {
-   "brier": 0.09665,
-   "climatology_brier": 0.17369,
-   "rain_share": 0.2223,
-   "isotonic_brier": 0.10712,
-   "without_forecast_brier": 0.10407
+   "brier": 0.09358,
+   "climatology_brier": 0.1685,
+   "rain_share": 0.2138,
+   "isotonic_brier": 0.10408,
+   "without_forecast_brier": 0.1011
   },
   "by_lead": {
    "1": {
-    "brier": 0.06774,
-    "climatology_brier": 0.17352
+    "brier": 0.06561,
+    "climatology_brier": 0.16841
    },
    "6": {
-    "brier": 0.09662,
-    "climatology_brier": 0.1736
+    "brier": 0.09353,
+    "climatology_brier": 0.16845
    },
    "12": {
-    "brier": 0.09877,
-    "climatology_brier": 0.17374
+    "brier": 0.09561,
+    "climatology_brier": 0.1685
    },
    "24": {
-    "brier": 0.10106,
-    "climatology_brier": 0.17377
+    "brier": 0.09786,
+    "climatology_brier": 0.16857
    }
   },
   "reliability_test": [
    {
     "from": 0.0,
     "to": 0.1,
-    "said": 0.026,
-    "rained": 0.03,
-    "n": 3878713
+    "said": 0.025,
+    "rained": 0.029,
+    "n": 4297431
    },
    {
     "from": 0.1,
     "to": 0.3,
     "said": 0.182,
-    "rained": 0.214,
-    "n": 1296144
+    "rained": 0.213,
+    "n": 1347700
    },
    {
     "from": 0.3,
     "to": 0.5,
     "said": 0.394,
-    "rained": 0.461,
-    "n": 672728
+    "rained": 0.46,
+    "n": 699006
    },
    {
     "from": 0.5,
     "to": 0.7,
     "said": 0.596,
-    "rained": 0.663,
-    "n": 519738
+    "rained": 0.664,
+    "n": 540242
    },
    {
     "from": 0.7,
     "to": 0.9,
     "said": 0.798,
     "rained": 0.839,
-    "n": 444165
+    "n": 455263
    },
    {
     "from": 0.9,
     "to": 1.0,
     "said": 0.941,
-    "rained": 0.965,
-    "n": 124512
+    "rained": 0.964,
+    "n": 126278
    }
   ],
   "test_unseen": {
-   "brier": 0.08004,
-   "climatology_brier": 0.1454,
-   "rain_share": 0.1761,
-   "isotonic_brier": 0.08878
+   "brier": 0.07713,
+   "climatology_brier": 0.14086,
+   "rain_share": 0.1687,
+   "isotonic_brier": 0.08581
   }
  },
  "leads": [
@@ -4424,8 +4424,8 @@
     0.1429,
     0.1522,
     0.1522,
-    0.1618,
-    0.1618,
+    0.162,
+    0.162,
     0.1645,
     0.1645,
     0.1818,
@@ -7738,10 +7738,10 @@
     0.664,
     0.6667,
     0.6667,
-    0.6758,
-    0.6758,
-    0.6812,
-    0.6812,
+    0.6757,
+    0.6757,
+    0.6815,
+    0.6815,
     0.6954,
     0.6954,
     0.7088,
@@ -11468,10 +11468,10 @@
     0.4531,
     0.4561,
     0.4561,
-    0.4641,
-    0.4641,
-    0.476,
-    0.476,
+    0.4653,
+    0.4653,
+    0.4759,
+    0.4759,
     0.5002,
     0.5002,
     0.5102,
@@ -15413,79 +15413,79 @@
    ]
   }
  ],
- "fitted_at": "2026-11-21T08:20:52+00:00",
+ "fitted_at": "2026-11-26T00:38:05+00:00",
  "scores_isotonic": {
   "test": {
-   "brier": 0.10712,
-   "climatology_brier": 0.1737,
-   "rain_share": 0.2223
+   "brier": 0.10408,
+   "climatology_brier": 0.1685,
+   "rain_share": 0.2138
   },
   "by_lead": {
    "1": {
-    "brier": 0.07449,
-    "climatology_brier": 0.17353
+    "brier": 0.07233,
+    "climatology_brier": 0.16841
    },
    "6": {
-    "brier": 0.10543,
-    "climatology_brier": 0.1736
+    "brier": 0.10235,
+    "climatology_brier": 0.16845
    },
    "12": {
-    "brier": 0.10985,
-    "climatology_brier": 0.17374
+    "brier": 0.10669,
+    "climatology_brier": 0.1685
    },
    "24": {
-    "brier": 0.11455,
-    "climatology_brier": 0.17377
+    "brier": 0.11148,
+    "climatology_brier": 0.16857
    }
   },
   "reliability_test": [
    {
     "from": 0.0,
     "to": 0.1,
-    "said": 0.026,
-    "rained": 0.036,
-    "n": 3763801
+    "said": 0.025,
+    "rained": 0.035,
+    "n": 4180509
    },
    {
     "from": 0.1,
     "to": 0.3,
     "said": 0.184,
-    "rained": 0.228,
-    "n": 1431477
+    "rained": 0.229,
+    "n": 1498193
    },
    {
     "from": 0.3,
     "to": 0.5,
     "said": 0.39,
-    "rained": 0.465,
-    "n": 768754
+    "rained": 0.464,
+    "n": 796514
    },
    {
     "from": 0.5,
     "to": 0.7,
     "said": 0.598,
     "rained": 0.655,
-    "n": 523282
+    "n": 535153
    },
    {
     "from": 0.7,
     "to": 0.9,
     "said": 0.782,
     "rained": 0.813,
-    "n": 347880
+    "n": 353471
    },
    {
     "from": 0.9,
     "to": 1.0,
     "said": 0.94,
-    "rained": 0.955,
-    "n": 100806
+    "rained": 0.954,
+    "n": 102080
    }
   ],
   "test_unseen": {
-   "brier": 0.08878,
-   "climatology_brier": 0.1454,
-   "rain_share": 0.1761
+   "brier": 0.08581,
+   "climatology_brier": 0.14086,
+   "rain_share": 0.1687
   }
  },
  "model": {
@@ -15500,6 +15500,6 @@
   ],
   "outlook": true,
   "recent_hours": 24,
-  "fitted_at": "2026-11-21T11:06:25+00:00"
+  "fitted_at": "2026-11-26T00:39:14+00:00"
  }
 }

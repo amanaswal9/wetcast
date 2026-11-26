@@ -193,7 +193,7 @@ so they are offline and deterministic. Synthetic data is never used for training
 | | |
 | --- | --- |
 | Region | India: trained on 40 cities (state and territory capitals and North India), tested on 8 more held out from training |
-| Data | Open-Meteo Historical Forecast API, hourly, 2023-01-01 to 2026-10-31 |
+| Data | Open-Meteo Historical Forecast API, hourly, 2023-01-01 to 2026-11-23 |
 | Spatial context | Each city plus four points about 55 km north, south, east and west |
 | Input | Last 48 hours × 42 features (7 weather variables × 5 points, time of day, season, latitude, longitude, elevation) |
 | Output | Next 24 hours of temperature, humidity and rain at the city |
@@ -214,10 +214,10 @@ the non-linear models clearly:
 
 | Model (all-India, test year) | Temperature, test cities | Temperature, 8 unseen cities | Humidity |
 |---|---|---|---|
-| Persistence (same hour yesterday) | 1.130 °C | 1.005 °C | 6.92 % |
-| Ridge (linear) | 1.068 °C | 0.965 °C | 6.51 % |
-| LightGBM | 0.947 °C | 0.948 °C | 5.58 % |
-| Ensemble | 0.904 °C | 0.844 °C | 5.47 % |
+| Persistence (same hour yesterday) | 1.109 °C | 0.988 °C | 6.87 % |
+| Ridge (linear) | 1.051 °C | 0.950 °C | 6.46 % |
+| LightGBM | 0.933 °C | 0.934 °C | 5.54 % |
+| Ensemble | 0.889 °C | 0.831 °C | 5.43 % |
 
 So a straight line through the same inputs takes about 5% off persistence's error, and the non-linear models take
 another 15% off the line's.
@@ -313,7 +313,7 @@ whole training job (about 4 hours on an ordinary CPU).
 
 ### How leakage is prevented
 
-- Chronological split: train 2023–2024, validation 2025, test Jan–Oct 2026. No shuffling across time.
+- Chronological split: train 2023–2024, validation 2025, test 1 Jan to 23 Nov 2026. No shuffling across time.
 - Whole windows only: a sample counts only if all 48 input hours and all 24 target hours fall inside one split
   and one city, so nothing straddles a boundary (`dataset.window_ends`, covered by tests).
 - Scaler fitted on training rows only (`preprocess.Preprocessor.fit`), then saved with the model.
@@ -334,12 +334,12 @@ whole training job (about 4 hours on an ordinary CPU).
   `recalibrate`). Since 2026-11-21 a small LightGBM classifier gives it, taking Open-Meteo's own forecast for the
   hour (made about a day earlier, from the free Previous Runs API) as one more input
   (`python -m weatherai_ml.outlook --region india` downloads those forecasts, then
-  `python -m weatherai_ml.chance_model --region india`). On the test period its Brier score is 0.097 (0.107 from
-  the models alone, 0.104 when the forecast can't be fetched), against 0.174 for always forecasting the usual
+  `python -m weatherai_ml.chance_model --region india`). On the test period its Brier score is 0.094 (0.104 from
+  the models alone, 0.101 when the forecast can't be fetched), against 0.169 for always forecasting the usual
   rain frequency; the Models page shows how often it rained when it said 20%, 50% and so on.
 - Rain amounts: the Ensemble's are corrected to the expected amount by a small LightGBM model fitted on the
   validation year (`python -m weatherai_ml.rain_amount --region india`, after `rain_chance`). On the test period
-  R² rose from 0.114 to 0.183 and RMSE fell from 0.755 to 0.725 mm; mean absolute error rose from 0.177 to 0.211 mm,
+  R² rose from 0.131 to 0.184 and RMSE fell from 0.728 to 0.706 mm; mean absolute error rose from 0.172 to 0.201 mm,
   because that measure rewards forecasting almost no rain. Open-Meteo's forecast as an input added too little here
   to keep (`--outlook` turns it on). LightGBM's own rain model learns with a Tweedie loss
   (`python -m weatherai_ml.gbm --region india --only precipitation`).

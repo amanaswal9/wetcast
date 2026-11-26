@@ -358,7 +358,7 @@ export function ModelsPage({ theme }: { theme: Theme }) {
         />
         {first.interval.test_coverage_unseen && (
           <p className="m-0 mt-2 max-w-[75ch] text-[0.92em] text-[var(--text-muted)]">
-            The test period (January to October 2026) had a harder spring than 2025, so temperature and humidity ranges at the trained cities still fall a little short of
+            The test period (January to November 2026) had a harder spring than 2025, so temperature and humidity ranges at the trained cities still fall a little short of
             {' '}{Math.round(first.interval.level * 100)}%. At the held-out cities the rain ranges are on the wide side.
           </p>
         )}

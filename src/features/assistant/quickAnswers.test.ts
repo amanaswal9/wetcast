@@ -253,11 +253,11 @@ describe('composeAnswer', () => {
         display_name: 'Ensemble',
         test: { temperature: s(0.9), humidity: s(5.47), precipitation: s(0.21) },
         persistence_baseline: { temperature: s(1.13), humidity: s(6.92), precipitation: s(0.26) },
-        data: { splits: { test: ['2026-01-01T00:00', '2026-10-31T23:00'] } },
+        data: { splits: { test: ['2026-01-01T00:00', '2026-11-23T23:00'] } },
       },
     ] as unknown as ModelMetrics[]
     expect(ask('how accurate is it', { models })).toBe(
-      "On data it never saw (2026-01 to 2026-10), Wetcast's Ensemble model was off by an average of 0.9 °C for temperature, 5.5% for humidity and 0.21 mm for hourly rain, over the next 24 hours. Simply repeating yesterday's weather was off by 1.1 °C, 6.9% and 0.26 mm. The Models page has every model's scores.",
+      "On data it never saw (2026-01 to 2026-11), Wetcast's Ensemble model was off by an average of 0.9 °C for temperature, 5.5% for humidity and 0.21 mm for hourly rain, over the next 24 hours. Simply repeating yesterday's weather was off by 1.1 °C, 6.9% and 0.26 mm. The Models page has every model's scores.",
     )
   })
 

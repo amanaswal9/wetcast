@@ -115,11 +115,11 @@ HORIZON_HOURS = 24
 # Chronological split (UTC). A window belongs to a split only if every input
 # and target hour lies inside it, so no window straddles a boundary.
 DATA_START = "2023-01-01"
-DATA_END = "2026-10-31"
+DATA_END = "2026-11-23"
 SPLITS = {
     "train": ("2023-01-01T00:00", "2024-12-31T23:00"),
     "val": ("2025-01-01T00:00", "2025-12-31T23:00"),
-    "test": ("2026-01-01T00:00", "2026-10-31T23:00"),
+    "test": ("2026-01-01T00:00", "2026-11-23T23:00"),
 }
 
 INTERVAL_LEVEL = 0.8
