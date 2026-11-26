@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 BASE = "http://localhost:5173"  # replaced by --base
 W, H = 1280, 720
@@ -186,10 +187,10 @@ def record(video_dir: Path) -> tuple[Path, float, float]:
 
         # Off-camera (trimmed away): open the map once so its forecast points are cached,
         # then start on the Dashboard. The map later opens without an empty loading state.
-        # The map scene opens on Jaipur, so its points are fetched here, in the same page session.
+        # The map scene opens on Thiruvananthapuram, so its points are fetched here, in the same page session.
         page.goto(f"{BASE}/#/dashboard")
         page.get_by_role("heading", name="Now").wait_for(timeout=30_000)
-        choose_city(page, "Jaipur", "Rajasthan")
+        choose_city(page, "Thiruvananthapuram", "Kerala")
         page.goto(f"{BASE}/#/map")
         wait_map_ready(page)
         page.wait_for_timeout(1500)  # let the basemap tiles land in the browser cache too
@@ -214,13 +215,24 @@ def record(video_dir: Path) -> tuple[Path, float, float]:
         caption(page, "Type a state to get its capital, or ask by voice")
         box = page.get_by_placeholder("Search city")
         glide(page, box)
-        page.keyboard.type("Rajasthan", delay=110)
-        option = page.get_by_role("option").filter(has_text="Jaipur").first
+        page.keyboard.type("Kerala", delay=110)
+        option = page.get_by_role("option").filter(has_text="Thiruvananthapuram").first
         option.wait_for(timeout=15_000)
         page.wait_for_timeout(500)
         glide(page, option, steps=18)
         page.get_by_role("heading", name="Now").wait_for(timeout=30_000)
         page.wait_for_timeout(1300)
+
+        # 2b. Wetcast's own rain warning, on days the models give one for this city (skipped otherwise).
+        warning = page.locator("section[aria-label='Wetcast rain warning']")
+        try:
+            warning.wait_for(timeout=10_000)
+        except PlaywrightTimeout:
+            warning = None
+        if warning is not None:
+            caption(page, "Wetcast's own rain warnings, tested on data the models never saw")
+            glide(page, warning.get_by_text("Tested on 2026 weather"), steps=22)
+            page.wait_for_timeout(3600)
 
         # 3. The magic moment: Wetcast's own models against Open-Meteo (opened from the Start menu).
         caption(page, "Every page is in the Start menu")
