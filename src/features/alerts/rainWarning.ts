@@ -30,7 +30,7 @@ export function describeRainWarning(w: RainWarning, offsetSeconds: number, time:
   const total = w.total_mm >= 10 ? Math.round(w.total_mm) : Math.round(w.total_mm * 10) / 10
   const body =
     w.level === 'moderate'
-      ? `Wetcast's models expect about ${total} mm of rain by ${by}${around}: moderate rain or more, in IMD's terms for a day's rain.`
+      ? `Wetcast's models expect about ${total} mm of rain by ${by}${around}, and ${w.event_mm} mm or more is possible (moderate rain or more, in IMD's terms for a day's rain).`
       : `Wetcast's models expect rain in about ${Math.max(1, Math.round(w.wet_hours))} of the hours up to ${by}${around}, about ${total} mm in all.`
   const record =
     w.followed_by_rain !== null && w.caught !== null

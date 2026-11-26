@@ -22,7 +22,7 @@ describe('describeRainWarning', () => {
     const t = describeRainWarning(base, IST, hm, NOW)!
     expect(t.kind).toBe('warning')
     expect(t.title).toBe('Rain warning: 15.6 mm or more possible')
-    expect(t.body).toContain('about 18 mm of rain by 16:30 tomorrow, most likely around 08:30 tomorrow')
+    expect(t.body).toContain('about 18 mm of rain by 16:30 tomorrow, most likely around 08:30 tomorrow, and 15.6 mm or more is possible (moderate rain')
     expect(t.record).toContain('52% of these warnings were followed by 15.6 mm or more')
     expect(t.record).toContain('63% of the times')
   })
