@@ -196,7 +196,7 @@ def record(video_dir: Path) -> tuple[Path, float, float]:
         page.goto(f"{BASE}/#/models")  # its code and results load once here, not on camera
         page.get_by_role("heading", name="Test-set results").wait_for(timeout=30_000)
         page.get_by_role("rowheader", name="ST-Transformer").first.wait_for(timeout=30_000)
-        choose_city(page, "Delhi", "Delhi")
+        choose_city(page, "New Delhi", "Delhi")
         page.goto(f"{BASE}/#/dashboard")
         page.wait_for_timeout(800)
         page.get_by_role("heading", name="Now").wait_for(timeout=30_000)
@@ -211,11 +211,11 @@ def record(video_dir: Path) -> tuple[Path, float, float]:
         page.wait_for_timeout(2400)
 
         # 2. Search a city.
-        caption(page, "Search any city, or ask by voice")
+        caption(page, "Type a state to get its capital, or ask by voice")
         box = page.get_by_placeholder("Search city")
         glide(page, box)
-        page.keyboard.type("Jaipur", delay=130)
-        option = page.get_by_role("option").filter(has_text="Rajasthan").first
+        page.keyboard.type("Rajasthan", delay=110)
+        option = page.get_by_role("option").filter(has_text="Jaipur").first
         option.wait_for(timeout=15_000)
         page.wait_for_timeout(500)
         glide(page, option, steps=18)
@@ -265,7 +265,7 @@ def record(video_dir: Path) -> tuple[Path, float, float]:
         caption(page, None)
         glide(page, page.get_by_role("link", name="Models", exact=True))
         page.get_by_role("heading", name="Test-set results").wait_for(timeout=30_000)
-        caption(page, "Every model scored on 10 months of data it never saw")
+        caption(page, "Every model scored on nearly 11 months of data it never saw")
         page.wait_for_timeout(2200)
         scroll_to_heading(page, "Test-set results", offset=-150)
         page.wait_for_timeout(2200)
