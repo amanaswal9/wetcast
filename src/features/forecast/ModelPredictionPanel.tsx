@@ -5,6 +5,7 @@ import { Button, ChartSkeleton, GroupBox, MessageBox } from '../../components/re
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useResource } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
+import { RainWarningBox } from '../alerts/RainWarningPanel'
 import { getPredictions, TARGET_LABELS, type PredictionCoverage, type Predictions, type Target } from '../../lib/api/weatherai'
 import { CHART_COLORS, MODEL_COLORS } from '../../lib/chartTheme'
 import { coordKey, round, utcToLocal } from '../../lib/format'
@@ -267,6 +268,7 @@ export function ModelPredictionPanel({ place, week, theme, onSelectPlace }: Mode
     const issuedLocal = utcToLocal(data.issued_at, week.utcOffsetSeconds)
     body = (
       <div className="flex min-w-0 flex-col gap-2">
+        <RainWarningBox warning={data.rain_warning} offsetSeconds={week.utcOffsetSeconds} />
         {data.coverage && (
           <CoverageNote
             coverage={data.coverage}

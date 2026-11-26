@@ -1,0 +1,79 @@
+{
+ "method": "Thresholds on the next 24 hours' expected wet hours or expected total, chosen on the 2025 validation year at the training cities and scored on the 2026 test period, one forecast every third hour",
+ "hours": 24,
+ "levels": {
+  "rain": {
+   "trigger": "wet_hours",
+   "threshold": 2.5,
+   "validation": {
+    "forecasts": 115854,
+    "warnings": 53186,
+    "events": 34203,
+    "hits": 32670,
+    "followed_by_rain": 0.614,
+    "caught": 0.955,
+    "warned_share": 0.4591,
+    "event_share": 0.2952
+   },
+   "event_mm": 2.5,
+   "bar": 0.6,
+   "test": {
+    "forecasts": 103694,
+    "warnings": 48646,
+    "events": 31654,
+    "hits": 29794,
+    "followed_by_rain": 0.612,
+    "caught": 0.941,
+    "warned_share": 0.4691,
+    "event_share": 0.3053
+   },
+   "test_unseen": {
+    "forecasts": 20739,
+    "warnings": 7996,
+    "events": 4913,
+    "hits": 4601,
+    "followed_by_rain": 0.575,
+    "caught": 0.936,
+    "warned_share": 0.3856,
+    "event_share": 0.2369
+   }
+  },
+  "moderate": {
+   "trigger": "total_mm",
+   "threshold": 12.0,
+   "validation": {
+    "forecasts": 115854,
+    "warnings": 11806,
+    "events": 9660,
+    "hits": 5928,
+    "followed_by_rain": 0.502,
+    "caught": 0.614,
+    "warned_share": 0.1019,
+    "event_share": 0.0834
+   },
+   "event_mm": 15.6,
+   "bar": 0.5,
+   "test": {
+    "forecasts": 103694,
+    "warnings": 9386,
+    "events": 7753,
+    "hits": 4852,
+    "followed_by_rain": 0.517,
+    "caught": 0.626,
+    "warned_share": 0.0905,
+    "event_share": 0.0748
+   },
+   "test_unseen": {
+    "forecasts": 20739,
+    "warnings": 1389,
+    "events": 1289,
+    "hits": 775,
+    "followed_by_rain": 0.558,
+    "caught": 0.601,
+    "warned_share": 0.067,
+    "event_share": 0.0622
+   }
+  }
+ },
+ "fitted_at": "2026-11-26T14:49:22+00:00"
+}

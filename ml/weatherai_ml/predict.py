@@ -215,6 +215,10 @@ class EnsemblePredictor:
         self.rain_chance = json.loads(chance_file.read_text()) if chance_file.exists() else None
         if self.rain_chance is not None:  # its scores travel with the metrics (the lookup table stays here)
             self.metrics = self.metrics | {"rain_chance": {k: v for k, v in self.rain_chance.items() if k != "leads"}}
+        warning_file = model_dir / "rain_warning.json"  # see rain_warning.py
+        self.rain_warning = json.loads(warning_file.read_text()) if warning_file.exists() and self.rain_chance is not None else None
+        if self.rain_warning is not None:  # its rules and scores show on the Models page
+            self.metrics = self.metrics | {"rain_warning": self.rain_warning}
         self.rain_amount = None  # expected rain amounts (rain_amount.py); needs the chance-of-rain table
         if (model_dir / "rain_amount.txt").exists() and self.rain_chance is not None:
             from .rain_amount import RainAmount

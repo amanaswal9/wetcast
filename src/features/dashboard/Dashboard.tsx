@@ -4,6 +4,7 @@ import type { ResourceState } from '../../hooks/useResource'
 import type { Theme } from '../../hooks/useTheme'
 import type { AirQuality, Forecast, Place } from '../../types/weather'
 import { AlertsPanel } from '../alerts/AlertsPanel'
+import { RainWarningPanel } from '../alerts/RainWarningPanel'
 import { CurrentConditions } from './CurrentConditions'
 import { HourlyPanel } from './HourlyPanel'
 import { Readings } from './Readings'
@@ -94,6 +95,11 @@ export function Dashboard({ place, forecast, air, summary, theme, speech }: Dash
       <div className="min-w-0 lg:col-span-2 empty:hidden">
         <AlertsPanel place={place} />
       </div>
+      {data && (
+        <div className="min-w-0 lg:col-span-2 empty:hidden">
+          <RainWarningPanel place={place} timeZone={data.timezone} />
+        </div>
+      )}
       {!data ? (
         <SkeletonColumns />
       ) : (

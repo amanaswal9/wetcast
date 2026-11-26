@@ -67,6 +67,19 @@ class ModelPredictionOut(BaseModel):
     points: list[PredictionPointOut]
 
 
+class RainWarningOut(BaseModel):
+    """Wetcast's own rain warning for the 24 forecast hours (from the ensemble; not an official warning)."""
+
+    level: Literal["rain", "moderate"] = Field(description='"rain": 2.5 mm or more likely; "moderate": 15.6 mm or more possible')
+    event_mm: float = Field(description="The 24-hour rain the warning is about, mm")
+    wet_hours: float = Field(description="Expected number of hours with rain (sum of the hourly chances)")
+    total_mm: float = Field(description="Expected rain over the 24 hours, mm")
+    peak_time: datetime = Field(description="The hour with the highest chance of rain")
+    until: datetime = Field(description="The last forecast hour")
+    followed_by_rain: float | None = Field(description="On the 2026 test period, share of these warnings followed by event_mm or more")
+    caught: float | None = Field(description="On the 2026 test period, share of the times event_mm or more fell that were warned of")
+
+
 class PredictionsOut(BaseModel):
     """The response of /api/predictions."""
 
@@ -77,6 +90,7 @@ class PredictionsOut(BaseModel):
     note: str
     coverage: CoverageOut
     models: list[ModelPredictionOut]
+    rain_warning: RainWarningOut | None = None
 
 
 class UnsupportedLocation(BaseModel):

@@ -32,6 +32,7 @@ $steps = @(
     @('-m', 'weatherai_ml.rain_chance', '--region', 'india'),
     @('-m', 'weatherai_ml.chance_model', '--region', 'india'),
     @('-m', 'weatherai_ml.rain_amount', '--region', 'india'),
+    @('-m', 'weatherai_ml.rain_warning', '--region', 'india'),
     @('-m', 'weatherai_ml.linear', '--region', 'india')
 )
 try {

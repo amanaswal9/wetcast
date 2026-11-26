@@ -346,6 +346,14 @@ whole training job (about 4 hours on an ordinary CPU).
   because that measure rewards forecasting almost no rain. Open-Meteo's forecast as an input added too little here
   to keep (`--outlook` turns it on). LightGBM's own rain model learns with a Tweedie loss
   (`python -m weatherai_ml.gbm --region india --only precipitation`).
+- Rain warnings (Dashboard and Forecast page, from 2026-11-26): Wetcast's own, from the Ensemble's next 24 hours,
+  marked as not official. "Rain likely" means 2.5 mm or more (IMD's rainy day) and shows when the hourly chances add
+  up to 2.5 wet hours; "Rain warning" means 15.6 mm or more (IMD's moderate rain) and shows when the expected amounts
+  add up to 12 mm. The thresholds were chosen on the 2025 validation year by a rule set beforehand (the lowest at which
+  3 in 5, and 1 in 2, warnings came true) and scored on the 2026 test period, one forecast every 3 hours: 61% of
+  "rain likely" notes were followed by 2.5 mm, catching 94% of such times (58% and 94% at the unseen cities); 52% of
+  warnings were followed by 15.6 mm, catching 63% (56% and 60% unseen). `python -m weatherai_ml.rain_warning
+  --region india`, after `rain_amount`, writes them to `ensemble/rain_warning.json`.
 - NASA satellite rain check (2026-11-23): `python -m weatherai_ml.imerg --region india` downloads GPM IMERG
   Late Run rain at the 48 cities for 2023 to October 2026 (free; needs a NASA Earthdata token), and
   `python -m weatherai_ml.imerg_check` tests it. As an input to the rain correction it did not help, even

@@ -54,6 +54,20 @@ export interface ModelPrediction {
   points: ModelPoint[]
 }
 
+// Wetcast's own rain warning for the 24 forecast hours, from the Ensemble (not an official warning).
+// "rain": 2.5 mm or more likely; "moderate": 15.6 mm or more possible. The two shares are its record
+// on the 2026 test period: warnings followed by that much rain, and times that much fell that were warned of.
+export interface RainWarning {
+  level: 'rain' | 'moderate'
+  event_mm: number
+  wet_hours: number
+  total_mm: number
+  peak_time: string
+  until: string
+  followed_by_rain: number | null
+  caught: number | null
+}
+
 export interface Predictions {
   city: CoveredCity
   issued_at: string
@@ -62,6 +76,8 @@ export interface Predictions {
   note: string
   coverage: PredictionCoverage
   models: ModelPrediction[]
+  // Missing from forecasts published before warnings existed.
+  rain_warning?: RainWarning | null
 }
 
 export type PredictionsResult = { kind: 'ok'; data: Predictions } | { kind: 'unsupported'; supported: CoveredCity[]; detail: string }

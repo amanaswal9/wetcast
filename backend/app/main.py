@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from weatherai_ml.config import TARGETS
 from weatherai_ml.predict import InsufficientHistoryError, haversine_km
 from weatherai_ml.preprocess import FeatureOrderError
+from weatherai_ml.rain_warning import warn as rain_warning_for
 
 from .config import get_settings
 from .db import SavedPlace, engine, get_session
@@ -48,6 +49,7 @@ from .schemas import (
     PlacesReplace,
     PredictionPointOut,
     PredictionsOut,
+    RainWarningOut,
     UnsupportedLocation,
 )
 
@@ -252,6 +254,15 @@ def predictions(
             points.append(PredictionPointOut.model_validate(row))
         results.append(ModelPredictionOut(model=name, display_name=registry.display_name(name), points=points))
 
+    warning = None
+    ensemble = registry.get("ensemble") if "ensemble" in names else None
+    if ensemble is not None and getattr(ensemble, "rain_warning", None):
+        pred = forecasts["ensemble"]
+        found = rain_warning_for(ensemble.rain_warning, pred.rain_chance, pred.values[:, TARGETS.index("precipitation")])
+        if found:
+            peak = found.pop("peak_hour")
+            warning = RainWarningOut(**found, peak_time=pred.times[peak].to_pydatetime(), until=pred.times[-1].to_pydatetime())
+
     level = registry.metrics(names[0])["interval"]["level"]
     basis_model = "ensemble" if "ensemble" in names else names[0]
     label, detail = model_coverage.describe(region, located)
@@ -277,6 +288,7 @@ def predictions(
         ),
         coverage=where,
         models=results,
+        rain_warning=warning,
     )
 
 

@@ -132,6 +132,13 @@ def test_ensemble_prediction_is_mean_of_members(client, monkeypatch):
     assert all((p["rain_chance"] is not None) == has_table for p in by_model["ensemble"])
     assert all(0 <= p["rain_chance"] <= 1 for p in by_model["ensemble"] if p["rain_chance"] is not None)
     assert all(p["rain_chance"] is None for m in members for p in by_model[m])
+    # A rain warning, when there is one, matches the forecast it came from.
+    w = r.json()["rain_warning"]
+    if w is not None:
+        assert w["level"] in ("rain", "moderate")
+        assert abs(w["wet_hours"] - sum(p["rain_chance"] for p in by_model["ensemble"])) < 0.1
+        assert w["until"].startswith(by_model["ensemble"][-1]["time"][:13])
+        assert w["peak_time"][:13] in {p["time"][:13] for p in by_model["ensemble"]}
 
 
 def test_registry_refuses_ensemble_with_missing_member(tmp_path):

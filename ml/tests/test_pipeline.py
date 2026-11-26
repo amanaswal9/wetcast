@@ -571,3 +571,30 @@ def test_imerg_cells_and_hours():
     assert first["cell_mm"] == pytest.approx(3.0) and first["box_mm"] == pytest.approx(2.0) and first["half_hours"] == 2
     second = hours.loc[pd.Timestamp("2025-07-15T08:00", tz="UTC")]
     assert second["cell_mm"] == pytest.approx(6.0) and second["half_hours"] == 1  # one half-hour counted for the whole hour
+
+
+def test_rain_warning_picks_the_strongest_level_reached():
+    from weatherai_ml.rain_warning import choose, score, warn
+
+    info = {"levels": {
+        "rain": {"trigger": "wet_hours", "threshold": 2.5, "event_mm": 2.5, "test": {"followed_by_rain": 0.6, "caught": 0.9}},
+        "moderate": {"trigger": "total_mm", "threshold": 12.0, "event_mm": 15.6, "test": {"followed_by_rain": 0.5, "caught": 0.6}},
+    }}
+    dry = np.zeros(24)
+    assert warn(info, dry, dry) is None
+    assert warn(info, None, dry) is None  # no chance of rain: no warning
+    chance = np.full(24, 0.2)  # 4.8 wet hours expected
+    w = warn(info, chance, np.full(24, 0.1))
+    assert w["level"] == "rain" and w["wet_hours"] == 4.8 and w["total_mm"] == 2.4
+    chance[7] = 0.9
+    w = warn(info, chance, np.full(24, 0.6))  # 14.4 mm expected
+    assert w["level"] == "moderate" and w["peak_hour"] == 7 and w["followed_by_rain"] == 0.5
+
+    trigger = np.array([0.0, 1.0, 3.0, 5.0, 8.0, 9.0])
+    observed = np.array([0.0, 0.0, 1.0, 3.0, 4.0, 0.0])
+    s = score(trigger, observed, 3.0, 2.5)
+    assert (s["warnings"], s["events"], s["hits"], s["followed_by_rain"], s["caught"]) == (4, 2, 2, 0.5, 1.0)
+    # The lowest threshold meeting the bar wins, and too few warnings never count.
+    many = np.repeat(trigger, 20)
+    picked = choose({"wet_hours": many, "total_mm": np.zeros_like(many)}, np.repeat(observed, 20), 2.5, 0.6)
+    assert picked["trigger"] == "wet_hours" and picked["threshold"] == 3.25
