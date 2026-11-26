@@ -1,10 +1,15 @@
 # Publishes the public copy to GitHub Pages: https://amanaswal9.github.io/wetcast/ (free, https).
 #
-# It runs after CI passes on main, and every 3 hours on its own, so the site always shows a recent
+# It runs after CI passes on main, and about every 3 hours on its own, so the site always shows a recent
 # forecast from Wetcast's own models. Each run builds the site from a clean checkout (nothing kept only
 # on a developer's computer can end up in it), then backend/scripts/export_public_data.py runs the
-# models for all 48 cities with live Open-Meteo data and writes the results next to the site as plain
+# models for all 90 cities with live Open-Meteo data and writes the results next to the site as plain
 # files. No server and no secrets: the job's own token publishes the site.
+#
+# GitHub delays or drops scheduled runs when it is busy (here most 3-hourly slots never ran), so the
+# schedule asks twice an hour and the "due" job lets a publish through only when the live forecast is
+# at least 2 h 40 min old. Most scheduled runs stop there after a few seconds, a dropped slot costs
+# half an hour instead of three, and Open-Meteo is called no more often than before.
 #
 # GitHub turns scheduled runs off after 60 days without a push to the repository; a push, or
 # "Enable workflow" on the Actions tab, turns them back on.
@@ -16,7 +21,7 @@ on:
     types: [completed]
     branches: [main]
   schedule:
-    - cron: "23 */3 * * *"
+    - cron: "23,53 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -25,16 +30,49 @@ permissions:
   id-token: write
   actions: read  # the deploy step looks the build's artifact up through the Actions API
 
-# One publish at a time; a newer one waits rather than cancelling one already deploying.
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
+  due:
+    name: Is a forecast due?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      due: ${{ steps.age.outputs.due }}
+    steps:
+      - id: age
+        env:
+          EVENT: ${{ github.event_name }}
+          SITE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        # Pushes and manual runs always publish. A scheduled run publishes when the live forecast is old,
+        # or when its age can't be read (first publish, site down).
+        run: |
+          python3 - <<'EOF'
+          import json, os, time, urllib.request
+          from datetime import datetime, timezone
+          due, why = True, "not a scheduled run"
+          if os.environ["EVENT"] == "schedule":
+              try:
+                  url = os.environ["SITE"] + "data/index.json?t=" + str(int(time.time()))
+                  with urllib.request.urlopen(url, timeout=20) as r:
+                      made = datetime.fromisoformat(json.load(r)["generated_at"])
+                  minutes = (datetime.now(timezone.utc) - made).total_seconds() / 60
+                  due, why = minutes >= 160, f"live forecast is {minutes:.0f} minutes old"
+              except Exception as e:
+                  why = f"age unknown ({e})"
+          print(("due: " if due else "not due: ") + why)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              print(f"due={str(due).lower()}", file=out)
+          EOF
+
   build:
     name: Build and forecast
+    needs: due
     # After CI only when every check passed; scheduled and manual runs publish main as it is.
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ needs.due.outputs.due == 'true' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
+    # One publish at a time; a newer one waits rather than cancelling one already running. Set on the
+    # jobs, not the workflow, so the half-hourly "due" checks never queue behind or cancel a publish.
+    concurrency:
+      group: pages-build
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -77,6 +115,9 @@ jobs:
   deploy:
     name: Publish
     needs: build
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:

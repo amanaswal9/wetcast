@@ -179,7 +179,10 @@ the server: the latest forecast per city, the models' test scores and their eval
 10,000 calls a day is what keeps the list near 90. `scripts/pages-meta.mjs` puts the
 Content-Security-Policy and Referrer-Policy from `deploy/security-headers.conf` into the pages as `<meta>` tags;
 GitHub Pages can't send custom headers, so X-Frame-Options, Permissions-Policy and the CSP's `frame-ancestors` only
-apply on the self-hosted setup. The job's own token publishes the site; no secret is needed. GitHub pauses
+apply on the self-hosted setup. The job's own token publishes the site; no secret is needed. GitHub delays or
+drops scheduled runs when it is busy, so the schedule fires twice an hour and a first job lets the publish run only
+when the live forecast (`data/index.json`, `generated_at`) is at least 2 h 40 min old: a dropped slot costs half an
+hour, not three, and Open-Meteo is called no more often. GitHub pauses
 scheduled runs after 60 days without a push; "Enable workflow" on the Actions tab restarts them.
 
 To try the public build locally: `VITE_PUBLIC_SITE=http://localhost:4173/wetcast/ VITE_PUBLIC_DATA=1 npm run build`,
